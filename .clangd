@@ -1,0 +1,13 @@
+CompileFlags:
+  Add: [-ferror-limit=0]
+  Remove: []
+
+Diagnostics:
+  Suppress: ["-Wc++17-extensions"]
+  UnusedIncludes: None
+  MissingIncludes: None
+
+Completion:
+  ArgumentLists: Delimiters
+  HeaderInsertion: Never
+  CodePatterns: All

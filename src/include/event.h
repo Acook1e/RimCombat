@@ -5,7 +5,7 @@
 namespace Events
 {
 
-class animEventHandler
+class AnimEventHandler
 {
 public:
 public:
@@ -20,7 +20,7 @@ public:
   }
 
 private:
-  static inline void ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+  static inline bool ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
                                   RE::BSAnimationGraphEvent* a_event,
                                   RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
@@ -38,6 +38,6 @@ private:
 
 inline void Register()
 {
-  animEventHandler::InstallHook();
+  AnimEventHandler::InstallHook();
 }
 }  // namespace Events

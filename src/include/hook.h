@@ -2,7 +2,8 @@
 
 #include "pch.h"
 
-#include "updateHandler.h"
+#include "executionHandler.h"
+#include "hudHandler.h"
 
 namespace Hooks
 {
@@ -145,13 +146,13 @@ public:
     REL::Relocation<std::uintptr_t> PlayerCharacterVtbl{RE::VTABLE_PlayerCharacter[0]};
 
     _Update = PlayerCharacterVtbl.write_vfunc(0xAD, Update);
-    logger::info("hook:OnPlayerUpdate");
+    logger::info("Hooks: OnPlayerUpdate installed.");
   }
 
 private:
   static void Update(RE::PlayerCharacter* a_this, float a_delta)
   {
-    Handler::UpdateHandler::GetSingleton().Update();
+    Handler::Execution::GetSingleton().Update();
     _Update(a_this, a_delta);
   }
   static inline REL::Relocation<decltype(Update)> _Update;
@@ -165,5 +166,7 @@ inline void InstallHooks()
   Hook_OnMeleeHit::install();
   Hook_OnAttackAction::install();
   // Hook_AttackBlockHandler_OnProcessButton::install();
+
+  Hook_OnPlayerUpdate::install();
 }
 }  // namespace Hooks

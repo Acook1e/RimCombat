@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <deque>
 #include <format>
 #include <mutex>
 #include <ranges>
@@ -17,8 +18,4 @@
 #include <unordered_map>
 #include <vector>
 
-#include "setting.h"
-
 namespace logger = SKSE::log;
-
-using PoiseType = Settings::PoiseType;

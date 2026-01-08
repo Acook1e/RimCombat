@@ -1,18 +1,9 @@
 #pragma once
 
+#include "pch.h"
+
 namespace Settings
 {
-enum PoiseType : uint8_t
-{
-  kNull = 0,
-  kPoise,
-  kChocolatePoise,
-  kMaxsuPoise,
-  kPoiseHandler,
-  kTotal
-};
-std::string PoiseTypeToString(PoiseType type);
-
 #pragma region Stamina
 
 inline bool bConsumeStaminaOutCombat = true;
@@ -29,29 +20,30 @@ inline bool bPowerAttackComsumeStaminaCheck = true;
 inline float fPowerAttackStaminaCostBase    = 30;
 inline float fPowerAttackStaminaCostPerMass = 0.5;
 
-inline bool bUseExhaustionSystem     = true;
-inline float fExhaustionEndPercent   = 0.6;
-inline float fExhaustionDamageMult   = 0.5;
-inline RE::SpellItem* exhaustionMark = nullptr;
+inline bool bUseExhaustionSystem   = true;
+inline float fExhaustionEndPercent = 0.6;
+inline float fExhaustionDamageMult = 0.5;
 
-inline float fStaminaRegenMult         = 5;
-inline float fStaminaRegenLimit        = 50;
-inline float fStaminaRegenMin          = 10;
-inline float fCombatStaminaRegenMult   = 1;
-inline float fBlockingStaminaRegenMult = 0.5;
-inline float fStaminaRegenDelay        = 2;
+inline float fStaminaRegenMult         = 5.0f;
+inline float fStaminaRegenLimit        = 50.0f;
+inline float fStaminaRegenMin          = 10.0f;
+inline float fCombatStaminaRegenMult   = 1.0f;
+inline float fBlockingStaminaRegenMult = 0.5f;
+inline float fStaminaRegenDelay        = 1.0f;
 
 inline bool bBlockStaminaToggle = true;
 
 #pragma endregion
-#pragma region Poise
+#pragma region Poise&Execution
 
-inline bool bUsePoiseHUD         = true;
-inline bool bHudEnabled          = false;
-inline PoiseType poiseType       = PoiseType::kPoiseHandler;
-inline float fPoiseBreakStunTime = 5.0f;
+inline bool bEnablePoiseExecution = true;
+inline bool bUsePoiseHUD          = true;
+inline bool bHudEnabled           = false;
+inline float fPoiseBreakStunTime  = 5.0f;
 
-inline bool bRestorePoiseInCombat = true;
+inline bool bRestorePoiseInCombat         = true;
+inline float fRestorePoiseSpeed           = 0.001f;
+inline float fRestorePoiseSpeedCombatMult = 0.05f;
 
 inline float fNormalAttackPoiseDamage_Fist       = 5.0f;
 inline float fNormalAttackPoiseDamage_Dagger     = 6.0f;
@@ -60,24 +52,24 @@ inline float fNormalAttackPoiseDamage_Axe        = 10.0f;
 inline float fNormalAttackPoiseDamage_Mace       = 12.0f;
 inline float fNormalAttackPoiseDamage_GreatSword = 20.0f;
 inline float fNormalAttackPoiseDamage_GreatAxe   = 22.0f;
-inline float fBashPoiseDamage                    = 16.0f;
+inline float fBashPoiseDamageBase                = 16.0f;
+inline float fActorMaxPoiseBase                  = 100.0f;
 
-inline float fPowerAttackPoiseDamageMult   = 2.0f;
+inline float fPowerAttackPoiseDamageMult   = 200.0f;
 inline float fBlockedPoiseDamageMult       = 0.5f;
-inline float fBlockedPoiseDamageToAttacker = 200.0f;
+inline float fBlockedPoiseDamageToAttacker = 0.0f;
 inline float fPowerBashPoiseDamageMult     = 1.5f;
 
-#pragma endregion
-#pragma region Execution
-
-inline bool bEnableExecution        = true;
-inline RE::SpellItem* executionMark = nullptr;
-inline RE::TESIdleForm* victimIdle  = nullptr;
-inline std::unordered_map<int, RE::TESIdleForm*> attackerIdles;
+inline bool bEnablePlayerAutoExecution = true;
+inline bool bEnableNPCAutoExecution    = true;
+inline float fExecutionMaxDistance     = 200.0f;
 
 inline float fExecutionHealthPercent = 0.06f;
 
 #pragma endregion
+
+template <typename T>
+void SetGameSettings(const char* a_setting, T a_value);
 
 void InitSettings();
 void LoadSettings();

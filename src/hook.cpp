@@ -1,20 +1,32 @@
 #include "hook.h"
 
+#include "attackHandler.h"
 #include "poiseHandler.h"
 
 namespace Hooks
 {
 float Hook_OnGetAttackStaminaCost::getAttackStaminaCost(RE::ActorValueOwner* avOwner, RE::BGSAttackData* atkData)
 {
-  auto offset        = REL::VariantOffset(-0xB0, -0xB8, 0x0);
+  REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
   RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
 
-  if (Settings::bPowerAttackComsumeStaminaTweak)
-    return 0;
-
   if (!Settings::bConsumeStaminaOutCombat && !a_actor->IsInCombat()) {
-    return 0;
+    return 0.0f;
   }
+
+  if (Settings::bUseAttackStaminaSystem) {
+    auto flags       = atkData->data.flags;
+    float weaponMass = 0.0f;
+    if (a_actor->GetAttackingWeapon()) {
+      weaponMass = a_actor->GetAttackingWeapon()->GetWeight();
+    }
+    if (Settings::bPowerAttackComsumeStaminaTweak &&
+        (flags.any(RE::AttackData::AttackFlag::kPowerAttack) || flags.any(RE::AttackData::AttackFlag::kChargeAttack)))
+      return Settings::fPowerAttackStaminaCostBase + Settings::fPowerAttackStaminaCostPerMass * weaponMass;
+    else if (Settings::bNormalAttackComsumeStamina)
+      return Settings::fNormalAttackStaminaCostBase + Settings::fNormalAttackStaminaCostPerMass * weaponMass;
+  }
+
   return _getAttackStaminaCost(avOwner, atkData);
 }
 
@@ -37,8 +49,15 @@ bool Hook_OnCheckStaminaRegenCondition::HasFlags1(RE::ActorState* a_this, uint16
 
 float Hook_OnModActorValue::ModActorValue(RE::Actor* a_actor, RE::ActorValue a_akValue, float a_value)
 {
-  if (a_value < 0)
+  if (a_value < 0) {
+    if (a_akValue == RE::ActorValue::kStamina) {
+      if (Settings::bUseExhaustionSystem &&
+          a_actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + a_value <= 0) {
+        Handler::Attack::GetSingleton().EnterExhaustion(a_actor);
+      }
+    }
     return a_value;
+  }
   switch (a_akValue) {
   case RE::ActorValue::kStamina:
     if (a_actor->IsBlocking()) {
@@ -49,16 +68,25 @@ float Hook_OnModActorValue::ModActorValue(RE::Actor* a_actor, RE::ActorValue a_a
         return 0;
       }
     }
-    break;
-  case RE::ActorValue::kHealth:
-    if (Settings::poiseType == PoiseType::kPoiseHandler) {
-      if (Settings::bRestorePoiseInCombat && !a_actor->IsInCombat())
-        break;
-      if (Settings::executionMark && a_actor->HasSpell(Settings::executionMark))
-        break;
-      Handler::PoiseHandler::RimCombatPoise::GetSingleton().RestorePoiseHealth(a_actor, 0.0005f);
+    if (Settings::bUseExhaustionSystem && Handler::Attack::GetSingleton().IsInExhaustion(a_actor)) {
+      if (a_actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) /
+              (a_actor->AsActorValueOwner()->GetPermanentActorValue(RE::ActorValue::kStamina) +
+               a_actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kStamina)) >=
+          Settings::fExhaustionEndPercent)
+        Handler::Attack::GetSingleton().QuitExhaustion(a_actor);
     }
     break;
+  case RE::ActorValue::kHealth:
+    break;
+  }
+  if (Settings::bEnablePoiseExecution) {
+    if (!Settings::bRestorePoiseInCombat && a_actor->IsInCombat())
+      return a_value;
+    if (Handler::Execution::GetSingleton().IsVictim(a_actor))
+      return a_value;
+    Handler::Poise::RimPoise::GetSingleton().RestorePoiseHealth(
+        a_actor, a_actor->IsInCombat() ? Settings::fRestorePoiseSpeed * Settings::fRestorePoiseSpeedCombatMult
+                                       : Settings::fRestorePoiseSpeed);
   }
   return a_value;
 }
@@ -67,7 +95,7 @@ void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* a_this, RE::AC
                                              RE::ActorValue a_akValue, float a_value)
 {
   if (a_modifier == RE::ACTOR_VALUE_MODIFIER::kDamage) {
-    auto offset        = REL::VariantOffset(-0xB0, -0xB8, 0x0);
+    REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
     RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(a_this, offset.offset());
     a_value            = ModActorValue(a_actor, a_akValue, a_value);
   }
@@ -78,7 +106,7 @@ void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* a_this, RE::ACT
                                             RE::ActorValue a_akValue, float a_value)
 {
   if (a_modifier == RE::ACTOR_VALUE_MODIFIER::kDamage) {
-    auto offset        = REL::VariantOffset(-0xB0, -0xB8, 0x0);
+    REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
     RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(a_this, offset.offset());
     a_value            = ModActorValue(a_actor, a_akValue, a_value);
   }
@@ -92,7 +120,17 @@ void Hook_OnMeleeHit::processHit(RE::Actor* victim, RE::HitData& hitData)
   if (!victim || !aggressor || victim->IsDead())
     return _ProcessHit(victim, hitData);
 
-  Handler::PoiseHandler::RimCombatPoise::GetSingleton().ProcessHit(aggressor, victim, hitData);
+  if (Settings::bEnablePoiseExecution)
+    Handler::Poise::RimPoise::GetSingleton().ProcessMeleeHit(aggressor, victim, hitData);
+
+  if (Settings::bUseExhaustionSystem && Handler::Attack::GetSingleton().IsInExhaustion(aggressor)) {
+    logger::info("GetAttackStaminaCost: Exhausted Actor {} Origin {}", aggressor->GetDisplayFullName(),
+                 hitData.totalDamage);
+    hitData.totalDamage *= Settings::fExhaustionDamageMult;
+    logger::info("GetAttackStaminaCost: Exhausted Actor {} Modify {}", aggressor->GetDisplayFullName(),
+                 hitData.totalDamage);
+  }
+
   _ProcessHit(victim, hitData);
 }
 

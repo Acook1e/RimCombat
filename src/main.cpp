@@ -1,24 +1,26 @@
 #include "pch.h"
 
+#include "event.h"
 #include "hook.h"
+#include "hudHandler.h"
 #include "menu.h"
-#include "updateHandler.h"
 
 void onDataLoaded()
 {
   Hooks::InstallHooks();
   Settings::InitSettings();
+  Events::Register();
 }
 
 void onPostLoad()
 {
-  Handler::UpdateHandler::GetSingleton().InitHUD();
+  Handler::HUD::GetSingleton().InitHUD();
 }
 
 void onPostLoadGame()
 {
   if (Settings::bUsePoiseHUD)
-    Handler::UpdateHandler::GetSingleton().RequestHUD();
+    Handler::HUD::GetSingleton().RequestHUD();
 }
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_msg)

@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "poiseHandler.h"
+#include "setting.h"
 
 #include "lib/SKSEMenuFramework.h"
 
@@ -23,20 +24,14 @@ void Stamina()
   ImGuiMCP::Checkbox("Power Attack Consume Stamina", &Settings::bPowerAttackComsumeStaminaTweak);
 }
 
-void Execution()
+void PoiseAndExecution()
 {
-  ImGuiMCP::Text("Execution Settings go here.");
-  if (ImGuiMCP::BeginCombo("Poise Type", Settings::PoiseTypeToString(Settings::poiseType).c_str())) {
-    for (uint8_t i = PoiseType::kNull + 1; i < PoiseType::kTotal; i++) {
-      PoiseType type  = static_cast<PoiseType>(i);
-      bool isSelected = Settings::poiseType == type;
-      if (ImGuiMCP::Selectable(Settings::PoiseTypeToString(type).c_str(), isSelected))
-        Settings::poiseType = type;
-      if (isSelected)
-        ImGuiMCP::SetItemDefaultFocus();
-    }
-    ImGuiMCP::EndCombo();
-  }
+  ImGuiMCP::Text("Poise and Execution Settings go here.");
+  ImGuiMCP::Checkbox("Enable Poise and Execution System", &Settings::bEnablePoiseExecution);
+  ImGuiMCP::Checkbox("Enable Player Auto Execution", &Settings::bEnablePlayerAutoExecution);
+  ImGuiMCP::Checkbox("Enable NPC Auto Execution", &Settings::bEnableNPCAutoExecution);
+  ImGuiMCP::SliderFloat("Execution Max Distance", &Settings::fExecutionMaxDistance, 50.0f, 300.0f, "%.1f");
+  ImGuiMCP::Separator();
 }
 
 void Register()
@@ -44,11 +39,11 @@ void Register()
   if (!SKSEMenuFramework::IsInstalled())
     return;
 
-  SKSEMenuFramework::SetSection("Valhalla Combat Redux");
+  SKSEMenuFramework::SetSection("Rim Combat");
 
   SKSEMenuFramework::AddSectionItem("Block", Block);
   SKSEMenuFramework::AddSectionItem("Stamina", Stamina);
-  SKSEMenuFramework::AddSectionItem("Execution", Execution);
+  SKSEMenuFramework::AddSectionItem("Poise and Execution", PoiseAndExecution);
 
   logger::info("Menu: Registered.");
 }

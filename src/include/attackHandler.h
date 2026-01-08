@@ -2,14 +2,16 @@
 
 #include "pch.h"
 
+#include "hudHandler.h"
+
 namespace Handler
 {
-class AttackHandler
+class Attack
 {
 public:
-  static AttackHandler& GetSingleton()
+  static Attack& GetSingleton()
   {
-    static AttackHandler singleton;
+    static Attack singleton;
     return singleton;
   }
 
@@ -48,7 +50,6 @@ public:
 
   void OnNormalAttack(RE::Actor* attacker, RE::Actor* victim, RE::TESObjectWEAP* weapon, float& damage)
   {
-    logger::info("AttackHandler: OnNormalAttack called.");
     if (Settings::bNormalAttackComsumeStamina) {
       float weaponMass = 0.0f;
       if (Settings::bConsumeStaminaOutCombat && !attacker->IsInCombat()) {
@@ -67,7 +68,6 @@ public:
   }
   void OnPowerAttack(RE::Actor* attacker, RE::Actor* victim, RE::TESObjectWEAP* weapon, float& damage)
   {
-    logger::info("AttackHandler: OnPowerAttack called.");
     if (Settings::bPowerAttackComsumeStaminaTweak) {
       float weaponMass = 0.0f;
       if (Settings::bConsumeStaminaOutCombat && !attacker->IsInCombat()) {
@@ -87,25 +87,13 @@ public:
 
   bool IsInExhaustion(RE::Actor* actor)
   {
-    if (Settings::exhaustionMark == nullptr)
-      return false;
-    return actor->HasSpell(Settings::exhaustionMark);
+    bool res = false;
+    actor->GetGraphVariableBool("bRimInExhaustion", res);
+    return res;
   }
 
-  void EnterExhaustion(RE::Actor* actor)
-  {
-    if (Settings::exhaustionMark == nullptr)
-      return;
-    if (!actor->HasSpell(Settings::exhaustionMark))
-      actor->AddSpell(Settings::exhaustionMark);
-  }
+  void EnterExhaustion(RE::Actor* actor) { actor->SetGraphVariableBool("bRimInExhaustion", true); }
 
-  void QuitExhaustion(RE::Actor* actor)
-  {
-    if (Settings::exhaustionMark == nullptr)
-      return;
-    if (actor->HasSpell(Settings::exhaustionMark))
-      actor->RemoveSpell(Settings::exhaustionMark);
-  }
+  void QuitExhaustion(RE::Actor* actor) { actor->SetGraphVariableBool("bRimInExhaustion", false); }
 };
 }  // namespace Handler

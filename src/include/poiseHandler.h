@@ -2,24 +2,18 @@
 
 #include "pch.h"
 
-namespace Handler::PoiseHandler
+namespace Handler::Poise
 {
-
-static constexpr std::string_view CurrentMaxsuPoise_Name   = "MaxsuPoise_PoiseHealth";
-static constexpr std::string_view CurrentPoiseHandler_Name = "RimCombatPoise_PoiseHealth";
-
-static constexpr std::string_view MaxPoiseHandler_Name = "RimCombatPoise_PoiseMax";
-
-class RimCombatPoise
+class RimPoise
 {
 public:
-  static RimCombatPoise& GetSingleton()
+  static RimPoise& GetSingleton()
   {
-    static RimCombatPoise singleton;
+    static RimPoise singleton;
     return singleton;
   }
 
-  void ProcessHit(RE::Actor* attacker, RE::Actor* victim, RE::HitData& hitData);
+  void ProcessMeleeHit(RE::Actor* attacker, RE::Actor* victim, RE::HitData& hitData);
 
   float CalculateMaxPoise(RE::Actor* actor);
   float GetCurrentPoise(RE::Actor* actor);
@@ -30,9 +24,18 @@ public:
   void ResetPoiseHealth(RE::Actor* actor);
 
 private:
+  static constexpr std::string_view CurrentPoiseStr = "fRimPoiseHealth";
+  static constexpr std::string_view MaxPoiseStr     = "fRimPoiseMax";
+
   std::mutex mtx;
 };
 
-float GetCurrentPoise(RE::Actor* actor);
-float GetMaxPoise(RE::Actor* actor);
-}  // namespace Handler::PoiseHandler
+inline float GetCurrentPoise(RE::Actor* actor)
+{
+  return RimPoise::GetSingleton().GetCurrentPoise(actor);
+}
+inline float GetMaxPoise(RE::Actor* actor)
+{
+  return RimPoise::GetSingleton().GetMaxPoise(actor);
+}
+}  // namespace Handler::Poise

@@ -1,17 +1,15 @@
 #pragma once
 
-#include "pch.h"
-
 namespace Events
 {
 
-class AnimEventHandler
+class AnimEvent
 {
 public:
 public:
-  static void InstallHook()
+  static void Install()
   {
-    logger::info("AnimEventHandler: Installing animation event hook...");
+    logger::info("AnimEvent: Installing animation event hook...");
     REL::Relocation<uintptr_t> AnimEventVtbl_NPC{RE::VTABLE_Character[2]};
     REL::Relocation<uintptr_t> AnimEventVtbl_PC{RE::VTABLE_PlayerCharacter[2]};
 
@@ -20,24 +18,21 @@ public:
   }
 
 private:
-  static inline bool ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
-                                  RE::BSAnimationGraphEvent* a_event,
+  static inline bool ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
                                   RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
-  static RE::BSEventNotifyControl ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
-                                                   RE::BSAnimationGraphEvent* a_event,
+  static RE::BSEventNotifyControl ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
                                                    RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
-  static RE::BSEventNotifyControl ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
-                                                  RE::BSAnimationGraphEvent* a_event,
+  static RE::BSEventNotifyControl ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
                                                   RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
   static inline REL::Relocation<decltype(ProcessEvent_NPC)> _ProcessEvent_NPC;
   static inline REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
 };
 
-inline void Register()
+inline void Install()
 {
-  AnimEventHandler::InstallHook();
+  AnimEvent::Install();
 }
 }  // namespace Events

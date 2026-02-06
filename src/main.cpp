@@ -1,27 +1,22 @@
-#include "pch.h"
-
-#include "event.h"
-#include "hook.h"
-#include "hudHandler.h"
-#include "menu.h"
+#include "Event.h"
+#include "Hooks.h"
+#include "Menu.h"
+#include "Posture.h"
+#include "Settings.h"
 
 void onDataLoaded()
 {
-  Hooks::InstallHooks();
-  Settings::InitSettings();
-  Events::Register();
+  Settings::LoadSettings();
+  Hooks::Install();
+  Events::Install();
 }
 
 void onPostLoad()
 {
-  Handler::HUD::GetSingleton().InitHUD();
+  Posture::GetSingleton().InitHUD();
 }
 
-void onPostLoadGame()
-{
-  if (Settings::bUsePoiseHUD)
-    Handler::HUD::GetSingleton().RequestHUD();
-}
+void onPostLoadGame() {}
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 {
@@ -42,9 +37,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
   SKSE::Init(skse);
 
-  const auto plugin{SKSE::PluginDeclaration::GetSingleton()};
-  const auto version{plugin->GetVersion()};
-
   logger::info("Runtime version: {}", skse->RuntimeVersion());
 
   auto messaging = SKSE::GetMessagingInterface();
@@ -52,7 +44,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     return false;
   }
 
-  Menu::Register();
+  Menu::GetSingleton();
 
   return true;
 }

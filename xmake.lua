@@ -3,7 +3,7 @@ set_xmakever("3.0.5")
 PROJECT_NAME = "RimCombat"
 
 set_project(PROJECT_NAME)
-set_version("0.0.1")
+set_version("1.0.0")
 set_languages("cxx23")
 set_toolchains("clang-cl")
 
@@ -31,13 +31,18 @@ target(PROJECT_NAME)
     add_rules("commonlibsse-ng.plugin", {
         name = PROJECT_NAME,
         author = "Acook1e",
-        description = "Rim Combat - Overhaul Combat Experience"
+        description = "Rim Combat - Overhaul Combat Experience",
+        options = {
+            address_library = true,
+            signature_scanning = false,
+            struct_dependent = false
+        }
     })
 
     add_packages("spdlog")
     add_packages("simpleini")
 
-    add_includedirs("src/include/")
-    set_pcxxheader("src/include/pch.h")
-    add_headerfiles("src/include/**.h")
+    add_includedirs("include/")
+    set_pcxxheader("include/PCH.h")
+    add_headerfiles("include/**.h")
     add_files("src/**.cpp")

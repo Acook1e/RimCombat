@@ -51,8 +51,7 @@ float Hook_OnModActorValue::ModActorValue(RE::Actor* a_actor, RE::ActorValue a_a
 {
   if (a_value < 0) {
     if (a_akValue == RE::ActorValue::kStamina) {
-      if (Settings::bUseExhaustionSystem &&
-          a_actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + a_value <= 0) {
+      if (Settings::bUseExhaustionSystem && a_actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + a_value <= 0) {
         Handler::Attack::GetSingleton().EnterExhaustion(a_actor);
       }
     }
@@ -85,14 +84,13 @@ float Hook_OnModActorValue::ModActorValue(RE::Actor* a_actor, RE::ActorValue a_a
     if (Handler::Execution::GetSingleton().IsVictim(a_actor))
       return a_value;
     Handler::Poise::RimPoise::GetSingleton().RestorePoiseHealth(
-        a_actor, a_actor->IsInCombat() ? Settings::fRestorePoiseSpeed * Settings::fRestorePoiseSpeedCombatMult
-                                       : Settings::fRestorePoiseSpeed);
+        a_actor, a_actor->IsInCombat() ? Settings::fRestorePoiseSpeed * Settings::fRestorePoiseSpeedCombatMult : Settings::fRestorePoiseSpeed);
   }
   return a_value;
 }
 
-void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier,
-                                             RE::ActorValue a_akValue, float a_value)
+void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue,
+                                             float a_value)
 {
   if (a_modifier == RE::ACTOR_VALUE_MODIFIER::kDamage) {
     REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
@@ -102,8 +100,7 @@ void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* a_this, RE::AC
   _ModActorValue_NPC(a_this, a_modifier, a_akValue, a_value);
 }
 
-void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier,
-                                            RE::ActorValue a_akValue, float a_value)
+void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue, float a_value)
 {
   if (a_modifier == RE::ACTOR_VALUE_MODIFIER::kDamage) {
     REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
@@ -124,11 +121,7 @@ void Hook_OnMeleeHit::processHit(RE::Actor* victim, RE::HitData& hitData)
     Handler::Poise::RimPoise::GetSingleton().ProcessMeleeHit(aggressor, victim, hitData);
 
   if (Settings::bUseExhaustionSystem && Handler::Attack::GetSingleton().IsInExhaustion(aggressor)) {
-    logger::info("GetAttackStaminaCost: Exhausted Actor {} Origin {}", aggressor->GetDisplayFullName(),
-                 hitData.totalDamage);
     hitData.totalDamage *= Settings::fExhaustionDamageMult;
-    logger::info("GetAttackStaminaCost: Exhausted Actor {} Modify {}", aggressor->GetDisplayFullName(),
-                 hitData.totalDamage);
   }
 
   _ProcessHit(victim, hitData);

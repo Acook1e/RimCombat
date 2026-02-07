@@ -45,9 +45,31 @@ private:
   static inline REL::Relocation<decltype(ProcessHit)> _ProcessHit;
   // 140626400       14064BAB0
 };
+class Hook_OnModActorValue
+{
+public:
+  static void Install()
+  {
+    REL::Relocation<uintptr_t> vtbl_NPC{RE::VTABLE_Character[5]};
+    REL::Relocation<uintptr_t> vtbl_PC{RE::VTABLE_PlayerCharacter[5]};
+
+    _ModActorValue_NPC = vtbl_NPC.write_vfunc(0x06, ModActorValue_NPC);
+    _ModActorValue_PC  = vtbl_PC.write_vfunc(0x06, ModActorValue_PC);
+    logger::info("Hooks: OnModActorValue installed.");
+  }
+
+private:
+  static float ModActorValue(RE::Actor* a_actor, RE::ActorValue a_akValue, float a_value);
+  static void ModActorValue_NPC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue, float a_value);
+  static void ModActorValue_PC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue, float a_value);
+
+  static inline REL::Relocation<decltype(ModActorValue_NPC)> _ModActorValue_NPC;
+  static inline REL::Relocation<decltype(ModActorValue_PC)> _ModActorValue_PC;
+};
 inline void Install()
 {
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnMeleeHit::Install();
+  Hook_OnModActorValue::Install();
 }
 }  // namespace Hooks

@@ -17,6 +17,7 @@ inline float fStaminaRegenMin        = 10.0f;
 inline float fStaminaRegenLimit      = 50.0f;
 inline float fStaminaRegenDelay      = 1.5f;
 inline float fStaminaRegenMultCombat = 0.5f;
+inline float fStaminaRegenMultBlock  = 0.5f;
 #pragma endregion
 
 #pragma region Posture
@@ -37,7 +38,7 @@ inline float fBashPostureDamageBase                = 32.0f;
 inline float fPowerAttackPostureDamageMult         = 1.5f;
 inline float fPowerBashPostureDamageMult           = 2.0f;
 inline float fBlockedPostureDamageMult             = 0.5f;
-inline float fBlockedPostureDamageToAttacker       = 0.25f;
+inline float fBlockedPostureDamageToAttacker       = 0.1f;
 
 inline float fArmorPostureDamageFactor = 1.1f;
 

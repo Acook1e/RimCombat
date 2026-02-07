@@ -2,6 +2,7 @@
 
 #include "RE/Skyrim.h"
 #include "REL/REL.h"
+#include "REX/REX.h"
 #include "SKSE/SKSE.h"
 
 #include <algorithm>

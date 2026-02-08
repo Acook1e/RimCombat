@@ -16,18 +16,22 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink
   std::string eventTag = a_event->tag.data();
   std::transform(eventTag.begin(), eventTag.end(), eventTag.begin(), ::tolower);
   RE::Actor* actor = const_cast<RE::TESObjectREFR*>(a_event->holder)->As<RE::Actor>();
-  //   if (actor->IsPlayerRef() && eventTag != "scar_updatedummy") {
-  //     logger::info("Player Event: {}", eventTag);
-  //   }
+
+  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" && !Settings::bEnableExhausted) {
+    logger::info("Player Event: {}", eventTag);
+  }
   switch (Utils::hash(eventTag.data(), eventTag.size())) {
   case "weaponswing"_h:
+    if (Settings::bUseAttackStaminaSystem)
+      Stamina::AttackStaminaConsume(actor, false);
+    break;
   case "weaponleftswing"_h:
     if (Settings::bUseAttackStaminaSystem)
-      Stamina::AttackStaminaConsume(actor, false, true);
+      Stamina::AttackStaminaConsume(actor, true);
     break;
   case "soundplay.wpnunarmedswing"_h:
     if (Settings::bUseAttackStaminaSystem)
-      Stamina::AttackStaminaConsume(actor, false, true, true);
+      Stamina::AttackStaminaConsume(actor, false);
     break;
   case "attackstart"_h:
   case "mco_attackentry"_h:

@@ -49,17 +49,15 @@ void LoadLocalization()
 namespace ImGui
 {
 using StringMap = Localization::StringMap;
-inline StringMap GetStringMap(std::uint32_t hash)
+inline const StringMap& GetStringMap(std::uint32_t hash)
 {
-  auto it = Localization::stringMaps.find(hash);
-  if (it != Localization::stringMaps.end())
-    return it->second;
-  else
-    return {"", ""};
+  static const StringMap unknown = {"", ""};  // 默认值，静态存储
+  auto it                        = Localization::stringMaps.find(hash);
+  return (it != Localization::stringMaps.end()) ? it->second : unknown;
 }
 void SetSection(std::uint32_t hash)
 {
-  StringMap map = GetStringMap(hash);
+  const StringMap& map = GetStringMap(hash);
   if (!map.label.empty())
     SKSEMenuFramework::SetSection(map.label.data());
   else
@@ -67,7 +65,7 @@ void SetSection(std::uint32_t hash)
 }
 void AddSectionItem(std::uint32_t hash, SKSEMenuFramework::Model::RenderFunction func)
 {
-  StringMap map = GetStringMap(hash);
+  const StringMap& map = GetStringMap(hash);
   if (!map.label.empty())
     SKSEMenuFramework::AddSectionItem(map.label.data(), func);
   else
@@ -75,7 +73,7 @@ void AddSectionItem(std::uint32_t hash, SKSEMenuFramework::Model::RenderFunction
 }
 void Checkbox(std::uint32_t hash, bool* v, std::function<void()> onChange = nullptr)
 {
-  StringMap map = GetStringMap(hash);
+  const StringMap& map = GetStringMap(hash);
   if (ImGuiMCP::Checkbox(map.label.data(), v))
     if (onChange)
       onChange();
@@ -85,8 +83,8 @@ void Checkbox(std::uint32_t hash, bool* v, std::function<void()> onChange = null
 void DragFloat(std::uint32_t hash, float* v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.1f",
                std::function<void()> onChange = nullptr)
 {
+  const StringMap& map             = GetStringMap(hash);
   ImGuiMCP::ImGuiSliderFlags flags = ImGuiMCP::ImGuiSliderFlags_None;
-  StringMap map                    = GetStringMap(hash);
   if (ImGuiMCP::DragFloat(map.label.data(), v, v_speed, v_min, v_max, format, flags))
     if (onChange)
       onChange();

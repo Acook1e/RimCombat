@@ -1,18 +1,17 @@
 #include "Hooks.h"
 
 #include "Posture.h"
-#include "Stamina.h"
 #include "Utils.h"
 
 namespace Hooks
 {
 float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner, RE::BGSAttackData* atkData)
 {
-  REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
+  // REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
+  // RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
 
   if (Settings::bUseAttackStaminaSystem)
-    return Stamina::AttackStaminaConsume(a_actor, true, false);
+    return 0.0f;
 
   return _GetAttackStaminaCost(avOwner, atkData);
 }

@@ -1,0 +1,59 @@
+name: Build RimCombat Plugin
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code with submodules
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Install xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: 'latest'
+    
+    - name: Configure and build
+      run: |
+        # 配置项目
+        xmake f -m release --skyrim_vr=n -y
+        
+        # 构建项目
+        xmake
+        
+        # 列出构建输出文件
+        xmake show -o build\windows\x64\release
+        
+        # 创建输出目录
+        New-Item -ItemType Directory -Force -Path dist
+        
+        # 复制DLL和PDB文件到dist目录
+        Copy-Item build\windows\x64\release\*.dll dist\
+        Copy-Item build\windows\x64\release\*.pdb dist\
+        
+        # 创建压缩包
+        Compress-Archive -Path dist\* -DestinationPath "${{ github.event.repository.name }}_${{ github.run_number }}.zip" -Force
+        
+        # 显示文件大小
+        Get-ChildItem "${{ github.event.repository.name }}_${{ github.run_number }}.zip" | Format-Table Name, Length
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: RimCombat-Plugin
+        path: |
+          ${{ github.event.repository.name }}_${{ github.run_number }}.zip
+          dist/*.dll
+          dist/*.pdb
+        retention-days: 7

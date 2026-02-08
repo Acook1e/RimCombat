@@ -7,11 +7,12 @@ set_version("1.0.0")
 set_languages("cxx23")
 set_toolchains("clang-cl")
 
+add_defines("WIN32_LEAN_AND_MEAN", "NOMINMAX")
+add_defines("UNICODE", "_UNICODE")
+
 includes("extern/CommonLibSSE-NG")
 
 add_rules("mode.debug", "mode.release")
-
-add_defines("UNICODE", "_UNICODE")
 
 if is_mode("debug") then
     set_optimize("none")

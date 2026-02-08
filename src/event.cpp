@@ -1,25 +1,12 @@
 #include "Event.h"
 
 #include "Stamina.h"
+#include "Utils.h"
 
 namespace Events
 {
-constexpr uint32_t hash(const char* data, size_t const size) noexcept
-{
-  uint32_t hash = nexusID;
 
-  for (const char* c = data; c < data + size; ++c) {
-    hash = ((hash << 5) + hash) + (unsigned char)*c;
-  }
-
-  return hash;
-}
-
-constexpr uint32_t operator""_h(const char* str, size_t size) noexcept
-{
-  return hash(str, size);
-}
-
+using Utils::operator""_h;
 bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
                              RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
 {
@@ -32,7 +19,7 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink
   //   if (actor->IsPlayerRef() && eventTag != "scar_updatedummy") {
   //     logger::info("Player Event: {}", eventTag);
   //   }
-  switch (hash(eventTag.data(), eventTag.size())) {
+  switch (Utils::hash(eventTag.data(), eventTag.size())) {
   case "weaponswing"_h:
   case "weaponleftswing"_h:
     if (Settings::bUseAttackStaminaSystem)

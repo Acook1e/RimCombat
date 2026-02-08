@@ -30,10 +30,12 @@ void SetGameSettings(const char* a_setting, T a_value)
 void SetStaminaRegen(float mult, float upperLimit, float lowerLimit, bool restore = false)
 {
   static std::unordered_map<RE::TESRace*, float> originalStaminaRegen;
-  if (restore && !originalStaminaRegen.empty()) {
+  if (restore) {
+    if (originalStaminaRegen.empty())
+      return;
     for (auto& [race, originalRegen] : originalStaminaRegen)
       race->data.staminaRegen = originalRegen;
-    originalStaminaRegen.clear();
+    // originalStaminaRegen.clear();
     return;
   }
   if (originalStaminaRegen.empty()) {
@@ -41,16 +43,16 @@ void SetStaminaRegen(float mult, float upperLimit, float lowerLimit, bool restor
       if (race) {
         originalStaminaRegen.try_emplace(race, race->data.staminaRegen);
         float staminaRegen      = race->data.staminaRegen * mult;
-        staminaRegen            = min(staminaRegen, upperLimit);
-        staminaRegen            = max(staminaRegen, lowerLimit);
+        staminaRegen            = fmin(staminaRegen, upperLimit);
+        staminaRegen            = fmax(staminaRegen, lowerLimit);
         race->data.staminaRegen = staminaRegen;
       }
     }
   } else {
     for (auto& [race, originalRegen] : originalStaminaRegen) {
       float staminaRegen      = originalRegen * mult;
-      staminaRegen            = min(staminaRegen, upperLimit);
-      staminaRegen            = max(staminaRegen, lowerLimit);
+      staminaRegen            = fmin(staminaRegen, upperLimit);
+      staminaRegen            = fmax(staminaRegen, lowerLimit);
       race->data.staminaRegen = staminaRegen;
     }
   }
@@ -58,7 +60,7 @@ void SetStaminaRegen(float mult, float upperLimit, float lowerLimit, bool restor
 
 void RefreshGameSettings()
 {
-  SetStaminaRegen(fStaminaRegenMult, fStaminaRegenLimit, fStaminaRegenMin);
+  SetStaminaRegen(fStaminaRegenMult, fStaminaRegenMax, fStaminaRegenMin, fStaminaRegenMult == 1.0f);
   SetGameSettings("fDamagedStaminaRegenDelay", fStaminaRegenDelay);
   SetGameSettings("fCombatStaminaRegenRateMult", fStaminaRegenMultCombat);
 }

@@ -2,22 +2,30 @@
 
 namespace Settings
 {
+inline std::string SettingsDir;
 
 #pragma region Stamina
-inline bool bUseAttackStaminaSystem          = true;
-inline bool bConsumeStaminaOutCombat         = true;
-inline bool bNormalAttackComsumeStamina      = true;
-inline float fNormalAttackStaminaCostBase    = 10.0f;
-inline float fNormalAttackStaminaCostPerMass = 0.2f;
-inline float fPowerAttackStaminaCostBase     = 30.0f;
-inline float fPowerAttackStaminaCostPerMass  = 0.5f;
+inline bool bUseAttackStaminaSystem     = true;
+inline bool bConsumeStaminaOutCombat    = true;
+inline bool bNormalAttackComsumeStamina = true;
 
 inline float fStaminaRegenMult       = 5.0f;
 inline float fStaminaRegenMin        = 10.0f;
-inline float fStaminaRegenLimit      = 50.0f;
+inline float fStaminaRegenMax        = 50.0f;
 inline float fStaminaRegenDelay      = 1.5f;
 inline float fStaminaRegenMultCombat = 0.5f;
 inline float fStaminaRegenMultBlock  = 0.5f;
+
+inline float fNormalAttackStaminaCostBase_Fist       = 5.0f;
+inline float fNormalAttackStaminaCostBase_Dagger     = 6.0f;
+inline float fNormalAttackStaminaCostBase_Sword      = 8.0f;
+inline float fNormalAttackStaminaCostBase_Axe        = 8.0f;
+inline float fNormalAttackStaminaCostBase_Mace       = 8.0f;
+inline float fNormalAttackStaminaCostBase_GreatSword = 15.0f;
+inline float fNormalAttackStaminaCostBase_GreatAxe   = 15.0f;
+inline float fNormalAttackStaminaCostPerMass         = 0.2f;
+inline float fPowerAttackStaminaCostMult             = 2.5f;
+inline float fPowerAttackStaminaCostPerMass          = 0.5f;
 #pragma endregion
 
 #pragma region Posture
@@ -51,6 +59,14 @@ inline float fExhaustedPostureDamageMult = 1.5f;
 template <typename T>
 void SetGameSettings(const char* a_setting, T a_value);
 
+inline void SettingsDirCheck()
+{
+  SettingsDir = "Data/SKSE/Plugins/" + std::string(SKSE::GetPluginName()) + "/";
+
+  std::error_code ec;
+  if (!std::filesystem::exists(SettingsDir, ec))
+    std::filesystem::create_directories(SettingsDir, ec);
+}
 void LoadSettings();
 void SaveSettings();
 }  // namespace Settings

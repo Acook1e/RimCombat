@@ -4,6 +4,26 @@
 
 namespace Hooks
 {
+class Hook_OnActorUpdate
+{
+public:
+  static void Install()
+  {
+    REL::Relocation<uintptr_t> vtbl_NPC{RE::VTABLE_Character[0]};
+    REL::Relocation<uintptr_t> vtbl_PC{RE::VTABLE_PlayerCharacter[0]};
+
+    _Update_NPC = vtbl_NPC.write_vfunc(0xAD, Update_NPC);
+    _Update_PC  = vtbl_PC.write_vfunc(0xAD, Update_PC);
+    logger::info("Hooks: OnActorUpdate installed.");
+  }
+
+private:
+  static void Update_NPC(RE::Character* a_this, float a_delta) { _Update_NPC(a_this, a_delta); }
+  static void Update_PC(RE::PlayerCharacter* a_this, float a_delta) { _Update_PC(a_this, a_delta); }
+
+  static inline REL::Relocation<decltype(Update_NPC)> _Update_NPC;
+  static inline REL::Relocation<decltype(Update_PC)> _Update_PC;
+};
 class Hook_OnGetAttackStaminaCost  // Actor__sub_140627930+16E	call ActorValueOwner__sub_1403BEC90
 {
   /*to cancel out vanilla power attack stamina consumption.*/
@@ -59,15 +79,18 @@ public:
   }
 
 private:
-  static float ModActorValue(RE::Actor* a_actor, RE::ActorValue a_akValue, float a_value);
   static void ModActorValue_NPC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue, float a_value);
   static void ModActorValue_PC(RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue, float a_value);
+  static float ModActorValue(RE::Actor* a_actor, RE::ACTOR_VALUE_MODIFIER a_modifier, RE::ActorValue a_akValue, float a_value);
+  static float ModMaxActorValue(RE::Actor* a_actor, RE::ActorValue a_akValue, float a_value);
+  static float ModCurrentActorValue(RE::Actor* a_actor, RE::ActorValue a_akValue, float a_value);
 
   static inline REL::Relocation<decltype(ModActorValue_NPC)> _ModActorValue_NPC;
   static inline REL::Relocation<decltype(ModActorValue_PC)> _ModActorValue_PC;
 };
 inline void Install()
 {
+  Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnMeleeHit::Install();
   Hook_OnModActorValue::Install();

@@ -7,6 +7,8 @@ void Stamina::AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack)
   }
   if (!a_actor)
     return;
+  if (a_actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
   bool left  = a_actor->GetEquippedObject(true) ? a_actor->GetEquippedObject(true)->formType == RE::FormType::Weapon : false;
   bool right = a_actor->GetEquippedObject(false) ? a_actor->GetEquippedObject(false)->formType == RE::FormType::Weapon : false;
 
@@ -59,7 +61,5 @@ void Stamina::AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack)
     } else if (!a_actor->IsPowerAttacking() && Settings::bNormalAttackComsumeStamina)
       staminaCost += Settings::fNormalAttackStaminaCostPerMass * weapon->GetWeight();
   }
-  logger::info("Actor {} Use Weapon {} Stamina cost: {} Source: {}", a_actor->GetName(), weapon ? weapon->GetName() : "None", staminaCost,
-               a_actor->IsPowerAttacking() ? "Power" : "Normal");
   a_actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }

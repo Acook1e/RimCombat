@@ -1,7 +1,7 @@
 #include "Posture.h"
 
+#include "Block.h"
 #include "Utils.h"
-#include <cmath>
 
 std::mutex Posture::postureMutex;
 
@@ -13,6 +13,14 @@ float Posture::InitPosture(RE::Actor* actor)
   actor->SetGraphVariableFloat(MaxPostureHealthName.data(), maxPosture);
   actor->SetGraphVariableFloat(CurrentPostureHealthName.data(), maxPosture);
   return maxPosture;
+}
+
+void Posture::ReCalculateMaxPosture(RE::Actor* actor)
+{
+  std::scoped_lock lock(postureMutex);
+  float maxPosture = Settings::fMaxPostureBase;
+  maxPosture += Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth) * Settings::fMaxPostureHealthMult;
+  actor->SetGraphVariableFloat(MaxPostureHealthName.data(), maxPosture);
 }
 
 float Posture::GetCurrentPosture(RE::Actor* actor)
@@ -35,7 +43,7 @@ float Posture::GetMaxPosture(RE::Actor* actor)
   return 100.0f;
 }
 
-void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
+void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData, bool isTimedBlock)
 {
   auto hitFlags     = hitData.flags;
   auto attackWeapon = hitData.weapon;
@@ -87,20 +95,28 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
 
   // Process Block
   if (hitFlags.any(RE::HitData::Flag::kBlocked)) {
-    ModPostureValue(aggressor, -postureDamage * Settings::fBlockedPostureDamageToAttacker);
-    ModPostureValue(victim, -postureDamage * Settings::fBlockedPostureDamageMult);
+    ModPostureValue(aggressor, -postureDamage * Settings::fBlockPostureDamageToAttacker);
+    if (isTimedBlock)
+      ModPostureValue(victim, -postureDamage * Settings::fTimedBlockPostureDamageMult, true);
+    else
+      ModPostureValue(victim, -postureDamage * Settings::fBlockPostureDamageMult);
   } else {
     ModPostureValue(victim, -postureDamage);
   }
 }
-void Posture::ModPostureValue(RE::Actor* actor, float value)
+void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
 {
   if (value == 0.0f)
     return;
-  std::scoped_lock lock(postureMutex);
+
   float currentPosture = GetCurrentPosture(actor);
   float maxPosture     = GetMaxPosture(actor);
+  if (currentPosture < 0.0f)
+    currentPosture = 0.0f;
+  else if (currentPosture > maxPosture)
+    currentPosture = maxPosture;
 
+  std::scoped_lock lock(postureMutex);
   if (value < 0.0f) {
     // Process Posture Damage
     // Armor reduces posture damage taken
@@ -108,22 +124,37 @@ void Posture::ModPostureValue(RE::Actor* actor, float value)
     // Apply Exhausted Multiplier
     if (Settings::bEnableExhausted && IsActorExhausted(actor)) {
       value *= Settings::fExhaustedPostureDamageMult;
-      if (Settings::bQuitExhuastedOnHit)
+      if (Settings::bQuitExhaustedOnHit)
         QuitExhausted(actor);
     }
   } else {
     // Process Posture Recovery
+    if (currentPosture == maxPosture)
+      return;
   }
 
   currentPosture += value;
-  if (currentPosture < 0.0f) {
-    // TODO
+  if (ignoreBreak && currentPosture <= 0.0f)
+    currentPosture = 0.1f;
+
+  if (currentPosture <= 0.0f) {
+    PostureBreak(actor);
     currentPosture = maxPosture;
   } else if (currentPosture > maxPosture) {
     currentPosture = maxPosture;
   }
 
   actor->SetGraphVariableFloat(CurrentPostureHealthName.data(), currentPosture);
+}
+
+void Posture::PostureBreak(RE::Actor* actor)
+{
+  if (!actor)
+    return;
+  SKSE::GetTaskInterface()->AddTask([actor]() {
+    actor->SetGraphVariableFloat("staggerMagnitude", 1.0f);
+    actor->NotifyAnimationGraph("staggerStart");
+  });
 }
 
 void Posture::InitHUD()

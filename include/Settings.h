@@ -8,6 +8,7 @@ inline std::string SettingsDir;
 inline bool bUseAttackStaminaSystem     = true;
 inline bool bConsumeStaminaOutCombat    = true;
 inline bool bNormalAttackComsumeStamina = true;
+inline bool bDisableAttackStaminaZero   = true;
 
 inline float fStaminaRegenMult       = 5.0f;
 inline float fStaminaRegenMin        = 10.0f;
@@ -45,28 +46,30 @@ inline float fNormalAttackPostureDamage_GreatAxe   = 28.0f;
 inline float fBashPostureDamageBase                = 32.0f;
 inline float fPowerAttackPostureDamageMult         = 1.5f;
 inline float fPowerBashPostureDamageMult           = 2.0f;
-inline float fBlockedPostureDamageMult             = 0.5f;
-inline float fBlockedPostureDamageToAttacker       = 0.1f;
+inline float fBlockPostureDamageMult               = 0.5f;
+inline float fBlockPostureDamageToAttacker         = 0.1f;
 
 inline float fArmorPostureDamageFactor = 1.1f;
 
 inline bool bEnableExhausted             = true;
-inline bool bQuitExhuastedOnHit          = true;
+inline bool bQuitExhaustedOnHit          = true;
 inline float fExhaustedRestorePercent    = 0.2f;
 inline float fExhaustedPostureDamageMult = 1.5f;
 #pragma endregion
 
-template <typename T>
-void SetGameSettings(const char* a_setting, T a_value);
+#pragma region Block
+inline bool bTimedBlockEnabled           = true;
+inline bool bTimedBlockNeverPostureBreak = true;
+inline int32_t iTimedBlockLimit          = 150;  // ms
 
-inline void SettingsDirCheck()
-{
-  SettingsDir = "Data/SKSE/Plugins/" + std::string(SKSE::GetPluginName()) + "/";
+inline float fBlockDamageMult                   = 0.80f;
+inline float fTimedBlockDamageMult              = 0.95f;
+inline float fBlockStaminaConsumePerDamage      = 0.5f;
+inline float fTimedBlockStaminaConsumePerDamage = 0.2f;
+inline float fTimedBlockPostureDamageMult       = 0.2f;
+#pragma endregion
 
-  std::error_code ec;
-  if (!std::filesystem::exists(SettingsDir, ec))
-    std::filesystem::create_directories(SettingsDir, ec);
-}
+void UpdateGameSettings();
 void LoadSettings();
 void SaveSettings();
 }  // namespace Settings

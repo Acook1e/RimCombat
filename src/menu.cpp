@@ -40,6 +40,7 @@ void LoadLocalization()
   }
 
   CSimpleIniA::TNamesDepend keys;
+  stringMaps.reserve(keys.size());
   ini.GetAllKeys(section.data(), keys);
   for (const auto& key : keys)
     InsertValue(key.pItem);
@@ -97,6 +98,8 @@ void Menu::Stamina()
 {
   ImGui::Checkbox("bUseAttackStaminaSystem"_h, &Settings::bUseAttackStaminaSystem);
   ImGui::Checkbox("bConsumeStaminaOutCombat"_h, &Settings::bConsumeStaminaOutCombat);
+  ImGui::Checkbox("bNormalAttackComsumeStamina"_h, &Settings::bNormalAttackComsumeStamina);
+  ImGui::Checkbox("bDisableAttackStaminaZero"_h, &Settings::bDisableAttackStaminaZero);
 
   ImGuiMCP::Separator();
 
@@ -177,8 +180,6 @@ Menu::Menu()
 
   ImGui::AddSectionItem("Stamina"_h, Stamina);
   ImGui::AddSectionItem("Posture"_h, Posture);
-
-  ImGui::AddSectionItem("No Exist Value"_h, Posture);
 
   // priority should be a individual value for each mod, here is nexus id of this mod
   event = new SKSEMenuFramework::Model::Event(EventListener, nexusID);

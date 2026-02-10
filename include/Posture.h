@@ -16,11 +16,14 @@ public:
   }
 
   static float InitPosture(RE::Actor* actor);
+  static void ReCalculateMaxPosture(RE::Actor* actor);
+
   static float GetCurrentPosture(RE::Actor* actor);
   static float GetMaxPosture(RE::Actor* actor);
 
-  void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
-  void ModPostureValue(RE::Actor* actor, float value);
+  void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData, bool isTimedBlock);
+  void ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak = false);
+  void PostureBreak(RE::Actor* actor);
 
   void InitHUD();
   void ReleaseHUD();

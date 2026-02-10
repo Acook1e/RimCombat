@@ -1,5 +1,6 @@
 #include "Event.h"
 
+#include "Block.h"
 #include "Stamina.h"
 #include "Utils.h"
 
@@ -38,6 +39,18 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink
   case "mco_powerattackentry"_h:
   case "bfco_playerattackstart"_h:
   case "bfco_npcattackstart"_h:
+    if (Settings::bDisableAttackStaminaZero && actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0.0f) {
+      SKSE::GetTaskInterface()->AddTask([actor]() {
+        actor->NotifyAnimationGraph("attackStop");
+      });
+    }
+    break;
+  case "blockstart"_h:
+  case "blockstartout"_h:
+    Block::GetSingleton().StartBlock(actor);
+    break;
+  case "blockstop"_h:
+    Block::GetSingleton().EndBlock(actor);
     break;
   case "prehitframe"_h:
     break;

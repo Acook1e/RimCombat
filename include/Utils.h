@@ -27,8 +27,6 @@ void SetGameSettings(const char* a_setting, T a_value)
   }
 }
 
-float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
-
 template <typename T>
 std::int64_t GetTime(T accuracy)
 {
@@ -49,4 +47,14 @@ constexpr std::uint32_t operator""_h(const char* str, size_t size) noexcept
 {
   return hash(str, size);
 }
+
+class MenuLogger : public RE::GFxLog
+{
+public:
+  void LogMessageVarg(LogMessageType, const char* a_fmt, std::va_list a_argList) override;
+};
+
+RE::FormID GetSelectedItem();
+
+float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
 }  // namespace Utils

@@ -30,7 +30,7 @@ public:
 
   static bool IsActorExhausted(RE::Actor* a_actor);
   void EnterExhausted(RE::Actor* a_actor);
-  void QuitExhausted(RE::Actor* a_actor);
+  void ExitExhausted(RE::Actor* a_actor);
 
 private:
   constexpr static std::string_view CurrentPostureHealthName = "fRimPostureHealth";

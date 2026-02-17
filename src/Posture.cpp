@@ -78,6 +78,12 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
     case RE::WEAPON_TYPE::kTwoHandAxe:
       postureDamage = Settings::fNormalAttackPostureDamage_GreatAxe;
       break;
+    case RE::WEAPON_TYPE::kBow:
+    case RE::WEAPON_TYPE::kStaff:
+    case RE::WEAPON_TYPE::kCrossbow:
+      // TODO: stamina consumption for ranged weapons
+      // need a calculation for posture damage based on stamina consumption and distance
+      break;
     default:
       logger::warn("Posture::ProcessMeleeHit: Unsupported weapon type: {}", static_cast<int>(attackWeapon->GetWeaponType()));
     }
@@ -124,8 +130,8 @@ void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
     // Apply Exhausted Multiplier
     if (Settings::bEnableExhausted && IsActorExhausted(actor)) {
       value *= Settings::fExhaustedPostureDamageMult;
-      if (Settings::bQuitExhaustedOnHit)
-        QuitExhausted(actor);
+      if (Settings::bExitExhaustedOnHit)
+        ExitExhausted(actor);
     }
   } else {
     // Process Posture Recovery
@@ -214,7 +220,7 @@ void Posture::EnterExhausted(RE::Actor* a_actor)
   hud->OverrideBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina, TRUEHUD_API::BarColorType::PhantomColor, 0xb30d10);
 }
 
-void Posture::QuitExhausted(RE::Actor* a_actor)
+void Posture::ExitExhausted(RE::Actor* a_actor)
 {
   if (!a_actor || !Settings::bEnableExhausted)
     return;

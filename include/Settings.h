@@ -52,7 +52,7 @@ inline float fBlockPostureDamageToAttacker         = 0.1f;
 inline float fArmorPostureDamageFactor = 1.1f;
 
 inline bool bEnableExhausted             = true;
-inline bool bQuitExhaustedOnHit          = true;
+inline bool bExitExhaustedOnHit          = true;
 inline float fExhaustedRestorePercent    = 0.2f;
 inline float fExhaustedPostureDamageMult = 1.5f;
 #pragma endregion
@@ -72,4 +72,10 @@ inline float fTimedBlockPostureDamageMult       = 0.2f;
 void UpdateGameSettings();
 void LoadSettings();
 void SaveSettings();
+
+// 1-32 = suffix
+// 33-64 = hash
+void AddHashMapping(uint32_t hash, uint32_t prefix);
+uint64_t toPersistForm(uint32_t hash, uint32_t suffix);
+RE::TESForm* toTESForm(uint64_t form);
 }  // namespace Settings

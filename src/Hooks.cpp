@@ -73,9 +73,21 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* a_actor, RE::ActorVa
 {
   // Process ActorValue Decrease
   if (a_value < 0) {
+    // Process Exhausted State Entry
     if (a_akValue == RE::ActorValue::kStamina) {
       if (Settings::bEnableExhausted && a_actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + a_value <= 0) {
         Posture::GetSingleton().EnterExhausted(a_actor);
+      }
+    }
+    // Process player god mode
+    if (a_actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode()) {
+      switch (a_akValue) {
+      case RE::ActorValue::kHealth:
+      case RE::ActorValue::kStamina:
+      case RE::ActorValue::kMagicka:
+        return 0.0f;
+      default:
+        break;
       }
     }
     return a_value;
@@ -83,20 +95,27 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* a_actor, RE::ActorVa
   // Process ActorValue Increase
   switch (a_akValue) {
   case RE::ActorValue::kStamina: {
+    // During attack, stamina does not regenerate
     RE::ATTACK_STATE_ENUM atkState = a_actor->AsActorState()->GetAttackState();
     if (atkState > RE::ATTACK_STATE_ENUM::kNone && atkState <= RE::ATTACK_STATE_ENUM::kBowFollowThrough) {
-      return 0;
+      return 0.0f;
     }
+    // Combat Multiplier
+    if (a_actor->IsInCombat()) {
+      a_value *= Settings::fStaminaRegenMultCombat;
+    }
+    // Block Multiplier
     if (a_actor->IsBlocking()) {
       a_value *= Settings::fStaminaRegenMultBlock;
     }
+    // Process Exhausted State Exit
     if (Settings::bEnableExhausted && Posture::GetSingleton().IsActorExhausted(a_actor)) {
       if (a_actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) / Utils::GetCurrentMaxActorValue(a_actor, RE::ActorValue::kStamina) >=
           Settings::fExhaustedRestorePercent)
-        Posture::GetSingleton().QuitExhausted(a_actor);
+        Posture::GetSingleton().ExitExhausted(a_actor);
     }
   } break;
-  case RE::ActorValue::kHealth:
+  default:
     break;
   }
   return a_value;

@@ -2,44 +2,75 @@
 
 #include "Settings.h"
 
-namespace SKSE
-{
-class SerializationInterface;
-}
-
 class Serialization
 {
 public:
-  using SaveCallback   = std::function<void(SKSE::SerializationInterface*)>;
-  using LoadCallback   = std::function<void(SKSE::SerializationInterface*, std::uint32_t, std::uint32_t)>;
-  using RevertCallback = std::function<void(SKSE::SerializationInterface*)>;
+  virtual void Save(SKSE::SerializationInterface* a_interface)   = 0;
+  virtual void Load(SKSE::SerializationInterface* a_interface)   = 0;
+  virtual void Revert(SKSE::SerializationInterface* a_interface) = 0;
 
-  static Serialization& GetSingleton()
+protected:
+  template <class T>
+  static bool Write(SKSE::SerializationInterface* a_intfc, const T& a_val)
   {
-    static Serialization singleton;
-    return singleton;
+    assert(a_intfc);
+    return a_intfc->WriteRecordData(a_val);
   }
 
-  void Init(const SKSE::SerializationInterface* a_interface);
-
-  void RegisterRecordHandler(std::uint32_t a_type, std::uint32_t a_version, SaveCallback a_save, LoadCallback a_load);
-  void RegisterRevertCallback(RevertCallback a_revert);
-
-  void Save(SKSE::SerializationInterface* a_interface);
-  void Load(SKSE::SerializationInterface* a_interface);
-  void Revert(SKSE::SerializationInterface* a_interface);
-
-private:
-  struct RecordHandler
+  template <class T>
+  static bool Read(SKSE::SerializationInterface* a_intfc, T& a_val)
   {
-    std::uint32_t type;
-    std::uint32_t version;
-    SaveCallback save;
-    LoadCallback load;
-  };
+    assert(a_intfc);
+    a_intfc->ReadRecordData(a_val);
+    return true;
+  }
 
-  static void SkipRecordData(const SKSE::SerializationInterface* a_interface, std::uint32_t a_length);
+  // Generic unordered_map writer. Caller supplies how to write keys/values.
+  template <class K, class V>
+  static bool WriteUnorderedMap(SKSE::SerializationInterface* a_intfc, const std::unordered_map<K, V>& a_map,
+                                const std::function<bool(SKSE::SerializationInterface*, const K&)>& a_writeKey,
+                                const std::function<bool(SKSE::SerializationInterface*, const V&)>& a_writeVal)
+  {
+    assert(a_intfc);
+    const std::size_t count = a_map.size();
+    if (!Write(a_intfc, count)) {
+      return false;
+    }
 
-  std::vector<RecordHandler> recordHandlers;
-  std::vector<RevertCallback> revertCallbacks;
+    for (auto& [k, v] : a_map) {
+      if (!a_writeKey(a_intfc, k)) {
+        return false;
+      }
+      if (!a_writeVal(a_intfc, v)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Generic unordered_map reader. Caller supplies how to read keys/values.
+  template <class K, class V>
+  static bool ReadUnorderedMap(SKSE::SerializationInterface* a_intfc, std::unordered_map<K, V>& a_map,
+                               const std::function<bool(SKSE::SerializationInterface*, K&)>& a_readKey,
+                               const std::function<bool(SKSE::SerializationInterface*, V&)>& a_readVal)
+  {
+    assert(a_intfc);
+    std::size_t count;
+    a_intfc->ReadRecordData(count);
+
+    for (std::size_t i = 0; i < count; ++i) {
+      K k;
+      V v;
+      if (!a_readKey(a_intfc, k)) {
+        return false;
+      }
+      if (!a_readVal(a_intfc, v)) {
+        return false;
+      }
+      a_map.emplace(std::move(k), std::move(v));
+    }
+
+    return true;
+  }
 };

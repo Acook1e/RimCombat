@@ -31,8 +31,27 @@ private:
   static inline REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
 };
 
+class MenuEvent : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
+{
+public:
+  static MenuEvent* GetSingleton()
+  {
+    static MenuEvent singleton;
+    return &singleton;
+  }
+  static void Install()
+  {
+    auto ui = RE::UI::GetSingleton();
+    ui->AddEventSink<RE::MenuOpenCloseEvent>(GetSingleton());
+    logger::info("MenuEvent: installing event hook for {}", typeid(RE::MenuOpenCloseEvent).name());
+  }
+
+  RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override;
+};
+
 inline void Install()
 {
   AnimEvent::Install();
+  MenuEvent::Install();
 }
 }  // namespace Events

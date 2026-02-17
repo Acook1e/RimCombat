@@ -3,6 +3,7 @@
 #include "Block.h"
 #include "Stamina.h"
 #include "Utils.h"
+#include "WeaponArt.h"
 
 namespace Events
 {
@@ -78,5 +79,16 @@ RE::BSEventNotifyControl AnimEvent::ProcessEvent_PC(RE::BSTEventSink<RE::BSAnima
   if (ProcessEvent(a_sink, a_event, a_eventSource))
     return RE::BSEventNotifyControl::kContinue;
   return _ProcessEvent_PC(a_sink, a_event, a_eventSource);
+}
+
+RE::BSEventNotifyControl MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource)
+{
+  if (a_event->menuName == RE::InventoryMenu::MENU_NAME) {
+    if (a_event->opening)
+      WeaponArt::InfoCard::Show();
+    else
+      WeaponArt::InfoCard::Hide();
+  }
+  return RE::BSEventNotifyControl::kContinue;
 }
 }  // namespace Events

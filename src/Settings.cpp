@@ -4,6 +4,7 @@
 
 namespace Settings
 {
+static std::unordered_map<std::uint32_t, std::int32_t> hashMap;
 
 void SetStaminaRegen(float mult, float upperLimit, float lowerLimit, bool restore = false)
 {
@@ -45,6 +46,7 @@ void UpdateGameSettings()
 
 void LoadSettings()
 {
+  // Global settings
   SettingsDir = "Data/SKSE/Plugins/" + std::string(SKSE::GetPluginName()) + "/";
 
   std::error_code ec;
@@ -59,5 +61,27 @@ void LoadSettings()
 void SaveSettings()
 {
   UpdateGameSettings();
+}
+
+void AddHashMapping(uint32_t hash, uint32_t prefix)
+{
+  hashMap[hash] = prefix;
+}
+
+uint64_t toPersistForm(uint32_t hash, uint32_t suffix)
+{
+  return (static_cast<uint64_t>(hash) << 32) | suffix;
+}
+
+RE::TESForm* toTESForm(uint64_t form)
+{
+  uint32_t hash   = form >> 32;
+  uint32_t suffix = form & 0x00000000FFFFFFFF;
+  auto it         = hashMap.find(hash);
+  if (it == hashMap.end()) {
+    logger::warn("Hash {} not found in hashMap", hash);
+    return nullptr;
+  }
+  return reinterpret_cast<RE::TESForm*>(it->second | suffix);
 }
 }  // namespace Settings

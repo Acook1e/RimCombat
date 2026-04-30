@@ -2,46 +2,46 @@
 
 namespace Utils
 {
+// 字符串工具
+std::string join(std::vector<std::string>& vec, char delimiter)
+{
+  return std::views::join_with(vec, delimiter) | std::ranges::to<std::string>();
+}
+
+std::vector<std::string> split(const std::string& str, char delimiter)
+{
+  return std::views::split(str, delimiter) |
+         std::views::transform([](auto&& part) {
+           return std::string(part.begin(), part.end());
+         }) |
+         std::ranges::to<std::vector>();
+}
+
+// 游戏相关工具
 float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av)
 {
-  return actor->AsActorValueOwner()->GetPermanentActorValue(av) + actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, av);
+  return actor->AsActorValueOwner()->GetPermanentActorValue(av) +
+         actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, av);
 }
 
-RE::FormID GetSelectedItem()
+RE::InventoryEntryData* GetSelectedItemEntry()
 {
-  RE::GFxValue Menu_mc;
-  auto ui                = RE::UI::GetSingleton();
-  auto menu              = ui ? ui->GetMenu(RE::InventoryMenu::MENU_NAME) : nullptr;
-  RE::GFxMovieView* view = menu ? menu->uiMovie.get() : nullptr;
-  if (!view)
-    return 0;
-  if (!view->GetVariable(&Menu_mc, "_root.Menu_mc"))
-    return 0;
-
-  RE::GFxValue inventoryLists;
-  RE::GFxValue itemList;
-  RE::GFxValue selectedEntry;
-  RE::GFxValue formID;
-  if (!Menu_mc.GetMember("inventoryLists", &inventoryLists) || !inventoryLists.GetMember("itemList", &itemList) ||
-      !itemList.GetMember("selectedEntry", &selectedEntry) || !selectedEntry.IsObject() || !selectedEntry.GetMember("formId", &formID) ||
-      formID.IsNull())
-    return 0;
-  return static_cast<RE::FormID>(formID.GetUInt());
-}
-
-void MenuLogger::LogMessageVarg(LogMessageType, const char* a_fmt, std::va_list a_argList)
-{
-  std::string fmt(a_fmt ? a_fmt : "");
-  while (!fmt.empty() && fmt.back() == '\n') {
-    fmt.pop_back();
+  auto ui   = RE::UI::GetSingleton();
+  auto menu = ui ? ui->GetMenu<RE::InventoryMenu>(RE::InventoryMenu::MENU_NAME)
+                 : nullptr;
+  if (!menu)
+    return nullptr;
+  if (RE::GFxValue itemIndex; menu->uiMovie->GetVariable(
+          &itemIndex,
+          "_root.Menu_mc.inventoryLists.itemList.selectedEntry.itemIndex")) {
+    auto items = menu->itemList->items;
+    if (items.empty())
+      return nullptr;
+    auto idx = static_cast<std::int32_t>(itemIndex.GetNumber());
+    if (idx < 0 || static_cast<std::size_t>(idx) >= items.size())
+      return nullptr;
+    return items[idx]->data.objDesc;
   }
-
-  std::va_list args;
-  va_copy(args, a_argList);
-  std::vector<char> buf(static_cast<std::size_t>(std::vsnprintf(0, 0, fmt.c_str(), a_argList) + 1));
-  std::vsnprintf(buf.data(), buf.size(), fmt.c_str(), args);
-  va_end(args);
-
-  logger::info("{}", buf.data());
+  return nullptr;
 }
 }  // namespace Utils

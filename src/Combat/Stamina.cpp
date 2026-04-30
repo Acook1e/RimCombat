@@ -1,4 +1,4 @@
-#include "Stamina.h"
+#include "Combat/Stamina.h"
 
 void Stamina::AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack)
 {
@@ -7,10 +7,17 @@ void Stamina::AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack)
   }
   if (!a_actor)
     return;
-  if (a_actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+  if (a_actor->IsPlayerRef() &&
+      RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
-  bool left  = a_actor->GetEquippedObject(true) ? a_actor->GetEquippedObject(true)->formType == RE::FormType::Weapon : false;
-  bool right = a_actor->GetEquippedObject(false) ? a_actor->GetEquippedObject(false)->formType == RE::FormType::Weapon : false;
+  bool left =
+      a_actor->GetEquippedObject(true)
+          ? a_actor->GetEquippedObject(true)->formType == RE::FormType::Weapon
+          : false;
+  bool right =
+      a_actor->GetEquippedObject(false)
+          ? a_actor->GetEquippedObject(false)->formType == RE::FormType::Weapon
+          : false;
 
   RE::TESObjectWEAP* weapon = nullptr;
   if (left && right) {
@@ -50,16 +57,21 @@ void Stamina::AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack)
       staminaCost = Settings::fNormalAttackStaminaCostBase_GreatAxe;
       break;
     default:
-      logger::info("Unknown weapon type {}", static_cast<int>(weapon->GetWeaponType()));
+      logger::info("Unknown weapon type {}",
+                   static_cast<int>(weapon->GetWeaponType()));
       break;
     }
   }
   if (weapon && weapon->GetWeight() > 0.0f) {
     if (a_actor->IsPowerAttacking()) {
       staminaCost *= Settings::fPowerAttackStaminaCostMult;
-      staminaCost += Settings::fPowerAttackStaminaCostPerMass * weapon->GetWeight();
-    } else if (!a_actor->IsPowerAttacking() && Settings::bNormalAttackComsumeStamina)
-      staminaCost += Settings::fNormalAttackStaminaCostPerMass * weapon->GetWeight();
+      staminaCost +=
+          Settings::fPowerAttackStaminaCostPerMass * weapon->GetWeight();
+    } else if (!a_actor->IsPowerAttacking() &&
+               Settings::bNormalAttackComsumeStamina)
+      staminaCost +=
+          Settings::fNormalAttackStaminaCostPerMass * weapon->GetWeight();
   }
-  a_actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
+  a_actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina,
+                                                 staminaCost);
 }

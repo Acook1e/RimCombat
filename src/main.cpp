@@ -1,16 +1,17 @@
-#include "Event.h"
-#include "Hooks.h"
-#include "Menu.h"
-#include "Posture.h"
-#include "Serialization.h"
-#include "Settings.h"
-#include "WeaponArt.h"
+#include "Combat/Posture.h"
+#include "Combat/WeaponArt.h"
+#include "Core/Event.h"
+#include "Core/Hooks.h"
+#include "Core/Serialization.h"
+#include "Core/Settings.h"
+#include "GUI/Menu.h"
+#include "GUI/UI.h"
 
 void onPostLoad()
 {
   Settings::LoadSettings();
   Menu::GetSingleton();
-  Posture::GetSingleton().InitHUD();
+  UI::TrueHUD::GetSingleton().Require();
 }
 
 void onDataLoaded()
@@ -19,7 +20,6 @@ void onDataLoaded()
   Hooks::Install();
   Events::Install();
   // WeaponArt::GetSingleton().Init();
-  WeaponArt::InfoCard::Register();
 }
 
 void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
@@ -48,7 +48,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
-  SKSE::Init(skse);
+  SKSE::Init(skse, true);
 
   logger::info("Runtime version: {}", skse->RuntimeVersion());
 

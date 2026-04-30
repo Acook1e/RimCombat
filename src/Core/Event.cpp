@@ -1,25 +1,28 @@
-#include "Event.h"
-
-#include "Block.h"
-#include "Stamina.h"
+#include "Core/Event.h"
+#include "Combat/Block.h"
+#include "Combat/Stamina.h"
+#include "Combat/WeaponArt.h"
+#include "Core/Settings.h"
 #include "Utils.h"
-#include "WeaponArt.h"
 
 namespace Events
 {
-
-using Utils::operator""_h;
-bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                             RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+// 返回True表示事件不需要往下传递了，返回False表示继续往下传递
+bool AnimEvent::ProcessEvent(
+    RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+    RE::BSAnimationGraphEvent* a_event,
+    RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
 {
   if (!a_event->holder) {
     return false;
   }
   std::string eventTag = a_event->tag.data();
   std::transform(eventTag.begin(), eventTag.end(), eventTag.begin(), ::tolower);
-  RE::Actor* actor = const_cast<RE::TESObjectREFR*>(a_event->holder)->As<RE::Actor>();
+  RE::Actor* actor =
+      const_cast<RE::TESObjectREFR*>(a_event->holder)->As<RE::Actor>();
 
-  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" && !Settings::bEnableExhausted) {
+  // 过滤掉一些不必要的事件，减少日志噪音
+  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy") {
     logger::info("Player Event: {}", eventTag);
   }
   switch (Utils::hash(eventTag.data(), eventTag.size())) {
@@ -40,7 +43,9 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink
   case "mco_powerattackentry"_h:
   case "bfco_playerattackstart"_h:
   case "bfco_npcattackstart"_h:
-    if (Settings::bDisableAttackStaminaZero && actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0.0f) {
+    if (Settings::bDisableAttackStaminaZero &&
+        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <=
+            0.0f) {
       SKSE::GetTaskInterface()->AddTask([actor]() {
         actor->NotifyAnimationGraph("attackStop");
       });
@@ -65,29 +70,37 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink
   return false;
 }
 
-RE::BSEventNotifyControl AnimEvent::ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                                     RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+RE::BSEventNotifyControl AnimEvent::ProcessEvent_NPC(
+    RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+    RE::BSAnimationGraphEvent* a_event,
+    RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
 {
   if (ProcessEvent(a_sink, a_event, a_eventSource))
     return RE::BSEventNotifyControl::kContinue;
   return _ProcessEvent_NPC(a_sink, a_event, a_eventSource);
 }
 
-RE::BSEventNotifyControl AnimEvent::ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                                    RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+RE::BSEventNotifyControl AnimEvent::ProcessEvent_PC(
+    RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+    RE::BSAnimationGraphEvent* a_event,
+    RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
 {
   if (ProcessEvent(a_sink, a_event, a_eventSource))
     return RE::BSEventNotifyControl::kContinue;
   return _ProcessEvent_PC(a_sink, a_event, a_eventSource);
 }
 
-RE::BSEventNotifyControl MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource)
+RE::BSEventNotifyControl MenuEvent::ProcessEvent(
+    const RE::MenuOpenCloseEvent* a_event,
+    RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource)
 {
   if (a_event->menuName == RE::InventoryMenu::MENU_NAME) {
     if (a_event->opening)
-      WeaponArt::InfoCard::Show();
+      // 显示装备信息卡
+      logger::info("Inventory Menu Opened");
     else
-      WeaponArt::InfoCard::Hide();
+      // 隐藏装备信息卡
+      logger::info("Inventory Menu Closed");
   }
   return RE::BSEventNotifyControl::kContinue;
 }

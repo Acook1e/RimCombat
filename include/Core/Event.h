@@ -2,10 +2,9 @@
 
 namespace Events
 {
-
+// 动画事件处理
 class AnimEvent
 {
-public:
 public:
   static void Install()
   {
@@ -18,19 +17,26 @@ public:
   }
 
 private:
-  static inline bool ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                  RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
+  static inline bool
+  ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+               RE::BSAnimationGraphEvent* a_event,
+               RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
-  static RE::BSEventNotifyControl ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                                   RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
+  static RE::BSEventNotifyControl ProcessEvent_NPC(
+      RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+      RE::BSAnimationGraphEvent* a_event,
+      RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
-  static RE::BSEventNotifyControl ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                                  RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
+  static RE::BSEventNotifyControl
+  ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
+                  RE::BSAnimationGraphEvent* a_event,
+                  RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
 
   static inline REL::Relocation<decltype(ProcessEvent_NPC)> _ProcessEvent_NPC;
   static inline REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
 };
 
+// 菜单事件监听
 class MenuEvent : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 {
 public:
@@ -43,10 +49,13 @@ public:
   {
     auto ui = RE::UI::GetSingleton();
     ui->AddEventSink<RE::MenuOpenCloseEvent>(GetSingleton());
-    logger::info("MenuEvent: installing event hook for {}", typeid(RE::MenuOpenCloseEvent).name());
+    logger::info("MenuEvent: installing event hook for {}",
+                 typeid(RE::MenuOpenCloseEvent).name());
   }
 
-  RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override;
+  RE::BSEventNotifyControl ProcessEvent(
+      const RE::MenuOpenCloseEvent* a_event,
+      RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override;
 };
 
 inline void Install()

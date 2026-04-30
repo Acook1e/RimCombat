@@ -7,7 +7,6 @@ set_version("1.0.0")
 set_languages("cxx23")
 set_toolchains("clang-cl")
 
-add_defines("WIN32_LEAN_AND_MEAN", "NOMINMAX")
 add_defines("UNICODE", "_UNICODE")
 
 includes("extern/CommonLibSSE-NG")
@@ -23,7 +22,7 @@ elseif is_mode("release") then
     set_symbols("debug")
 end
 
-add_requires("simpleini")
+add_requires("nlohmann_json", "magic_enum")
 add_requires("spdlog", { configs = { header_only = false, wchar = true, std_format = true } })
 
 target(PROJECT_NAME)
@@ -40,8 +39,9 @@ target(PROJECT_NAME)
         }
     })
 
+    add_packages("nlohmann_json")
+    add_packages("magic_enum")
     add_packages("spdlog")
-    add_packages("simpleini")
 
     add_files("src/**.cpp")
     add_includedirs("include/")

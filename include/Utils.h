@@ -2,12 +2,66 @@
 
 namespace Utils
 {
+// 时间辅助函数，默认精度为毫秒
+template <typename T>
+std::int64_t GetTime(T accuracy = std::chrono::milliseconds())
+{
+  return std::chrono::duration_cast<T>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+// 计时辅助类，在析构时输出从创建到析构的时间，单位为毫秒
+class ScopeTimer
+{
+public:
+  ScopeTimer(std::string_view a_name)
+      : name(a_name), start(std::chrono::high_resolution_clock::now())
+  {}
+
+  ~ScopeTimer()
+  {
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+            .count();
+    logger::info("{} took {} ms", name, duration);
+  }
+
+private:
+  std::string_view name;
+  std::chrono::high_resolution_clock::time_point start;
+};
+
+// 字符串工具
+std::string join(std::vector<std::string>& vec, char delimiter);
+std::vector<std::string> split(const std::string& str, char delimiter);
+
+// 哈希相关函数
+constexpr inline std::uint32_t hash(const char* data,
+                                    size_t const size) noexcept
+{
+  uint32_t hash = MOD;
+  for (const char* c = data; c < data + size; ++c) {
+    hash = ((hash << 5) + hash) + (unsigned char)*c;
+  }
+  return hash;
+}
+constexpr inline std::uint32_t hash(std::string_view str) noexcept
+{
+  return hash(str.data(), str.size());
+}
+
+// 游戏相关工具
+RE::InventoryEntryData* GetSelectedItemEntry();
+float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
 template <typename T>
 void SetGameSettings(const char* a_setting, T a_value)
 {
-  RE::Setting* setting                          = nullptr;
-  RE::GameSettingCollection* _settingCollection = RE::GameSettingCollection::GetSingleton();
-  setting                                       = _settingCollection->GetSetting(a_setting);
+  RE::Setting* setting = nullptr;
+  RE::GameSettingCollection* _settingCollection =
+      RE::GameSettingCollection::GetSingleton();
+  setting = _settingCollection->GetSetting(a_setting);
   if (!setting) {
     logger::info("SetGameSetting: Invalid setting: {}", a_setting);
   } else {
@@ -26,35 +80,11 @@ void SetGameSettings(const char* a_setting, T a_value)
     }
   }
 }
+}  // namespace Utils
 
-template <typename T>
-std::int64_t GetTime(T accuracy)
-{
-  return std::chrono::duration_cast<T>(std::chrono::steady_clock::now().time_since_epoch()).count();
-}
-
-constexpr std::uint32_t hash(const char* data, size_t const size) noexcept
-{
-  uint32_t hash = nexusID;
-
-  for (const char* c = data; c < data + size; ++c) {
-    hash = ((hash << 5) + hash) + (unsigned char)*c;
-  }
-
-  return hash;
-}
+// 显式使用Utils命名空间中的ScopeTimer和hash函数
+using ScopeTimer = Utils::ScopeTimer;
 constexpr std::uint32_t operator""_h(const char* str, size_t size) noexcept
 {
-  return hash(str, size);
+  return Utils::hash(str, size);
 }
-
-class MenuLogger : public RE::GFxLog
-{
-public:
-  void LogMessageVarg(LogMessageType, const char* a_fmt, std::va_list a_argList) override;
-};
-
-RE::FormID GetSelectedItem();
-
-float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
-}  // namespace Utils

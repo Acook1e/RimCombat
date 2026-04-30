@@ -2,7 +2,9 @@
 
 namespace Settings
 {
-inline std::string SettingsDir;
+constexpr inline std::string_view SettingsFile =
+    "Data/SKSE/Plugins/RimCombat/Settings.json";
+constexpr inline std::string_view SettingsDir = "Data/SKSE/Plugins/RimCombat/";
 
 #pragma region Stamina
 inline bool bUseAttackStaminaSystem     = true;
@@ -14,7 +16,7 @@ inline float fStaminaRegenMult       = 5.0f;
 inline float fStaminaRegenMin        = 10.0f;
 inline float fStaminaRegenMax        = 50.0f;
 inline float fStaminaRegenDelay      = 1.5f;
-inline float fStaminaRegenMultCombat = 0.5f;
+inline float fStaminaRegenMultCombat = 1.0f;
 inline float fStaminaRegenMultBlock  = 0.5f;
 
 inline float fNormalAttackStaminaCostBase_Fist       = 5.0f;

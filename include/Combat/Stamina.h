@@ -10,5 +10,5 @@ public:
     static Stamina singleton;
     return singleton;
   }
-  static void AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack);
+  static void AttackStaminaConsume(RE::Actor* actor, bool leftAttack);
 };

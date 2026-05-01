@@ -19,13 +19,15 @@ void Initialize()
     std::ifstream ifs(LocalizationPath);
     j = nlohmann::json::parse(ifs);
   } catch (const std::exception& e) {
-    logger::error("[SexLab NG] Failed to load localization file: {}. Error: {}",
+    logger::error("Localization::Initialize: Failed to load localization file: "
+                  "{}. Error: {}",
                   LocalizationPath, e.what());
     return;
   }
 
   if (j.is_null() || !j.is_object()) {
-    logger::error("[SexLab NG] Localization file is not a valid JSON object.");
+    logger::error("Localization::Initialize: Localization file is not a valid "
+                  "JSON object.");
     return;
   }
 
@@ -52,7 +54,8 @@ bool AddLocalization(std::string key, std::string label, std::string desc)
 {
   auto hashValue = Utils::hash(key);
   if (entryMaps.find(hashValue) != entryMaps.end()) {
-    logger::warn("[SexLab NG] Localization key '{}' already exists. Skipping.",
+    logger::warn("Localization::AddLocalization: Localization key '{}' already "
+                 "exists. Skipping.",
                  key);
     return false;
   }

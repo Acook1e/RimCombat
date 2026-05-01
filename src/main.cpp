@@ -1,4 +1,6 @@
+#include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
+#include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Event.h"
 #include "Core/Hooks.h"
@@ -11,7 +13,9 @@ void onPostLoad()
 {
   Settings::LoadSettings();
   Menu::GetSingleton();
-  UI::TrueHUD::GetSingleton().Require();
+  Posture::GetSingleton();
+  Exhausted::GetSingleton();
+  UI::TrueHUD::GetSingleton();
 }
 
 void onDataLoaded()
@@ -19,12 +23,12 @@ void onDataLoaded()
   Settings::UpdateGameSettings();
   Hooks::Install();
   Events::Install();
-  // WeaponArt::GetSingleton().Init();
+  Weapon::Initialize();
 }
 
-void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
+void MessageHandler(SKSE::MessagingInterface::Message* msg)
 {
-  switch (a_msg->type) {
+  switch (msg->type) {
   case SKSE::MessagingInterface::kPostLoad:
     onPostLoad();
     break;

@@ -3,6 +3,7 @@
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
 #include "GUI/UI.h"
+#include "Utils.h"
 
 Exhausted::Exhausted()
 {
@@ -73,6 +74,7 @@ void Exhausted::EnterExhausted(RE::Actor* actor)
     exhaustedActors.insert(actor->GetFormID());
   else
     runtimeExhaustedActors.insert(actor);
+  Utils::ActorCanAttack(actor, false);
   UI::TrueHUD::GetSingleton().EnterGeryOut(actor);
 }
 
@@ -85,5 +87,6 @@ void Exhausted::ExitExhausted(RE::Actor* actor)
     exhaustedActors.erase(actor->GetFormID());
   else
     runtimeExhaustedActors.erase(actor);
+  Utils::ActorCanAttack(actor, true);
   UI::TrueHUD::GetSingleton().ExitGreyOut(actor);
 }

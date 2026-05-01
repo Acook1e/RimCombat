@@ -8,10 +8,10 @@ public:
     static Block singleton;
     return singleton;
   }
-  void StartBlock(RE::Actor* a_actor);
-  void EndBlock(RE::Actor* a_actor);
+  void StartBlock(RE::Actor* actor);
+  void EndBlock(RE::Actor* actor);
 
-  bool IsTimedBlock(RE::Actor* a_actor);
+  bool IsTimedBlock(RE::Actor* actor);
 
 private:
   int64_t lastCleanTime = 0;

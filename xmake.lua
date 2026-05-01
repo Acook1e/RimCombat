@@ -47,3 +47,8 @@ target(PROJECT_NAME)
     add_includedirs("include/")
     add_headerfiles("include/**.h")
     set_pcxxheader("include/PCH.h")
+
+    after_build(function (target)
+        os.vcp(target:targetfile(), "dist/SKSE/Plugins/")
+        os.vcp(target:symbolfile(), "dist/SKSE/Plugins/")
+    end)

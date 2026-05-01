@@ -141,7 +141,7 @@ Menu::Menu()
   event =
       new SKSEMenuFramework::Model::Event(callback, static_cast<float>(MOD));
 
-  logger::info("[RimCombat] Menu: SKSEMenuFramework v{} loaded.",
+  logger::info("Menu: SKSEMenuFramework v{} loaded.",
                SKSEMenuFramework::GetMenuFrameworkVersion());
 }
 

@@ -16,8 +16,8 @@ public:
   bool Require();
   bool Release();
 
-  void EnterGeryOut(RE::Actor* a_actor);
-  void ExitGreyOut(RE::Actor* a_actor);
+  void EnterGeryOut(RE::Actor* actor);
+  void ExitGreyOut(RE::Actor* actor);
 
 private:
   TrueHUD();

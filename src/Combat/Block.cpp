@@ -3,20 +3,20 @@
 #include "Core/Settings.h"
 #include "Utils.h"
 
-void Block::StartBlock(RE::Actor* a_actor)
+void Block::StartBlock(RE::Actor* actor)
 {
-  if (!a_actor)
+  if (!actor)
     return;
   std::lock_guard lock(mutex);
-  blockStartTimes[a_actor] = Utils::GetTime(std::chrono::milliseconds());
+  blockStartTimes[actor] = Utils::GetTime(std::chrono::milliseconds());
 }
 
-void Block::EndBlock(RE::Actor* a_actor)
+void Block::EndBlock(RE::Actor* actor)
 {
-  if (!a_actor)
+  if (!actor)
     return;
   std::lock_guard lock(mutex);
-  blockStartTimes.erase(a_actor);
+  blockStartTimes.erase(actor);
   auto now = Utils::GetTime(std::chrono::milliseconds());
   // Clean up old block times every second to prevent the map from growing
   // indefinitely, which may cause performance issues.
@@ -30,21 +30,21 @@ void Block::EndBlock(RE::Actor* a_actor)
   }
 }
 
-bool Block::IsTimedBlock(RE::Actor* a_actor)
+bool Block::IsTimedBlock(RE::Actor* actor)
 {
-  if (!a_actor)
+  if (!actor)
     return false;
   std::lock_guard lock(mutex);
   int64_t interval = 0;
-  if (blockStartTimes.find(a_actor) != blockStartTimes.end())
+  if (blockStartTimes.find(actor) != blockStartTimes.end())
     interval =
-        Utils::GetTime(std::chrono::milliseconds()) - blockStartTimes[a_actor];
+        Utils::GetTime(std::chrono::milliseconds()) - blockStartTimes[actor];
   logger::info("Block::IsTimedBlock: Actor: {}, Interval: {}.",
-               a_actor->GetName(), interval);
+               actor->GetName(), interval);
   if (interval > 0 && interval < Settings::iTimedBlockLimit) {
     // Timed block only trigger once and cold down at next block start, so we
     // set the start time to a past time to avoid repeated trigger.
-    blockStartTimes[a_actor] -= 100;
+    blockStartTimes[actor] -= 100;
     return true;
   }
   return false;

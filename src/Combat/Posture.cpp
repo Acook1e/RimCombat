@@ -2,8 +2,11 @@
 
 #include "Combat/Block.h"
 #include "Combat/Exhausted.h"
+#include "Combat/Weapon.h"
 #include "Core/Serialization.h"
 #include "Utils.h"
+
+#include "magic_enum/magic_enum.hpp"
 
 Posture::Posture()
 {
@@ -139,57 +142,32 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim,
   auto hitFlags     = hitData.flags;
   auto attackWeapon = hitData.weapon;
 
-  float postureDamage = 0.0f;
-  if (!attackWeapon) {
-    if (hitFlags.any(RE::HitData::Flag::kBash)) {
-      postureDamage = Settings::fBashPostureDamageBase;
-    } else {
-      logger::warn("Posture::ProcessMeleeHit: What are you doing? {}",
-                   hitFlags.underlying());
-    }
-  } else {
-    switch (attackWeapon->GetWeaponType()) {
-    case RE::WEAPON_TYPE::kHandToHandMelee:
-      postureDamage = Settings::fNormalAttackPostureDamage_Fist;
-      break;
-    case RE::WEAPON_TYPE::kOneHandDagger:
-      postureDamage = Settings::fNormalAttackPostureDamage_Dagger;
-      break;
-    case RE::WEAPON_TYPE::kOneHandSword:
-      postureDamage = Settings::fNormalAttackPostureDamage_Sword;
-      break;
-    case RE::WEAPON_TYPE::kOneHandAxe:
-      postureDamage = Settings::fNormalAttackPostureDamage_Axe;
-      break;
-    case RE::WEAPON_TYPE::kOneHandMace:
-      postureDamage = Settings::fNormalAttackPostureDamage_Mace;
-      break;
-    case RE::WEAPON_TYPE::kTwoHandSword:
-      postureDamage = Settings::fNormalAttackPostureDamage_GreatSword;
-      break;
-    case RE::WEAPON_TYPE::kTwoHandAxe:
-      postureDamage = Settings::fNormalAttackPostureDamage_GreatAxe;
-      break;
-    case RE::WEAPON_TYPE::kBow:
-    case RE::WEAPON_TYPE::kStaff:
-    case RE::WEAPON_TYPE::kCrossbow:
-      // TODO: stamina consumption for ranged weapons
-      // need a calculation for posture damage based on stamina consumption
-      // and distance
-      break;
-    default:
-      logger::warn("Posture::ProcessMeleeHit: Unsupported weapon type: {}",
-                   static_cast<int>(attackWeapon->GetWeaponType()));
-    }
-  }
+  auto bash   = hitFlags.any(RE::HitData::Flag::kBash);
+  auto shield = false;
+  if (auto* left = aggressor->GetEquippedObject(true); left)
+    shield = left->IsArmor();
+
+  auto type = Weapon::GetWeaponType(attackWeapon);
+  // 如果是格挡攻击但没有武器且有盾，则视为盾击
+  // 因为空手且带盾的情况下，bash只能由盾牌触发
+  // 但某些动画包可能允许空手带盾用手触发bash
+  // 可能会导致误判，但目前没有更好的解决方案了
+  if (!attackWeapon && bash && shield)
+    type = Weapon::Type::Shield;
+  float postureDamage = Weapon::GetBasePostureDamage(type);
 
   // Process Power Attack
   if (hitFlags.any(RE::HitData::Flag::kPowerAttack)) {
     // Process Bash Power Attack
-    if (hitFlags.any(RE::HitData::Flag::kBash)) {
+    if (bash) {
       postureDamage *= Settings::fPowerBashPostureDamageMult;
     } else {
       postureDamage *= Settings::fPowerAttackPostureDamageMult;
+    }
+  } else {
+    // Process Bash Attack
+    if (bash) {
+      postureDamage *= Settings::fBashPostureDamageMult;
     }
   }
 

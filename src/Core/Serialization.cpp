@@ -18,13 +18,16 @@ void Initialize()
       if (serial->OpenRecord(type, SerializationVersion))
         callback(serial);
       else
-        logger::error("[RimCombat] Failed to open record for type: {}", type);
+        logger::error(
+            "Serialization::Initialize: Failed to open record for type: {}",
+            type);
   });
   serial->SetLoadCallback([](SKSE::SerializationInterface* serial) {
     std::uint32_t type, version, length;
     while (serial->GetNextRecordInfo(type, version, length)) {
       if (version != SerializationVersion) {
-        logger::error("[RimCombat] Unsupported serialization version: {} for "
+        logger::error("Serialization::Initialize: Unsupported serialization "
+                      "version: {} for "
                       "type: {}, expected: {}. Skipping {} bytes",
                       version, type, SerializationVersion, length);
         continue;
@@ -34,7 +37,8 @@ void Initialize()
       if (it != loadCallbacks.end())
         it->second(serial);
       else
-        logger::warn("[RimCombat] No load callback registered for type: {}, "
+        logger::warn("Serialization::Initialize: No load callback registered "
+                     "for type: {}, "
                      "skipping {} bytes",
                      type, length);
     }

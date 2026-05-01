@@ -1,77 +1,49 @@
 #include "Combat/Stamina.h"
 
-void Stamina::AttackStaminaConsume(RE::Actor* a_actor, bool leftAttack)
+#include "Combat/Weapon.h"
+#include "Core/Settings.h"
+
+void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack)
 {
-  if (!Settings::bConsumeStaminaOutCombat && !a_actor->IsInCombat()) {
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
-  }
-  if (!a_actor)
+
+  if (!actor)
     return;
-  if (a_actor->IsPlayerRef() &&
-      RE::PlayerCharacter::GetSingleton()->IsGodMode())
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
-  bool left =
-      a_actor->GetEquippedObject(true)
-          ? a_actor->GetEquippedObject(true)->formType == RE::FormType::Weapon
-          : false;
-  bool right =
-      a_actor->GetEquippedObject(false)
-          ? a_actor->GetEquippedObject(false)->formType == RE::FormType::Weapon
-          : false;
+
+  RE::TESObjectWEAP* left = nullptr;
+  if (auto* leftHand = actor->GetEquippedObject(true);
+      leftHand && leftHand->IsWeapon())
+    left = leftHand->As<RE::TESObjectWEAP>();
+
+  RE::TESObjectWEAP* right = nullptr;
+  if (auto* rightHand = actor->GetEquippedObject(false);
+      rightHand && rightHand->IsWeapon())
+    right = rightHand->As<RE::TESObjectWEAP>();
 
   RE::TESObjectWEAP* weapon = nullptr;
-  if (left && right) {
-    if (leftAttack)
-      weapon = a_actor->GetEquippedObject(true)->As<RE::TESObjectWEAP>();
-    else
-      weapon = a_actor->GetEquippedObject(false)->As<RE::TESObjectWEAP>();
-  } else if (left) {
-    weapon = a_actor->GetEquippedObject(true)->As<RE::TESObjectWEAP>();
-  } else if (right) {
-    weapon = a_actor->GetEquippedObject(false)->As<RE::TESObjectWEAP>();
-  }
-  float staminaCost = 0.0f;
-  if (!weapon)
-    staminaCost = Settings::fNormalAttackStaminaCostBase_Fist;
-  else {
-    switch (weapon->GetWeaponType()) {
-    case RE::WEAPON_TYPE::kHandToHandMelee:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_Fist;
-      break;
-    case RE::WEAPON_TYPE::kOneHandDagger:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_Dagger;
-      break;
-    case RE::WEAPON_TYPE::kOneHandSword:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_Sword;
-      break;
-    case RE::WEAPON_TYPE::kOneHandAxe:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_Axe;
-      break;
-    case RE::WEAPON_TYPE::kOneHandMace:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_Mace;
-      break;
-    case RE::WEAPON_TYPE::kTwoHandSword:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_GreatSword;
-      break;
-    case RE::WEAPON_TYPE::kTwoHandAxe:
-      staminaCost = Settings::fNormalAttackStaminaCostBase_GreatAxe;
-      break;
-    default:
-      logger::info("Unknown weapon type {}",
-                   static_cast<int>(weapon->GetWeaponType()));
-      break;
-    }
-  }
+  auto type                 = Weapon::Type::Unarm;
+  if (leftAttack)
+    type = Weapon::GetWeaponType(left);
+  else
+    type = Weapon::GetWeaponType(right);
+
+  float staminaCost = Weapon::GetBaseStaminaConsumption(type);
+
+  if (actor->IsPowerAttacking())
+    staminaCost *= Settings::fPowerAttackStaminaCostMult;
+
   if (weapon && weapon->GetWeight() > 0.0f) {
-    if (a_actor->IsPowerAttacking()) {
-      staminaCost *= Settings::fPowerAttackStaminaCostMult;
+    if (actor->IsPowerAttacking())
       staminaCost +=
           Settings::fPowerAttackStaminaCostPerMass * weapon->GetWeight();
-    } else if (!a_actor->IsPowerAttacking() &&
-               Settings::bNormalAttackComsumeStamina)
+    else
       staminaCost +=
           Settings::fNormalAttackStaminaCostPerMass * weapon->GetWeight();
   }
-  a_actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina,
-                                                 staminaCost);
+
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina,
+                                               staminaCost);
 }

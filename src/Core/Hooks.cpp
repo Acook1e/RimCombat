@@ -11,7 +11,7 @@ float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(
     RE::ActorValueOwner* avOwner, RE::BGSAttackData* atkData)
 {
   // REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  // RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(avOwner,
+  // RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner,
   // offset.offset());
 
   if (Settings::bUseAttackStaminaSystem)
@@ -37,72 +37,70 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   _ProcessHit(victim, hitData);
 }
-void Hook_OnModActorValue::ModActorValue_NPC(
-    RE::ActorValueOwner* a_this, RE::ACTOR_VALUE_MODIFIER a_modifier,
-    RE::ActorValue a_akValue, float a_value)
+void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* avOwner,
+                                             RE::ACTOR_VALUE_MODIFIER modifier,
+                                             RE::ActorValue akValue,
+                                             float value)
 {
   REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(a_this, offset.offset());
-  a_value            = ModActorValue(a_actor, a_modifier, a_akValue, a_value);
-  _ModActorValue_NPC(a_this, a_modifier, a_akValue, a_value);
+  RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
+  value            = ModActorValue(actor, modifier, akValue, value);
+  _ModActorValue_NPC(avOwner, modifier, akValue, value);
 }
-void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* a_this,
-                                            RE::ACTOR_VALUE_MODIFIER a_modifier,
-                                            RE::ActorValue a_akValue,
-                                            float a_value)
+void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* avOwner,
+                                            RE::ACTOR_VALUE_MODIFIER modifier,
+                                            RE::ActorValue akValue, float value)
 {
   REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  RE::Actor* a_actor = &REL::RelocateMember<RE::Actor>(a_this, offset.offset());
-  a_value            = ModActorValue(a_actor, a_modifier, a_akValue, a_value);
-  _ModActorValue_PC(a_this, a_modifier, a_akValue, a_value);
+  RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
+  value            = ModActorValue(actor, modifier, akValue, value);
+  _ModActorValue_PC(avOwner, modifier, akValue, value);
 }
-float Hook_OnModActorValue::ModActorValue(RE::Actor* a_actor,
-                                          RE::ACTOR_VALUE_MODIFIER a_modifier,
-                                          RE::ActorValue a_akValue,
-                                          float a_value)
+float Hook_OnModActorValue::ModActorValue(RE::Actor* actor,
+                                          RE::ACTOR_VALUE_MODIFIER modifier,
+                                          RE::ActorValue akValue, float value)
 {
-  switch (a_modifier) {
+  switch (modifier) {
   case RE::ACTOR_VALUE_MODIFIER::kPermanent:
   case RE::ACTOR_VALUE_MODIFIER::kTemporary:
-    return ModMaxActorValue(a_actor, a_akValue, a_value);
+    return ModMaxActorValue(actor, akValue, value);
   case RE::ACTOR_VALUE_MODIFIER::kDamage:
-    return ModCurrentActorValue(a_actor, a_akValue, a_value);
+    return ModCurrentActorValue(actor, akValue, value);
   default:
-    return a_value;
+    return value;
   }
 }
-float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* a_actor,
-                                             RE::ActorValue a_akValue,
-                                             float a_value)
+float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* actor,
+                                             RE::ActorValue akValue,
+                                             float value)
 {
-  switch (a_akValue) {
+  switch (akValue) {
   case RE::ActorValue::kHealth:
     if (Settings::bUsePostureSystem)
-      Posture::GetSingleton().ReCalculateMaxPosture(a_actor);
+      Posture::GetSingleton().ReCalculateMaxPosture(actor);
     break;
   }
-  return a_value;
+  return value;
 }
-float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* a_actor,
-                                                 RE::ActorValue a_akValue,
-                                                 float a_value)
+float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor,
+                                                 RE::ActorValue akValue,
+                                                 float value)
 {
   // Process ActorValue Decrease
-  if (a_value < 0) {
+  if (value < 0) {
     // Process Exhausted State Entry
-    if (a_akValue == RE::ActorValue::kStamina) {
+    if (akValue == RE::ActorValue::kStamina) {
       if (Settings::bEnableExhausted &&
-          a_actor->AsActorValueOwner()->GetActorValue(
-              RE::ActorValue::kStamina) +
-                  a_value <=
+          actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) +
+                  value <=
               0) {
-        Exhausted::EnterExhausted(a_actor);
+        Exhausted::EnterExhausted(actor);
       }
     }
     // Process player god mode
-    if (a_actor->IsPlayerRef() &&
+    if (actor->IsPlayerRef() &&
         RE::PlayerCharacter::GetSingleton()->IsGodMode()) {
-      switch (a_akValue) {
+      switch (akValue) {
       case RE::ActorValue::kHealth:
       case RE::ActorValue::kStamina:
       case RE::ActorValue::kMagicka:
@@ -111,38 +109,36 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* a_actor,
         break;
       }
     }
-    return a_value;
+    return value;
   }
   // Process ActorValue Increase
-  switch (a_akValue) {
+  switch (akValue) {
   case RE::ActorValue::kStamina: {
     // During attack, stamina does not regenerate
-    RE::ATTACK_STATE_ENUM atkState = a_actor->AsActorState()->GetAttackState();
+    RE::ATTACK_STATE_ENUM atkState = actor->AsActorState()->GetAttackState();
     if (atkState > RE::ATTACK_STATE_ENUM::kNone &&
         atkState <= RE::ATTACK_STATE_ENUM::kBowFollowThrough) {
       return 0.0f;
     }
     // Combat Multiplier
-    if (a_actor->IsInCombat()) {
-      a_value *= Settings::fStaminaRegenMultCombat;
+    if (actor->IsInCombat()) {
+      value *= Settings::fStaminaRegenMultCombat;
     }
     // Block Multiplier
-    if (a_actor->IsBlocking()) {
-      a_value *= Settings::fStaminaRegenMultBlock;
+    if (actor->IsBlocking()) {
+      value *= Settings::fStaminaRegenMultBlock;
     }
     // Process Exhausted State Exit
-    if (Settings::bEnableExhausted && Exhausted::IsActorExhausted(a_actor)) {
-      if (a_actor->AsActorValueOwner()->GetActorValue(
-              RE::ActorValue::kStamina) /
-              Utils::GetCurrentMaxActorValue(a_actor,
-                                             RE::ActorValue::kStamina) >=
-          Settings::fExhaustedRestorePercent)
-        Exhausted::ExitExhausted(a_actor);
+    if (Settings::bEnableExhausted && Exhausted::IsActorExhausted(actor)) {
+      if (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) /
+              Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kStamina) >=
+          Settings::fExhaustedExitPercent)
+        Exhausted::ExitExhausted(actor);
     }
   } break;
   default:
     break;
   }
-  return a_value;
+  return value;
 }
 }  // namespace Hooks

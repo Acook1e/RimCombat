@@ -69,27 +69,27 @@ bool TrueHUD::Release()
   return false;
 }
 
-void TrueHUD::EnterGeryOut(RE::Actor* a_actor)
+void TrueHUD::EnterGeryOut(RE::Actor* actor)
 {
-  if (!a_actor || !truehud || !init)
+  if (!actor || !truehud || !init)
     return;
-  truehud->OverrideBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina,
+  truehud->OverrideBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                             TRUEHUD_API::BarColorType::FlashColor, 0xd72a2a);
-  truehud->OverrideBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina,
+  truehud->OverrideBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                             TRUEHUD_API::BarColorType::BarColor, 0x7d7e7d);
-  truehud->OverrideBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina,
+  truehud->OverrideBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                             TRUEHUD_API::BarColorType::PhantomColor, 0xb30d10);
 }
 
-void TrueHUD::ExitGreyOut(RE::Actor* a_actor)
+void TrueHUD::ExitGreyOut(RE::Actor* actor)
 {
-  if (!a_actor || !truehud || !init)
+  if (!actor || !truehud || !init)
     return;
-  truehud->RevertBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina,
+  truehud->RevertBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                           TRUEHUD_API::BarColorType::FlashColor);
-  truehud->RevertBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina,
+  truehud->RevertBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                           TRUEHUD_API::BarColorType::BarColor);
-  truehud->RevertBarColor(a_actor->GetHandle(), RE::ActorValue::kStamina,
+  truehud->RevertBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                           TRUEHUD_API::BarColorType::PhantomColor);
 }
 

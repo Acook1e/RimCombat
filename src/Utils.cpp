@@ -44,4 +44,10 @@ RE::InventoryEntryData* GetSelectedItemEntry()
   }
   return nullptr;
 }
+
+void ActorCanAttack(RE::Actor* actor, bool enable)
+{
+  auto& flag = actor->GetActorRuntimeData().boolFlags;
+  flag.set(!enable, RE::Actor::BOOL_FLAGS::kAttackingDisabled);
+}
 }  // namespace Utils

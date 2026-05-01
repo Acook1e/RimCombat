@@ -15,8 +15,8 @@ std::int64_t GetTime(T accuracy = std::chrono::milliseconds())
 class ScopeTimer
 {
 public:
-  ScopeTimer(std::string_view a_name)
-      : name(a_name), start(std::chrono::high_resolution_clock::now())
+  ScopeTimer(std::string_view name)
+      : name(name), start(std::chrono::high_resolution_clock::now())
   {}
 
   ~ScopeTimer()
@@ -55,28 +55,29 @@ constexpr inline std::uint32_t hash(std::string_view str) noexcept
 // 游戏相关工具
 RE::InventoryEntryData* GetSelectedItemEntry();
 float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
+void ActorCanAttack(RE::Actor* actor, bool enable);  // 仅对NPC有效
 template <typename T>
-void SetGameSettings(const char* a_setting, T a_value)
+void SetGameSettings(const char* setting, T value)
 {
-  RE::Setting* setting = nullptr;
+  RE::Setting* gameSetting = nullptr;
   RE::GameSettingCollection* _settingCollection =
       RE::GameSettingCollection::GetSingleton();
-  setting = _settingCollection->GetSetting(a_setting);
-  if (!setting) {
-    logger::info("SetGameSetting: Invalid setting: {}", a_setting);
+  gameSetting = _settingCollection->GetSetting(setting);
+  if (!gameSetting) {
+    logger::info("SetGameSetting: Invalid setting: {}", setting);
   } else {
     if constexpr (std::is_same_v<T, bool>) {
-      setting->data.b = a_value;
+      gameSetting->data.b = value;
     } else if constexpr (std::is_same_v<T, float>) {
-      setting->data.f = a_value;
+      gameSetting->data.f = value;
     } else if constexpr (std::is_same_v<T, std::int32_t>) {
-      setting->data.i = a_value;
+      gameSetting->data.i = value;
     } else if constexpr (std::is_same_v<T, RE::Color>) {
-      setting->data.r = a_value;
+      gameSetting->data.r = value;
     } else if constexpr (std::is_same_v<T, char*>) {
-      setting->data.s = a_value;
+      gameSetting->data.s = value;
     } else if constexpr (std::is_same_v<T, std::uint32_t>) {
-      setting->data.u = a_value;
+      gameSetting->data.u = value;
     }
   }
 }

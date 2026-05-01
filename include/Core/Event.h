@@ -18,19 +18,19 @@ public:
 
 private:
   static inline bool
-  ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
-               RE::BSAnimationGraphEvent* a_event,
-               RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
-
-  static RE::BSEventNotifyControl ProcessEvent_NPC(
-      RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
-      RE::BSAnimationGraphEvent* a_event,
-      RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
+  ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+               RE::BSAnimationGraphEvent* event,
+               RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource);
 
   static RE::BSEventNotifyControl
-  ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink,
-                  RE::BSAnimationGraphEvent* a_event,
-                  RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource);
+  ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+                   RE::BSAnimationGraphEvent* event,
+                   RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource);
+
+  static RE::BSEventNotifyControl
+  ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+                  RE::BSAnimationGraphEvent* event,
+                  RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource);
 
   static inline REL::Relocation<decltype(ProcessEvent_NPC)> _ProcessEvent_NPC;
   static inline REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
@@ -54,8 +54,8 @@ public:
   }
 
   RE::BSEventNotifyControl ProcessEvent(
-      const RE::MenuOpenCloseEvent* a_event,
-      RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override;
+      const RE::MenuOpenCloseEvent* event,
+      RE::BSTEventSource<RE::MenuOpenCloseEvent>* eventSource) override;
 };
 
 inline void Install()

@@ -1,0 +1,50 @@
+{
+    "SpinningSlash": {
+        "name": "回旋斩",
+        "description": "旋转攻击周围的敌人",
+        "weapons": [],
+        "availableWeapon": [
+            "Normal",
+            "Heavy",
+            "Slash"
+        ],
+        "damageType": "Slash",
+        "damageMult": 1.2,
+        "baseDamage": 0.0,
+        "postureDamageMult": 1.0,
+        "consumePoint": 1,
+        "unlockLevel": 0
+    },
+    "Unshethe": {
+        "name": "居合",
+        "description": "收刀入鞘，根据轻重攻击使出不同的派生攻击",
+        "weapons": [],
+        "availableWeapon": [
+            "Normal",
+            "Katana"
+        ],
+        "damageType": "None",
+        "damageMult": 1.5,
+        "baseDamage": 0.0,
+        "postureDamageMult": 1.0,
+        "consumePoint": 1,
+        "unlockLevel": 0
+    },
+    "DoubleSlash": {
+        "name": "二连斩",
+        "description": "快速斩击两次，可衔接多次攻击",
+        "weapons": [],
+        "availableWeapon": [
+            "Light",
+            "Normal",
+            "Heavy",
+            "Slash"
+        ],
+        "damageType": "Slash",
+        "damageMult": 1.0,
+        "baseDamage": 0.0,
+        "postureDamageMult": 1.0,
+        "consumePoint": 1,
+        "unlockLevel": 0
+    }
+}

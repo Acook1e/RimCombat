@@ -12,6 +12,8 @@
 void onPostLoad()
 {
   Settings::LoadSettings();
+  WeaponArt::Manager::GetSingleton();
+  WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
   Menu::GetSingleton();
   Posture::GetSingleton();
   Exhausted::GetSingleton();

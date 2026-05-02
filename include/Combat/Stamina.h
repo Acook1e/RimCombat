@@ -11,4 +11,7 @@ public:
     return singleton;
   }
   static void AttackStaminaConsume(RE::Actor* actor, bool leftAttack);
+
+private:
+  Stamina() = default;
 };

@@ -2,6 +2,9 @@
 
 #include "Utils.h"
 
+#include "magic_enum/magic_enum.hpp"
+#include "nlohmann/json.hpp"
+
 namespace Settings
 {
 void SetStaminaRegen(float mult, float upperLimit, float lowerLimit,

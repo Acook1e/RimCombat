@@ -105,4 +105,23 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
   }
   return RE::BSEventNotifyControl::kContinue;
 }
+
+void InputEvent::ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
+                              RE::InputEvent* const* a_events)
+{
+  if (auto player = RE::PlayerCharacter::GetSingleton();
+      a_events && *a_events && player) {
+    auto event = *a_events;
+    if (event->eventType == RE::INPUT_EVENT_TYPE::kButton) {
+      auto buttonEvent = event->AsButtonEvent();
+      // Left Alt key code
+      if (buttonEvent && buttonEvent->GetIDCode() == 56 &&
+          buttonEvent->IsDown()) {
+        WeaponArt::Manager::EnableWeaponArt(
+            player, !WeaponArt::Manager::IsEnabled(player));
+      }
+    }
+  }
+  _ProcessEvent(a_dispatcher, a_events);
+}
 }  // namespace Events

@@ -3,6 +3,7 @@
 #include "Combat/Block.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
+#include "Combat/WeaponArt.h"
 #include "Utils.h"
 
 namespace Hooks
@@ -140,5 +141,23 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor,
     break;
   }
   return value;
+}
+
+// 在更换装备时更新当前战技ID
+void Hook_OnEquipObject::OnEquipObject(RE::ActorEquipManager* manager,
+                                       RE::Actor* actor,
+                                       RE::TESBoundObject* object,
+                                       std::uint64_t unk)
+{
+  _OnEquipObject(manager, actor, object, unk);
+  WeaponArt::Manager::UpdateCurrentWeaponArtID(actor);
+}
+void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager,
+                                           RE::Actor* actor,
+                                           RE::TESBoundObject* object,
+                                           std::uint64_t unk)
+{
+  _OnUnequipObject(manager, actor, object, unk);
+  WeaponArt::Manager::UpdateCurrentWeaponArtID(actor);
 }
 }  // namespace Hooks

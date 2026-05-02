@@ -77,6 +77,7 @@ private:
   static inline REL::Relocation<decltype(ProcessHit)> _ProcessHit;
   // 140626400       14064BAB0
 };
+
 class Hook_OnModActorValue
 {
 public:
@@ -108,11 +109,58 @@ private:
   static inline REL::Relocation<decltype(ModActorValue_NPC)> _ModActorValue_NPC;
   static inline REL::Relocation<decltype(ModActorValue_PC)> _ModActorValue_PC;
 };
+
+class Hook_OnEquipObject
+{
+public:
+  static void Install()
+  {
+    auto& trampoline = SKSE::GetTrampoline();
+    SKSE::AllocTrampoline(14);
+
+    std::uintptr_t hook = REL::VariantID(37938, 38894, 0).address() +
+                          REL::VariantOffset(0xE5, 0x170, 0x0).offset();
+
+    _OnEquipObject = trampoline.write_call<5>(hook, OnEquipObject);
+    logger::info("Hooks: OnEquipObject installed.");
+  }
+
+private:
+  static void OnEquipObject(RE::ActorEquipManager* manager, RE::Actor* actor,
+                            RE::TESBoundObject* object, std::uint64_t unk);
+
+  static inline REL::Relocation<decltype(OnEquipObject)> _OnEquipObject;
+};
+
+class Hook_OnUnequipObject
+{
+public:
+  static void Install()
+  {
+    auto& trampoline = SKSE::GetTrampoline();
+    SKSE::AllocTrampoline(14);
+
+    std::uintptr_t hook = REL::VariantID(37945, 38901, 0).address() +
+                          REL::VariantOffset(0x138, 0x1B9, 0x0).offset();
+
+    _OnUnequipObject = trampoline.write_call<5>(hook, OnUnequipObject);
+    logger::info("Hooks: OnUnequipObject installed.");
+  }
+
+private:
+  static void OnUnequipObject(RE::ActorEquipManager* manager, RE::Actor* actor,
+                              RE::TESBoundObject* object, std::uint64_t unk);
+
+  static inline REL::Relocation<decltype(OnUnequipObject)> _OnUnequipObject;
+};
+
 inline void Install()
 {
   Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnMeleeHit::Install();
   Hook_OnModActorValue::Install();
+  Hook_OnEquipObject::Install();
+  Hook_OnUnequipObject::Install();
 }
 }  // namespace Hooks

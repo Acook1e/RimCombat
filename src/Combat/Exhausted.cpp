@@ -75,7 +75,7 @@ void Exhausted::EnterExhausted(RE::Actor* actor)
   else
     runtimeExhaustedActors.insert(actor);
   Utils::ActorCanAttack(actor, false);
-  UI::TrueHUD::GetSingleton().EnterGeryOut(actor);
+  UI::TrueHUD::GetSingleton().EnterGreyOut(actor);
 }
 
 void Exhausted::ExitExhausted(RE::Actor* actor)

@@ -69,7 +69,7 @@ bool TrueHUD::Release()
   return false;
 }
 
-void TrueHUD::EnterGeryOut(RE::Actor* actor)
+void TrueHUD::EnterGreyOut(RE::Actor* actor)
 {
   if (!actor || !truehud || !init)
     return;

@@ -1,0 +1,14 @@
+[
+    {
+        "projectPath": "Actors",
+        "type": "kInt",
+        "name": "RimCombat_WeaponArtID",
+        "value": -1763812470
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kBool",
+        "name": "RimCombat_EnableWeaponArt",
+        "value": false
+    }
+]

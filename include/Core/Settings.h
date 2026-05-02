@@ -138,10 +138,4 @@ inline float fTimedBlockPostureDamageMult = 0.2f;
 void UpdateGameSettings();
 void LoadSettings();
 void SaveSettings();
-
-// 1-32 = suffix
-// 33-64 = hash
-void AddHashMapping(uint32_t hash, uint32_t prefix);
-uint64_t toPersistForm(uint32_t hash, uint32_t suffix);
-RE::TESForm* toTESForm(uint64_t form);
 }  // namespace Settings

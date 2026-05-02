@@ -4,7 +4,8 @@ namespace Utils
 {
 // 时间辅助函数，默认精度为毫秒
 template <typename T>
-std::int64_t GetTime(T accuracy = std::chrono::milliseconds())
+[[nodiscard]] std::uint64_t
+GetTime(T accuracy = std::chrono::milliseconds()) noexcept
 {
   return std::chrono::duration_cast<T>(
              std::chrono::steady_clock::now().time_since_epoch())

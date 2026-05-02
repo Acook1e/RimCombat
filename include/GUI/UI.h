@@ -16,7 +16,7 @@ public:
   bool Require();
   bool Release();
 
-  void EnterGeryOut(RE::Actor* actor);
+  void EnterGreyOut(RE::Actor* actor);
   void ExitGreyOut(RE::Actor* actor);
 
 private:

@@ -15,6 +15,6 @@ public:
 
 private:
   int64_t lastCleanTime = 0;
-  std::unordered_map<RE::Actor*, std::int64_t> blockStartTimes;
-  std::mutex mutex;
+  static inline std::unordered_map<RE::Actor*, std::int64_t> blockStartTimes;
+  static inline std::mutex mutex;
 };

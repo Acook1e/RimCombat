@@ -1,8 +1,10 @@
 #include "Core/Event.h"
+
 #include "Combat/Block.h"
 #include "Combat/Stamina.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
+#include "GUI/UI.h"
 #include "Utils.h"
 
 namespace Events
@@ -97,11 +99,9 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
 {
   if (event->menuName == RE::InventoryMenu::MENU_NAME) {
     if (event->opening)
-      // 显示装备信息卡
-      logger::info("Inventory Menu Opened");
+      UI::WeaponArtMenu::SetInventoryMenuOpen(true);
     else
-      // 隐藏装备信息卡
-      logger::info("Inventory Menu Closed");
+      UI::WeaponArtMenu::SetInventoryMenuOpen(false);
   }
   return RE::BSEventNotifyControl::kContinue;
 }

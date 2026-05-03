@@ -11,23 +11,32 @@ namespace UI
 static PRISMA_UI_API::IVPrismaUI2* prisma = nullptr;
 static TRUEHUD_API::IVTrueHUD4* truehud   = nullptr;
 
-TrueHUD::TrueHUD()
+void Initialize()
 {
   truehud = reinterpret_cast<TRUEHUD_API::IVTrueHUD4*>(
       TRUEHUD_API::RequestPluginAPI(TRUEHUD_API::InterfaceVersion::V4));
   if (!truehud) {
-    logger::info(
-        "InitHUD: TrueHUD API init failed, TrueHUD maybe not installed?");
+    logger::info("UI::Initialize: TrueHUD API init failed, TrueHUD maybe not "
+                 "installed?");
     return;
   }
 
+  prisma = reinterpret_cast<PRISMA_UI_API::IVPrismaUI2*>(
+      PRISMA_UI_API::RequestPluginAPI(PRISMA_UI_API::InterfaceVersion::V2));
+  if (!prisma) {
+    logger::info("UI::Initialize: PrismaUI API init failed, PrismaUI maybe not "
+                 "installed?");
+  }
+}
+
+TrueHUD::TrueHUD()
+{
   init = Require();
 }
 
 TrueHUD::~TrueHUD()
 {
   Release();
-  truehud = nullptr;
 }
 
 bool TrueHUD::Require()
@@ -91,6 +100,55 @@ void TrueHUD::ExitGreyOut(RE::Actor* actor)
                           TRUEHUD_API::BarColorType::BarColor);
   truehud->RevertBarColor(actor->GetHandle(), RE::ActorValue::kStamina,
                           TRUEHUD_API::BarColorType::PhantomColor);
+}
+
+WeaponArtMenu::WeaponArtMenu()
+{
+  if (!prisma)
+    return;
+  view =
+      prisma->CreateView("RimCombat_WeaponArtMenu/menu.html", [](PrismaView) {
+        logger::info("UI: WeaponArtMenu view closed.");
+      });
+
+  if (!prisma->IsValid(view)) {
+    logger::info("UI: WeaponArtMenu view creation failed.");
+    return;
+  }
+
+  prisma->RegisterJSListener(view, "unlockWeaponArt", UnlockWeaponArt);
+  prisma->RegisterJSListener(view, "setWeaponArt", SetWeaponArt);
+}
+
+WeaponArtMenu::~WeaponArtMenu()
+{
+  if (prisma && prisma->IsValid(view)) {
+    prisma->Unfocus(view);
+    prisma->Destroy(view);
+  }
+
+  view = 0;
+}
+
+void WeaponArtMenu::Show()
+{
+  if (!prisma || !prisma->IsValid(view) || inventoryMenuOpen)
+    return;
+
+  // 发送数据
+
+  isOpen = true;
+  prisma->Show(view);
+}
+
+void WeaponArtMenu::Hide()
+{
+  if (!prisma || !prisma->IsValid(view))
+    return;
+
+  isOpen = false;
+  prisma->Unfocus(view);
+  prisma->Hide(view);
 }
 
 }  // namespace UI

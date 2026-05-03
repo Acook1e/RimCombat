@@ -4,6 +4,8 @@ namespace UI
 {
 using PrismaView = std::uint64_t;
 
+void Initialize();
+
 class TrueHUD
 {
 public:
@@ -26,17 +28,58 @@ private:
   bool init{false};
 };
 
-class WeaponArtInfoCart
+class WeaponArtMenu
 {
 public:
-  static WeaponArtInfoCart& GetSingleton()
+  static WeaponArtMenu& GetSingleton()
   {
-    static WeaponArtInfoCart singleton;
+    static WeaponArtMenu singleton;
     return singleton;
   }
 
+  static void Show();
+  static void Hide();
+
+  static void SetInventoryMenuOpen(bool open)
+  {
+    inventoryMenuOpen = open;
+    if (!open && isOpen)
+      Hide();
+  }
+
+  static void UnlockWeaponArt(const char* arg)
+  {
+    if (!arg || !*arg)
+      return;
+
+    char* end       = nullptr;
+    std::int32_t id = std::strtol(arg, &end, 10);
+    if (end == arg || *end != '\0')
+      return;
+
+    logger::info("Unlocking Weapon Art with ID: {}", id);
+  }
+
+  static void SetWeaponArt(const char* arg)
+  {
+    if (!arg || !*arg)
+      return;
+
+    char* end       = nullptr;
+    std::int32_t id = std::strtol(arg, &end, 10);
+    if (end == arg || *end != '\0')
+      return;
+
+    logger::info("Setting Weapon Art Info with ID: {}", id);
+  }
+
 private:
-  PrismaView view{0};
+  WeaponArtMenu();
+  ~WeaponArtMenu();
+
+  static inline PrismaView view{0};
+  static inline bool isOpen{false};
+  static inline bool inventoryMenuOpen{false};
 };
 
 class WeaponArtHUD

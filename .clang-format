@@ -37,5 +37,5 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: true
-ColumnLimit: 80
+ColumnLimit: 100
 ForEachMacros: ['Q_FOREACH', 'foreach']

@@ -9,15 +9,26 @@
 #include "GUI/Menu.h"
 #include "GUI/UI.h"
 
+// 内部数据初始化与序列化注册
 void onPostLoad()
 {
   Settings::LoadSettings();
   WeaponArt::Manager::GetSingleton();
   WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
+}
+
+// 依赖外部API的初始化必须在PostLoad之后进行
+// 以确保API已准备就绪
+void onPostPostLoad()
+{
+  // 外部API
+  UI::TrueHUD::GetSingleton();
+  UI::WeaponArtMenu::GetSingleton();
   Menu::GetSingleton();
+
+  // 依赖外部API的系统
   Posture::GetSingleton();
   Exhausted::GetSingleton();
-  UI::TrueHUD::GetSingleton();
 }
 
 void onDataLoaded()
@@ -33,6 +44,9 @@ void MessageHandler(SKSE::MessagingInterface::Message* msg)
   switch (msg->type) {
   case SKSE::MessagingInterface::kPostLoad:
     onPostLoad();
+    break;
+  case SKSE::MessagingInterface::kPostPostLoad:
+    onPostPostLoad();
     break;
   case SKSE::MessagingInterface::kDataLoaded:
     onDataLoaded();

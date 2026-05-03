@@ -135,6 +135,25 @@ public:
     return singleton;
   }
 
+  static std::vector<const WeaponArtInfo*> GetAllWeaponArts()
+  {
+    // 一般来说，artMap的内容在游戏运行时不会发生变化
+    // 因此可以安全地返回一个静态的包含所有战技信息的向量，避免每次调用都进行构建
+    static std::vector<const WeaponArtInfo*> arts;
+    if (!arts.empty())
+      return arts;
+    for (const auto& [id, art] : artMap)
+      arts.push_back(&art);
+    return arts;
+  }
+
+  static const WeaponArtInfo* GetWeaponArtInfo(std::int32_t artID)
+  {
+    if (artMap.find(artID) == artMap.end())
+      return nullptr;
+    return &artMap[artID];
+  }
+
   static bool IsValidWeaponArtID(std::int32_t artID)
   {
     return artMap.find(artID) != artMap.end();
@@ -143,7 +162,10 @@ public:
   static void SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
   {
     std::lock_guard<std::mutex> lock(mtx);
-    auto& art = artMap[artID];
+    auto it = artMap.find(artID);
+    if (it == artMap.end())
+      return;  // 无效的战技ID，不设置战技信息
+    auto& art = it->second;
     if (!art.IsWeaponAllowed(weapon))
       return;  // 武器不符合战技使用条件，不设置战技信息
     infoMap[weapon->GetFormID()] = artID;

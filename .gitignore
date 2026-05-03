@@ -1,4 +1,15 @@
+.idea
+.vs
+.vscode/settings.json
+.vscode
+.venv
 .cache
 .xmake
-
 build
+cmake-build*
+
+*.rar
+*.zip
+*.7z
+*.dll
+*.pdb

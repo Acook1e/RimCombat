@@ -2,7 +2,6 @@
   "name": "DoubleSlash",
   "description": "None",
   "priority": 2064141006,
-  "replaceOnEcho": true,
   "conditions": [
     {
       "condition": "AND",
@@ -18,18 +17,6 @@
           "Comparison": "==",
           "Value B": {
             "value": -1763812470
-          }
-        },
-        {
-          "condition": "CompareValues",
-          "requiredVersion": "1.0.0.0",
-          "Value A": {
-            "graphVariable": "RimCombat_EnableWeaponArt",
-            "graphVariableType": "Bool"
-          },
-          "Comparison": "==",
-          "Value B": {
-            "value": true
           }
         }
       ]

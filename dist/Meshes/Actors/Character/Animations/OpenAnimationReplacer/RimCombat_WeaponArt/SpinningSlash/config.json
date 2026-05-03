@@ -2,7 +2,6 @@
   "name": "SpinningSlash",
   "description": "None",
   "priority": 2064141002,
-  "replaceOnEcho": true,
   "conditions": [
     {
       "condition": "AND",
@@ -18,18 +17,6 @@
           "Comparison": "==",
           "Value B": {
             "value": 994588405
-          }
-        },
-        {
-          "condition": "CompareValues",
-          "requiredVersion": "1.0.0.0",
-          "Value A": {
-            "graphVariable": "RimCombat_EnableWeaponArt",
-            "graphVariableType": "Bool"
-          },
-          "Comparison": "==",
-          "Value B": {
-            "value": true
           }
         }
       ]

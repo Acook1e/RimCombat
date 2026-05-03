@@ -1,6 +1,7 @@
 #include "Combat/Weapon.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "Utils.h"
 
 namespace WeaponArt
 {
@@ -148,50 +149,50 @@ public:
     infoMap[weapon->GetFormID()] = artID;
   }
 
-  static void UpdateCurrentWeaponArtID(RE::Actor* actor)
+  static std::int32_t GetCurrentWeaponArtID(RE::Actor* actor)
   {
+    return -865029576;  // 测试用
+
     if (!actor)
-      return;
-
-    const auto GetWeaponArtID = [&]() -> std::int32_t {
-      const auto* left  = actor->GetEquippedObject(true);
-      const auto* right = actor->GetEquippedObject(false);
-
-      std::lock_guard<std::mutex> lock(mtx);
-      // 优先检查右手武器的战技信息映射
-      if (right)
-        if (auto it = infoMap.find(right->GetFormID()); it != infoMap.end())
-          return it->second;
-
-      if (left)
-        if (auto it = infoMap.find(left->GetFormID()); it != infoMap.end())
-          return it->second;
-
       return 0;
-    };
 
-    actor->SetGraphVariableInt(ID, GetWeaponArtID());
+    const auto* left  = actor->GetEquippedObject(true);
+    const auto* right = actor->GetEquippedObject(false);
+
+    std::lock_guard<std::mutex> lock(mtx);
+    // 优先检查右手武器的战技信息映射
+    if (right)
+      if (auto it = infoMap.find(right->GetFormID()); it != infoMap.end())
+        return it->second;
+
+    if (left)
+      if (auto it = infoMap.find(left->GetFormID()); it != infoMap.end())
+        return it->second;
+
+    // 左右手皆为空，返回空手状态战技
+    return Utils::hash("Unarmed");
   }
 
   static bool IsEnabled(RE::Actor* actor)
   {
-    bool res = false;
-    if (actor->GetGraphVariableBool(ENABLE, res))
-      return res;
+    std::int32_t res = 0;
+    if (actor->GetGraphVariableInt(ID, res))
+      return res != 0;
     // 如果动画变量不存在，默认返回false
     return false;
   }
 
   static void EnableWeaponArt(RE::Actor* actor, bool enable)
   {
-    actor->SetGraphVariableBool(ENABLE, enable);
+    std::int32_t id = enable ? GetCurrentWeaponArtID(actor) : 0;
+    actor->SetGraphVariableInt(ID, id);
   }
 
 private:
   Manager();
 
-  const static inline std::string_view ID     = "RimCombat_WeaponArtID";
-  const static inline std::string_view ENABLE = "RimCombat_EnableWeaponArt";
+  // 单变量动画变量ID，值为当前武器的战技ID，0表示未启用战技
+  const static inline std::string_view ID = "RimCombat_WeaponArtID";
 
   // 战技ID映射，无需序列化，根据配置信息初始化
   static inline std::unordered_map<std::int32_t, WeaponArtInfo> artMap;

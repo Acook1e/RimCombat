@@ -1,8 +1,5 @@
 #include "Combat/WeaponArt.h"
 
-#include "Core/Serialization.h"
-#include "Utils.h"
-
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
@@ -189,6 +186,12 @@ Manager::Manager()
 
         for (const auto& [key, value] : j.items()) {
           std::int32_t id = Utils::hash(key);
+          // 0为无效ID，跳过
+          if (id == 0) {
+            logger::warn("Invalid Weapon Art ID for {} in file {}. Skipping.",
+                         key, entry.path().string());
+            continue;
+          }
           // 一般hash值不会发生碰撞，但为了安全起见，仍然验证ID的唯一性
           if (artMap.find(id) != artMap.end()) {
             logger::warn(

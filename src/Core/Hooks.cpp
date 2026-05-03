@@ -150,7 +150,6 @@ void Hook_OnEquipObject::OnEquipObject(RE::ActorEquipManager* manager,
                                        std::uint64_t unk)
 {
   _OnEquipObject(manager, actor, object, unk);
-  WeaponArt::Manager::UpdateCurrentWeaponArtID(actor);
 }
 void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager,
                                            RE::Actor* actor,
@@ -158,6 +157,5 @@ void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager,
                                            std::uint64_t unk)
 {
   _OnUnequipObject(manager, actor, object, unk);
-  WeaponArt::Manager::UpdateCurrentWeaponArtID(actor);
 }
 }  // namespace Hooks

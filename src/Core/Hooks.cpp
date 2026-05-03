@@ -8,8 +8,8 @@
 
 namespace Hooks
 {
-float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(
-    RE::ActorValueOwner* avOwner, RE::BGSAttackData* atkData)
+float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
+                                                        RE::BGSAttackData* atkData)
 {
   // REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
   // RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner,
@@ -28,20 +28,17 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     return _ProcessHit(victim, hitData);
 
   auto timedBlock = false;
-  if (Settings::bTimedBlockEnabled &&
-      hitData.flags.any(RE::HitData::Flag::kBlocked))
+  if (Settings::bTimedBlockEnabled && hitData.flags.any(RE::HitData::Flag::kBlocked))
     timedBlock = Block::GetSingleton().IsTimedBlock(victim);
 
   if (Settings::bUsePostureSystem)
-    Posture::GetSingleton().ProcessMeleeHit(aggressor, victim, hitData,
-                                            timedBlock);
+    Posture::GetSingleton().ProcessMeleeHit(aggressor, victim, hitData, timedBlock);
 
   _ProcessHit(victim, hitData);
 }
 void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* avOwner,
                                              RE::ACTOR_VALUE_MODIFIER modifier,
-                                             RE::ActorValue akValue,
-                                             float value)
+                                             RE::ActorValue akValue, float value)
 {
   REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
   RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
@@ -57,8 +54,7 @@ void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* avOwner,
   value            = ModActorValue(actor, modifier, akValue, value);
   _ModActorValue_PC(avOwner, modifier, akValue, value);
 }
-float Hook_OnModActorValue::ModActorValue(RE::Actor* actor,
-                                          RE::ACTOR_VALUE_MODIFIER modifier,
+float Hook_OnModActorValue::ModActorValue(RE::Actor* actor, RE::ACTOR_VALUE_MODIFIER modifier,
                                           RE::ActorValue akValue, float value)
 {
   switch (modifier) {
@@ -71,9 +67,7 @@ float Hook_OnModActorValue::ModActorValue(RE::Actor* actor,
     return value;
   }
 }
-float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* actor,
-                                             RE::ActorValue akValue,
-                                             float value)
+float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* actor, RE::ActorValue akValue, float value)
 {
   switch (akValue) {
   case RE::ActorValue::kHealth:
@@ -83,8 +77,7 @@ float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* actor,
   }
   return value;
 }
-float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor,
-                                                 RE::ActorValue akValue,
+float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor, RE::ActorValue akValue,
                                                  float value)
 {
   // Process ActorValue Decrease
@@ -92,15 +85,12 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor,
     // Process Exhausted State Entry
     if (akValue == RE::ActorValue::kStamina) {
       if (Settings::bEnableExhausted &&
-          actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) +
-                  value <=
-              0) {
+          actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + value <= 0) {
         Exhausted::EnterExhausted(actor);
       }
     }
     // Process player god mode
-    if (actor->IsPlayerRef() &&
-        RE::PlayerCharacter::GetSingleton()->IsGodMode()) {
+    if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode()) {
       switch (akValue) {
       case RE::ActorValue::kHealth:
       case RE::ActorValue::kStamina:
@@ -144,18 +134,20 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor,
 }
 
 // 在更换装备时更新当前战技ID
-void Hook_OnEquipObject::OnEquipObject(RE::ActorEquipManager* manager,
-                                       RE::Actor* actor,
-                                       RE::TESBoundObject* object,
-                                       std::uint64_t unk)
+void Hook_OnEquipObject::OnEquipObject(RE::ActorEquipManager* manager, RE::Actor* actor,
+                                       RE::TESBoundObject* object, std::uint64_t unk)
 {
   _OnEquipObject(manager, actor, object, unk);
+
+  if (actor && WeaponArt::Manager::IsEnabled(actor))
+    WeaponArt::Manager::EnableWeaponArt(actor, true);
 }
-void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager,
-                                           RE::Actor* actor,
-                                           RE::TESBoundObject* object,
-                                           std::uint64_t unk)
+void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::Actor* actor,
+                                           RE::TESBoundObject* object, std::uint64_t unk)
 {
   _OnUnequipObject(manager, actor, object, unk);
+
+  if (actor && WeaponArt::Manager::IsEnabled(actor))
+    WeaponArt::Manager::EnableWeaponArt(actor, true);
 }
 }  // namespace Hooks

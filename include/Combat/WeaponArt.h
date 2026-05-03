@@ -56,10 +56,9 @@ public:
   };
 
   WeaponArtInfo() = default;
-  WeaponArtInfo(std::int32_t id, const std::string& name,
-                const std::string& description, AvailableWeapon availableWeapon,
-                const std::vector<RE::FormID>& weapons, DamageType damageType,
-                float damageMult, float baseDamage, float postureDamageMult,
+  WeaponArtInfo(std::int32_t id, const std::string& name, const std::string& description,
+                AvailableWeapon availableWeapon, const std::vector<RE::FormID>& weapons,
+                DamageType damageType, float damageMult, float baseDamage, float postureDamageMult,
                 std::uint8_t consumePoint, std::uint8_t unlockLevel);
 
   const std::string& GetName() const { return name; }
@@ -68,6 +67,10 @@ public:
 
   const std::uint8_t GetConsumePoint() const { return consumePoint; }
   const std::uint8_t GetUnlockLevel() const { return unlockLevel; }
+  const DamageType GetDamageType() const { return damageType; }
+  const float GetDamageMult() const { return damageMult; }
+  const float GetBaseDamage() const { return baseDamage; }
+  const float GetPostureDamageMult() const { return postureDamageMult; }
 
   bool IsWeaponAllowed(RE::TESObjectWEAP* weapon) const;
 
@@ -111,6 +114,10 @@ public:
 
   static std::uint8_t GetLevel() { return level; }
   static std::uint8_t GetPoint() { return point; }
+  static bool IsUnlocked(std::int32_t artID)
+  {
+    return unlockedArts.find(artID) != unlockedArts.end();
+  }
 
   static void AddExp(float value);
   static bool UnlockArt(const WeaponArtInfo& art);
@@ -142,8 +149,14 @@ public:
     static std::vector<const WeaponArtInfo*> arts;
     if (!arts.empty())
       return arts;
+    arts.reserve(artMap.size());
     for (const auto& [id, art] : artMap)
       arts.push_back(&art);
+    std::ranges::sort(arts, [](const WeaponArtInfo* lhs, const WeaponArtInfo* rhs) {
+      if (lhs->GetUnlockLevel() != rhs->GetUnlockLevel())
+        return lhs->GetUnlockLevel() < rhs->GetUnlockLevel();
+      return lhs->GetName() < rhs->GetName();
+    });
     return arts;
   }
 
@@ -154,10 +167,7 @@ public:
     return &artMap[artID];
   }
 
-  static bool IsValidWeaponArtID(std::int32_t artID)
-  {
-    return artMap.find(artID) != artMap.end();
-  }
+  static bool IsValidWeaponArtID(std::int32_t artID) { return artMap.find(artID) != artMap.end(); }
 
   static void SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
   {
@@ -171,10 +181,19 @@ public:
     infoMap[weapon->GetFormID()] = artID;
   }
 
+  static std::int32_t GetWeaponArtID(RE::TESObjectWEAP* weapon)
+  {
+    if (!weapon)
+      return 0;
+
+    std::lock_guard<std::mutex> lock(mtx);
+    if (auto it = infoMap.find(weapon->GetFormID()); it != infoMap.end())
+      return it->second;
+    return 0;
+  }
+
   static std::int32_t GetCurrentWeaponArtID(RE::Actor* actor)
   {
-    return -865029576;  // 测试用
-
     if (!actor)
       return 0;
 

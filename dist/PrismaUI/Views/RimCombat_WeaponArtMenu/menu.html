@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RimCombat Weapon Arts</title>
+    <link rel="stylesheet" href="menu.css" />
+</head>
+
+<body>
+    <div class="bg-orbit orbit-a"></div>
+    <div class="bg-orbit orbit-b"></div>
+    <main class="shell">
+        <header class="topbar panel-cut">
+            <div>
+                <p class="eyebrow">Rim Combat</p>
+                <h1>Weapon Arts</h1>
+                <p class="subtitle">
+                    Opened from the inventory menu. Browse arts, unlock them, and bind
+                    the selected art to the current weapon.
+                </p>
+            </div>
+            <div class="topbar-actions">
+                <div class="stats-grid">
+                    <article class="stat-card">
+                        <span class="stat-label">Level</span>
+                        <strong id="player-level">1</strong>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-label">Points</span>
+                        <strong id="player-points">0</strong>
+                    </article>
+                </div>
+                <button id="close-button" class="ghost-button" type="button">
+                    Close
+                </button>
+            </div>
+        </header>
+
+        <section class="layout">
+            <aside class="list-panel panel-cut">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Catalog</p>
+                        <h2>All Weapon Arts</h2>
+                    </div>
+                    <span id="art-count" class="counter-pill">0 Arts</span>
+                </div>
+
+                <label class="filter-box" aria-label="Filter weapon arts">
+                    <span>Filter</span>
+                    <input id="filter-input" type="text" placeholder="Reserved for a later update" disabled />
+                </label>
+                <p class="filter-note">Filter UI is reserved. List rendering and unlock flow are active.</p>
+
+                <div id="art-list" class="art-list"></div>
+            </aside>
+
+            <section class="detail-column">
+                <article class="weapon-panel panel-cut" id="weapon-panel"></article>
+                <article class="detail-panel panel-cut" id="detail-panel"></article>
+            </section>
+        </section>
+
+        <footer class="footer-hint panel-cut">
+            <span>Tip</span>
+            <p>
+                Press the same hotkey again or use Close to return to the inventory.
+            </p>
+        </footer>
+    </main>
+
+    <script src="menu.js"></script>
+</body>
+
+</html>

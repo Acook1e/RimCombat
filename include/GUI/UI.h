@@ -37,48 +37,28 @@ public:
     return singleton;
   }
 
+  static bool IsOpen() { return isOpen; }
+  static bool IsInventoryMenuOpen() { return inventoryMenuOpen; }
+
+  static void Toggle();
   static void Show();
   static void Hide();
-
-  static void SetInventoryMenuOpen(bool open)
-  {
-    inventoryMenuOpen = open;
-    if (!open && isOpen)
-      Hide();
-  }
-
-  static void UnlockWeaponArt(const char* arg)
-  {
-    if (!arg || !*arg)
-      return;
-
-    char* end       = nullptr;
-    std::int32_t id = std::strtol(arg, &end, 10);
-    if (end == arg || *end != '\0')
-      return;
-
-    logger::info("Unlocking Weapon Art with ID: {}", id);
-  }
-
-  static void SetWeaponArt(const char* arg)
-  {
-    if (!arg || !*arg)
-      return;
-
-    char* end       = nullptr;
-    std::int32_t id = std::strtol(arg, &end, 10);
-    if (end == arg || *end != '\0')
-      return;
-
-    logger::info("Setting Weapon Art Info with ID: {}", id);
-  }
+  static void Close(const char* arg);
+  static void SetInventoryMenuOpen(bool open);
+  static void UnlockWeaponArt(const char* arg);
+  static void SetWeaponArt(const char* arg);
 
 private:
   WeaponArtMenu();
   ~WeaponArtMenu();
 
+  static void OnViewReady(PrismaView readyView);
+  static void SyncViewData();
+  static RE::TESObjectWEAP* GetSelectedWeapon();
+
   static inline PrismaView view{0};
   static inline bool isOpen{false};
+  static inline bool domReady{false};
   static inline bool inventoryMenuOpen{false};
 };
 

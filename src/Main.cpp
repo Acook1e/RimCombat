@@ -22,6 +22,7 @@ void onPostLoad()
 void onPostPostLoad()
 {
   // 外部API
+  UI::Initialize();
   UI::TrueHUD::GetSingleton();
   UI::WeaponArtMenu::GetSingleton();
   Menu::GetSingleton();

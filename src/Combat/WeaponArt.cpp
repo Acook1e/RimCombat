@@ -10,13 +10,10 @@ using AvailableWeapon = WeaponArtInfo::AvailableWeapon;
 using DamageType      = WeaponArtInfo::DamageType;
 
 WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
-                             const std::string& description,
-                             AvailableWeapon availableWeapon,
-                             const std::vector<RE::FormID>& weapons,
-                             DamageType damageType, float damageMult,
-                             float baseDamage, float postureDamageMult,
-                             std::uint8_t consumePoint,
-                             std::uint8_t unlockLevel)
+                             const std::string& description, AvailableWeapon availableWeapon,
+                             const std::vector<RE::FormID>& weapons, DamageType damageType,
+                             float damageMult, float baseDamage, float postureDamageMult,
+                             std::uint8_t consumePoint, std::uint8_t unlockLevel)
 {
   this->id                = id;
   this->name              = std::move(name);
@@ -56,29 +53,22 @@ AvailableWeapon WeaponTypeMapping(Weapon::Type type)
   case Weapon::Type::Dagger:
     return AvailableWeapon::LightWeapon | AvailableWeapon::Sword;
   case Weapon::Type::Sword:
-    return AvailableWeapon::NormalWeapon | AvailableWeapon::SlashWeapon |
-           AvailableWeapon::Sword;
+    return AvailableWeapon::NormalWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Sword;
   case Weapon::Type::Axe:
-    return AvailableWeapon::NormalWeapon | AvailableWeapon::SlashWeapon |
-           AvailableWeapon::Axe;
+    return AvailableWeapon::NormalWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Axe;
   case Weapon::Type::Mace:
-    return AvailableWeapon::NormalWeapon | AvailableWeapon::StrikeWeapon |
-           AvailableWeapon::Hammer;
+    return AvailableWeapon::NormalWeapon | AvailableWeapon::StrikeWeapon | AvailableWeapon::Hammer;
   case Weapon::Type::GreatSword:
-    return AvailableWeapon::HeavyWeapon | AvailableWeapon::SlashWeapon |
-           AvailableWeapon::Sword;
+    return AvailableWeapon::HeavyWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Sword;
   case Weapon::Type::GreatAxe:
-    return AvailableWeapon::HeavyWeapon | AvailableWeapon::SlashWeapon |
-           AvailableWeapon::Axe;
+    return AvailableWeapon::HeavyWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Axe;
   case Weapon::Type::GreatMace:
-    return AvailableWeapon::HeavyWeapon | AvailableWeapon::StrikeWeapon |
-           AvailableWeapon::Hammer;
+    return AvailableWeapon::HeavyWeapon | AvailableWeapon::StrikeWeapon | AvailableWeapon::Hammer;
   case Weapon::Type::Bow:
   case Weapon::Type::Crossbow:
     return AvailableWeapon::RangeWeapon | AvailableWeapon::Bow;
   default:
-    return AvailableWeapon::
-        Unique;  // 默认返回Unique，表示不符合任何战技使用条件
+    return AvailableWeapon::Unique;  // 默认返回Unique，表示不符合任何战技使用条件
   }
 }
 
@@ -89,54 +79,50 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
 
   // 优先检查Unique条件
   if (availableWeapon == AvailableWeapon::Unique)
-    return std::find(weapons.begin(), weapons.end(), weapon->GetFormID()) !=
-           weapons.end();
+    return std::find(weapons.begin(), weapons.end(), weapon->GetFormID()) != weapons.end();
 
   // 检查其他可用武器类型
   auto weaponType = WeaponTypeMapping(Weapon::GetWeaponType(weapon));
-  return (weaponType >= availableWeapon);
+  return (availableWeapon >= weaponType);
 }
 
 PlayerStat::PlayerStat()
 {
-  Serialization::RegisterSaveCallback(
-      WeaponExp, [](SKSE::SerializationInterface* serial) {
-        serial->WriteRecordData(&exp, sizeof(exp));
-        serial->WriteRecordData(&level, sizeof(level));
-        serial->WriteRecordData(&point, sizeof(point));
+  Serialization::RegisterSaveCallback(WeaponExp, [](SKSE::SerializationInterface* serial) {
+    serial->WriteRecordData(&exp, sizeof(exp));
+    serial->WriteRecordData(&level, sizeof(level));
+    serial->WriteRecordData(&point, sizeof(point));
 
-        auto count = static_cast<std::uint32_t>(unlockedArts.size());
-        serial->WriteRecordData(&count, sizeof(count));
-        for (const auto& artID : unlockedArts) {
-          // 保存时无需验证artID的有效性，因为读取必定优先验证
-          serial->WriteRecordData(&artID, sizeof(artID));
-        }
-      });
+    auto count = static_cast<std::uint32_t>(unlockedArts.size());
+    serial->WriteRecordData(&count, sizeof(count));
+    for (const auto& artID : unlockedArts) {
+      // 保存时无需验证artID的有效性，因为读取必定优先验证
+      serial->WriteRecordData(&artID, sizeof(artID));
+    }
+  });
 
-  Serialization::RegisterLoadCallback(
-      WeaponExp, [](SKSE::SerializationInterface* serial) {
-        serial->ReadRecordData(&exp, sizeof(exp));
-        serial->ReadRecordData(&level, sizeof(level));
-        serial->ReadRecordData(&point, sizeof(point));
+  Serialization::RegisterLoadCallback(WeaponExp, [](SKSE::SerializationInterface* serial) {
+    serial->ReadRecordData(&exp, sizeof(exp));
+    serial->ReadRecordData(&level, sizeof(level));
+    serial->ReadRecordData(&point, sizeof(point));
 
-        std::uint32_t count = 0;
-        serial->ReadRecordData(&count, sizeof(count));
-        for (std::uint32_t i = 0; i < count; ++i) {
-          std::int32_t artID = 0;
-          serial->ReadRecordData(&artID, sizeof(artID));
-          // 验证artID的有效性，确保只加载已定义的战技ID
-          if (Manager::IsValidWeaponArtID(artID))
-            unlockedArts.insert(artID);
-        }
-      });
+    std::uint32_t count = 0;
+    serial->ReadRecordData(&count, sizeof(count));
+    for (std::uint32_t i = 0; i < count; ++i) {
+      std::int32_t artID = 0;
+      serial->ReadRecordData(&artID, sizeof(artID));
+      // 验证artID的有效性，确保只加载已定义的战技ID
+      if (Manager::IsValidWeaponArtID(artID))
+        unlockedArts.insert(artID);
+    }
+  });
 
-  Serialization::RegisterRevertCallback(WeaponExp,
-                                        [](SKSE::SerializationInterface*) {
-                                          exp   = 0.0f;
-                                          level = 1;
-                                          point = 0;
-                                          unlockedArts.clear();
-                                        });
+  Serialization::RegisterRevertCallback(WeaponExp, [](SKSE::SerializationInterface*) {
+    exp   = 0.0f;
+    level = 1;
+    point = 0;
+    unlockedArts.clear();
+  });
 }
 
 void PlayerStat::AddExp(float value)
@@ -158,14 +144,13 @@ void PlayerStat::AddExp(float value)
 
 bool PlayerStat::UnlockArt(const WeaponArtInfo& art)
 {
+  if (unlockedArts.find(art.GetID()) != unlockedArts.end())
+    return true;  // 已解锁
+
   if (art.GetUnlockLevel() > level)  // 等级不足
     return false;
   if (art.GetConsumePoint() > point)  // 战技点数不足
     return false;
-
-  // 解锁战技
-  if (unlockedArts.find(art.GetID()) != unlockedArts.end())
-    return true;  // 已解锁
 
   point -= art.GetConsumePoint();
   unlockedArts.insert(art.GetID());
@@ -175,8 +160,7 @@ bool PlayerStat::UnlockArt(const WeaponArtInfo& art)
 Manager::Manager()
 {
   // 从JSON文件加载战技信息
-  const std::string weaponArtDir =
-      std::string(Settings::SettingsDir) + "WeaponArt/";
+  const std::string weaponArtDir = std::string(Settings::SettingsDir) + "WeaponArt/";
   for (const auto& entry : std::filesystem::directory_iterator(weaponArtDir)) {
     if (entry.is_regular_file() && entry.path().extension() == ".json") {
       try {
@@ -188,15 +172,14 @@ Manager::Manager()
           std::int32_t id = Utils::hash(key);
           // 0为无效ID，跳过
           if (id == 0) {
-            logger::warn("Invalid Weapon Art ID for {} in file {}. Skipping.",
-                         key, entry.path().string());
+            logger::warn("Invalid Weapon Art ID for {} in file {}. Skipping.", key,
+                         entry.path().string());
             continue;
           }
           // 一般hash值不会发生碰撞，但为了安全起见，仍然验证ID的唯一性
           if (artMap.find(id) != artMap.end()) {
-            logger::warn(
-                "Hash collision for Weapon Art {} in file {}. Skipping.", key,
-                entry.path().string());
+            logger::warn("Hash collision for Weapon Art {} in file {}. Skipping.", key,
+                         entry.path().string());
             continue;
           }
           std::string name        = value.at("name").get<std::string>();
@@ -204,30 +187,28 @@ Manager::Manager()
 
           // 测试阶段先跳过
           std::vector<RE::FormID> weapons{};
-          AvailableWeapon availableWeapon =
-              (std::numeric_limits<AvailableWeapon>::max)();
-          DamageType damageType = DamageType::None;
+          AvailableWeapon availableWeapon = static_cast<AvailableWeapon>(0b1111'1111'1111'1111);
+          DamageType damageType           = DamageType::None;
 
-          float damageMult        = value.at("damageMult").get<float>();
-          float baseDamage        = value.at("baseDamage").get<float>();
-          float postureDamageMult = value.at("postureDamageMult").get<float>();
-          std::uint8_t consumePoint =
-              value.at("consumePoint").get<std::uint8_t>();
-          std::uint8_t unlockLevel =
-              value.at("unlockLevel").get<std::uint8_t>();
+          float damageMult          = value.at("damageMult").get<float>();
+          float baseDamage          = value.at("baseDamage").get<float>();
+          float postureDamageMult   = value.at("postureDamageMult").get<float>();
+          std::uint8_t consumePoint = value.at("consumePoint").get<std::uint8_t>();
+          std::uint8_t unlockLevel  = value.at("unlockLevel").get<std::uint8_t>();
+
+          consumePoint = 0;  // 测试阶段先跳过
 
           // 输出日志以验证ID
           logger::info("Loaded Weapon Art {} (ID: {}) from file {}.", name, id,
                        entry.path().string());
 
-          WeaponArtInfo art(id, name, description, availableWeapon, weapons,
-                            damageType, damageMult, baseDamage,
-                            postureDamageMult, consumePoint, unlockLevel);
+          WeaponArtInfo art(id, name, description, availableWeapon, weapons, damageType, damageMult,
+                            baseDamage, postureDamageMult, consumePoint, unlockLevel);
           artMap[id] = std::move(art);
         }
       } catch (const std::exception& e) {
-        logger::error("Failed to load Weapon Art from file {}: {}",
-                      entry.path().string(), e.what());
+        logger::error("Failed to load Weapon Art from file {}: {}", entry.path().string(),
+                      e.what());
       }
     }
   }

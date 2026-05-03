@@ -10,22 +10,19 @@
 namespace Events
 {
 // 返回True表示事件不需要往下传递了，返回False表示继续往下传递
-bool AnimEvent::ProcessEvent(
-    RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
-    RE::BSAnimationGraphEvent* event,
-    RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
+bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+                             RE::BSAnimationGraphEvent* event,
+                             RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
 {
   if (!event->holder) {
     return false;
   }
   std::string eventTag = event->tag.data();
   std::transform(eventTag.begin(), eventTag.end(), eventTag.begin(), ::tolower);
-  RE::Actor* actor =
-      const_cast<RE::TESObjectREFR*>(event->holder)->As<RE::Actor>();
+  RE::Actor* actor = const_cast<RE::TESObjectREFR*>(event->holder)->As<RE::Actor>();
 
   // 过滤掉一些不必要的事件，减少日志噪音
-  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" &&
-      eventTag != "pie" && false) {
+  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" && eventTag != "pie" && false) {
     logger::info("Player Event: {}", eventTag);
   }
   switch (Utils::hash(eventTag.data(), eventTag.size())) {
@@ -47,8 +44,7 @@ bool AnimEvent::ProcessEvent(
   case "bfco_playerattackstart"_h:
   case "bfco_npcattackstart"_h:
     if (Settings::bDisableAttackWhenStaminaZero &&
-        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <=
-            0.0f) {
+        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0.0f) {
       SKSE::GetTaskInterface()->AddTask([actor]() {
         actor->NotifyAnimationGraph("attackStop");
       });
@@ -73,20 +69,20 @@ bool AnimEvent::ProcessEvent(
   return false;
 }
 
-RE::BSEventNotifyControl AnimEvent::ProcessEvent_NPC(
-    RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
-    RE::BSAnimationGraphEvent* event,
-    RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
+RE::BSEventNotifyControl
+AnimEvent::ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+                            RE::BSAnimationGraphEvent* event,
+                            RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
 {
   if (ProcessEvent(sink, event, eventSource))
     return RE::BSEventNotifyControl::kContinue;
   return _ProcessEvent_NPC(sink, event, eventSource);
 }
 
-RE::BSEventNotifyControl AnimEvent::ProcessEvent_PC(
-    RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
-    RE::BSAnimationGraphEvent* event,
-    RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
+RE::BSEventNotifyControl
+AnimEvent::ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+                           RE::BSAnimationGraphEvent* event,
+                           RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
 {
   if (ProcessEvent(sink, event, eventSource))
     return RE::BSEventNotifyControl::kContinue;
@@ -109,16 +105,17 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
 void InputEvent::ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
                               RE::InputEvent* const* a_events)
 {
-  if (auto player = RE::PlayerCharacter::GetSingleton();
-      a_events && *a_events && player) {
+  if (auto player = RE::PlayerCharacter::GetSingleton(); a_events && *a_events && player) {
     auto event = *a_events;
     if (event->eventType == RE::INPUT_EVENT_TYPE::kButton) {
       auto buttonEvent = event->AsButtonEvent();
-      // Left Alt key code
-      if (buttonEvent && buttonEvent->GetIDCode() == 56 &&
-          buttonEvent->IsDown()) {
-        WeaponArt::Manager::EnableWeaponArt(
-            player, !WeaponArt::Manager::IsEnabled(player));
+      if (buttonEvent && buttonEvent->IsDown()) {
+        // Letter A
+        if (UI::WeaponArtMenu::IsInventoryMenuOpen() && buttonEvent->GetIDCode() == 30)
+          UI::WeaponArtMenu::Toggle();
+        // Left Alt key code
+        else if (buttonEvent->GetIDCode() == 56)
+          WeaponArt::Manager::EnableWeaponArt(player, !WeaponArt::Manager::IsEnabled(player));
       }
     }
   }

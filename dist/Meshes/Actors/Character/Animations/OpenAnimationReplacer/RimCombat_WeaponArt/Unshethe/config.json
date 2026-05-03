@@ -28,7 +28,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": true
+            "value": 1
           }
         }
       ]

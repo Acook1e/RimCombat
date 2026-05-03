@@ -88,6 +88,11 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
   return (availableWeapon >= weaponType);
 }
 
+bool PlayerStat::IsUnlocked(std::int32_t artID)
+{
+  return unlockedArts.find(artID) != unlockedArts.end();
+}
+
 PlayerStat::PlayerStat()
 {
   Serialization::RegisterSaveCallback(WeaponExp, [](SKSE::SerializationInterface* serial) {
@@ -220,5 +225,122 @@ Manager::Manager()
   // 测试阶段跳过序列化
   // Serialization::RegisterSaveCallback(weaponInfo,
   // [](SKSE::SerializationInterface* serial) {  });
+}
+
+bool Manager::IsValidWeaponArtID(std::int32_t artID)
+{
+  std::lock_guard<std::mutex> lock(mtx);
+  return artMap.find(artID) != artMap.end();
+}
+
+std::vector<const WeaponArtInfo*> Manager::GetAllWeaponArts()
+{
+  static std::vector<const WeaponArtInfo*> arts;
+  if (!arts.empty())
+    return arts;
+
+  arts.reserve(artMap.size());
+  for (const auto& [id, art] : artMap)
+    arts.push_back(&art);
+
+  std::ranges::sort(arts, [](const WeaponArtInfo* lhs, const WeaponArtInfo* rhs) {
+    if (lhs->GetUnlockLevel() != rhs->GetUnlockLevel())
+      return lhs->GetUnlockLevel() < rhs->GetUnlockLevel();
+    return lhs->GetName() < rhs->GetName();
+  });
+
+  return arts;
+}
+
+const WeaponArtInfo* Manager::GetWeaponArtInfo(std::int32_t artID)
+{
+  std::lock_guard<std::mutex> lock(mtx);
+  if (auto it = artMap.find(artID); it != artMap.end())
+    return &it->second;
+  return nullptr;
+}
+
+void Manager::SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
+{
+  if (!weapon)
+    return;
+
+  auto* art = GetWeaponArtInfo(artID);
+  if (!art || !art->IsWeaponAllowed(weapon))
+    return;
+
+  {
+    std::lock_guard<std::mutex> lock(mtx);
+    infoMap[weapon->GetFormID()] = artID;
+  }
+
+  if (auto* player = RE::PlayerCharacter::GetSingleton(); player)
+    UpdateWeaponArt(player);
+}
+
+std::int32_t Manager::GetWeaponArtID(const RE::TESObjectWEAP* weapon)
+{
+  if (!weapon)
+    return 0;
+
+  std::lock_guard<std::mutex> lock(mtx);
+  if (auto it = infoMap.find(weapon->GetFormID()); it != infoMap.end())
+    return it->second;
+  return 0;
+}
+
+std::int32_t Manager::GetActorWeaponArtID(RE::Actor* actor)
+{
+  if (!actor)
+    return 0;
+
+  const auto* left  = actor->GetEquippedObject(true);
+  const auto* right = actor->GetEquippedObject(false);
+
+  if (right && right->IsWeapon())
+    if (auto id = GetWeaponArtID(right->As<RE::TESObjectWEAP>()); id != 0)
+      return id;
+
+  if (left && left->IsWeapon())
+    if (auto id = GetWeaponArtID(left->As<RE::TESObjectWEAP>()); id != 0)
+      return id;
+
+  return "Unarmed"_h;  // 空手战技ID
+}
+
+void Manager::UpdateWeaponArt(RE::Actor* actor)
+{
+  if (!actor)
+    return;
+
+  auto artID = GetActorWeaponArtID(actor);
+  actor->SetGraphVariableInt(ID, artID);
+
+  if (actor->IsPlayerRef())
+    UI::WeaponArtHUD::UpdateName(artID);
+}
+
+bool Manager::IsEnabled(RE::Actor* actor)
+{
+  if (!actor)
+    return false;
+
+  bool res = false;
+  if (actor->GetGraphVariableBool(ENABLED, res))
+    return res;
+  return false;
+}
+
+void Manager::EnableWeaponArt(RE::Actor* actor, bool enable)
+{
+  if (!actor)
+    return;
+
+  actor->SetGraphVariableBool(ENABLED, enable);
+
+  if (actor->IsPlayerRef())
+    UI::WeaponArtHUD::UpdateState(enable);
+
+  UpdateWeaponArt(actor);
 }
 }  // namespace WeaponArt

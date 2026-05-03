@@ -1,7 +1,6 @@
 #include "Combat/Weapon.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
-#include "GUI/UI.h"
 #include "Utils.h"
 
 namespace WeaponArt
@@ -115,10 +114,7 @@ public:
 
   static std::uint8_t GetLevel() { return level; }
   static std::uint8_t GetPoint() { return point; }
-  static bool IsUnlocked(std::int32_t artID)
-  {
-    return unlockedArts.find(artID) != unlockedArts.end();
-  }
+  static bool IsUnlocked(std::int32_t artID);
 
   static void AddExp(float value);
   static bool UnlockArt(std::int32_t artID);
@@ -143,109 +139,23 @@ public:
     return singleton;
   }
 
-  static bool IsValidWeaponArtID(std::int32_t artID)
-  {
-    std::lock_guard<std::mutex> lock(mtx);
-    return artMap.find(artID) != artMap.end();
-  }
+  static bool IsValidWeaponArtID(std::int32_t artID);
 
-  static std::vector<const WeaponArtInfo*> GetAllWeaponArts()
-  {
-    // 一般来说，artMap的内容在游戏运行时不会发生变化
-    // 因此可以安全地返回一个静态的包含所有战技信息的向量，避免每次调用都进行构建
-    static std::vector<const WeaponArtInfo*> arts;
-    if (!arts.empty())
-      return arts;
-    arts.reserve(artMap.size());
-    for (const auto& [id, art] : artMap)
-      arts.push_back(&art);
-    std::ranges::sort(arts, [](const WeaponArtInfo* lhs, const WeaponArtInfo* rhs) {
-      if (lhs->GetUnlockLevel() != rhs->GetUnlockLevel())
-        return lhs->GetUnlockLevel() < rhs->GetUnlockLevel();
-      return lhs->GetName() < rhs->GetName();
-    });
-    return arts;
-  }
+  static std::vector<const WeaponArtInfo*> GetAllWeaponArts();
 
-  static const WeaponArtInfo* GetWeaponArtInfo(std::int32_t artID)
-  {
-    if (!IsValidWeaponArtID(artID))
-      return nullptr;
-    return &artMap[artID];
-  }
+  static const WeaponArtInfo* GetWeaponArtInfo(std::int32_t artID);
 
-  static void SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
-  {
-    if (!IsValidWeaponArtID(artID))
-      return;
+  static void SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID);
 
-    auto* art = GetWeaponArtInfo(artID);
-    if (!art || !art->IsWeaponAllowed(weapon))
-      return;
+  static std::int32_t GetWeaponArtID(const RE::TESObjectWEAP* weapon);
 
-    {
-      std::scoped_lock<std::mutex> lock(mtx);  // 防止死锁
-      infoMap[weapon->GetFormID()] = artID;
-    }
+  static std::int32_t GetActorWeaponArtID(RE::Actor* actor);
 
-    // 顺便更新玩家当前的战技动画变量，以便立即生效
-    if (auto player = RE::PlayerCharacter::GetSingleton(); player)
-      UpdateWeaponArt(player);
-  }
+  static void UpdateWeaponArt(RE::Actor* actor);
 
-  static std::int32_t GetWeaponArtID(const RE::TESObjectWEAP* weapon)
-  {
-    if (!weapon)
-      return 0;
+  static bool IsEnabled(RE::Actor* actor);
 
-    std::lock_guard<std::mutex> lock(mtx);
-    if (auto it = infoMap.find(weapon->GetFormID()); it != infoMap.end())
-      return it->second;
-    return 0;
-  }
-
-  static std::int32_t GetActorWeaponArtID(RE::Actor* actor)
-  {
-    if (!actor)
-      return 0;
-
-    const auto* left  = actor->GetEquippedObject(true);
-    const auto* right = actor->GetEquippedObject(false);
-
-    // 优先检查右手武器的战技信息映射
-    if (right && right->IsWeapon())
-      if (auto id = GetWeaponArtID(right->As<RE::TESObjectWEAP>()); id != 0)
-        return id;
-
-    if (left && left->IsWeapon())
-      if (auto id = GetWeaponArtID(left->As<RE::TESObjectWEAP>()); id != 0)
-        return id;
-
-    // 左右手皆为空，返回空手状态战技
-    return "Unarmed"_h;
-  }
-
-  static void UpdateWeaponArt(RE::Actor* actor)
-  {
-    std::int32_t artID = GetActorWeaponArtID(actor);
-    actor->SetGraphVariableInt(ID, artID);
-    UI::WeaponArtHUD::Update(artID);
-  }
-
-  static bool IsEnabled(RE::Actor* actor)
-  {
-    bool res = false;
-    if (actor->GetGraphVariableBool(ENABLED, res))
-      return res;
-    // 如果动画变量不存在，默认返回false
-    return false;
-  }
-
-  static void EnableWeaponArt(RE::Actor* actor, bool enable)
-  {
-    actor->SetGraphVariableBool(ENABLED, enable);
-    UI::WeaponArtHUD::SetEnabled(enable);
-  }
+  static void EnableWeaponArt(RE::Actor* actor, bool enable);
 
 private:
   Manager();

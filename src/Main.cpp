@@ -57,10 +57,12 @@ void MessageHandler(SKSE::MessagingInterface::Message* msg)
     onDataLoaded();
     break;
   case SKSE::MessagingInterface::kNewGame:
+    UI::WeaponArtHUD::Show();
     break;
   case SKSE::MessagingInterface::kPreLoadGame:
     break;
   case SKSE::MessagingInterface::kPostLoadGame:
+    UI::WeaponArtHUD::Show();
     break;
   }
 }

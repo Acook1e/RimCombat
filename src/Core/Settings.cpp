@@ -5,10 +5,12 @@
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
+using json = nlohmann::json;
+
 namespace Settings
 {
-void SetStaminaRegen(float mult, float upperLimit, float lowerLimit,
-                     bool restore = false)
+
+void SetStaminaRegen(float mult, float upperLimit, float lowerLimit, bool restore = false)
 {
   static std::unordered_map<RE::TESRace*, float> originalStaminaRegen;
   if (restore) {
@@ -20,8 +22,7 @@ void SetStaminaRegen(float mult, float upperLimit, float lowerLimit,
     return;
   }
   if (originalStaminaRegen.empty()) {
-    for (auto& race :
-         RE::TESDataHandler::GetSingleton()->GetFormArray<RE::TESRace>()) {
+    for (auto& race : RE::TESDataHandler::GetSingleton()->GetFormArray<RE::TESRace>()) {
       if (race) {
         originalStaminaRegen.try_emplace(race, race->data.staminaRegen);
         float staminaRegen      = race->data.staminaRegen * mult;
@@ -42,19 +43,20 @@ void SetStaminaRegen(float mult, float upperLimit, float lowerLimit,
 
 void UpdateGameSettings()
 {
-  SetStaminaRegen(fStaminaRegenMult, fStaminaRegenMax, fStaminaRegenMin,
-                  fStaminaRegenMult == 1.0f);
+  SetStaminaRegen(fStaminaRegenMult, fStaminaRegenMax, fStaminaRegenMin, fStaminaRegenMult == 1.0f);
   Utils::SetGameSettings("fDamagedStaminaRegenDelay", fStaminaRegenDelay);
-  Utils::SetGameSettings("fCombatStaminaRegenRateMult",
-                         fStaminaRegenMultCombat);
+  Utils::SetGameSettings("fCombatStaminaRegenRateMult", fStaminaRegenMultCombat);
 }
 
 void LoadSettings()
 {
   std::error_code ec;
   if (!std::filesystem::exists(SettingsDir, ec)) {
-    logger::info(
-        "Settings directory does not exist, skipping loading settings.");
+    std::filesystem::create_directories(SettingsDir, ec);
+  }
+
+  if (ec) {
+    logger::warn("Settings: failed to create settings directory.");
     return;
   }
 }
@@ -62,5 +64,15 @@ void LoadSettings()
 void SaveSettings()
 {
   UpdateGameSettings();
+
+  std::error_code ec;
+  if (!std::filesystem::exists(SettingsDir, ec)) {
+    std::filesystem::create_directories(SettingsDir, ec);
+  }
+
+  if (ec) {
+    logger::warn("Settings: failed to create settings directory.");
+    return;
+  }
 }
 }  // namespace Settings

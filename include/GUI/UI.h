@@ -74,24 +74,19 @@ public:
   static void Show();
   static void Hide();
 
-  static void SetEnabled(bool enable) { enabled = enable; }
-
-  // 仅为Player更新
-  static void Update(std::int32_t artID)
-  {
-    if (!isShow || !domReady)
-      return;
-
-    // 发送当前的ID
-  };
+  static void UpdateState(bool enable);
+  static void UpdateName(std::int32_t artID);
 
 private:
   WeaponArtHUD();
   ~WeaponArtHUD();
 
+  static void OnViewReady(PrismaView readyView);
+  static void SyncViewConfig();
+  static std::string ResolveWeaponArtName(std::int32_t artID);
+
   static inline PrismaView view{0};
   static inline bool isShow{false};
   static inline bool domReady{false};
-  static inline bool enabled{false};
 };
 }  // namespace UI

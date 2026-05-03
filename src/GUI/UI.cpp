@@ -114,27 +114,6 @@ namespace
       return "Unknown";
     }
   }
-
-  void PrismaConsoleCallback(PrismaView view, PRISMA_UI_API::ConsoleMessageLevel level,
-                             const char* message)
-  {
-    auto msg = message ? message : "";
-
-    switch (level) {
-    case PRISMA_UI_API::ConsoleMessageLevel::Error:
-      logger::error("Prisma[{}]: {}", view, msg);
-      break;
-    case PRISMA_UI_API::ConsoleMessageLevel::Warning:
-      logger::warn("Prisma[{}]: {}", view, msg);
-      break;
-    case PRISMA_UI_API::ConsoleMessageLevel::Debug:
-    case PRISMA_UI_API::ConsoleMessageLevel::Info:
-    case PRISMA_UI_API::ConsoleMessageLevel::Log:
-    default:
-      logger::info("Prisma[{}]: {}", view, msg);
-      break;
-    }
-  }
 }  // namespace
 
 void Initialize()
@@ -242,7 +221,7 @@ WeaponArtMenu::WeaponArtMenu()
   });
   prisma->RegisterJSListener(view, "unlockWeaponArt", UnlockWeaponArt);
   prisma->RegisterJSListener(view, "setWeaponArt", SetWeaponArt);
-  prisma->RegisterConsoleCallback(view, PrismaConsoleCallback);
+  prisma->RegisterConsoleCallback(view, nullptr);
 }
 
 WeaponArtMenu::~WeaponArtMenu()
@@ -406,7 +385,7 @@ WeaponArtHUD::WeaponArtHUD()
 {
   if (!prisma)
     return;
-  view = prisma->CreateView("RimCombat_WeaponArtHUD/hud.html", nullptr);
+  view = prisma->CreateView("RimCombat_WeaponArtHUD/hud.html", OnViewReady);
 
   if (!prisma->IsValid(view)) {
     logger::info("UI: WeaponArtHUD view creation failed.");
@@ -414,6 +393,7 @@ WeaponArtHUD::WeaponArtHUD()
   }
 
   prisma->Hide(view);
+  prisma->RegisterConsoleCallback(view, nullptr);
 }
 
 WeaponArtHUD::~WeaponArtHUD()
@@ -424,6 +404,85 @@ WeaponArtHUD::~WeaponArtHUD()
   }
 
   view = 0;
+}
+
+void WeaponArtHUD::OnViewReady(PrismaView readyView)
+{
+  domReady = true;
+  logger::info("UI: WeaponArtHUD DOM ready");
+
+  if (!isShow && prisma && prisma->IsValid(readyView))
+    prisma->Hide(readyView);
+
+  SyncViewConfig();
+}
+
+void WeaponArtHUD::Show()
+{
+  if (!prisma || !prisma->IsValid(view) || !Settings::bUseWeaponArtHUD)
+    return;
+
+  isShow = true;
+  prisma->Show(view);
+  SyncViewConfig();
+
+  UpdateName(WeaponArt::Manager::GetActorWeaponArtID(RE::PlayerCharacter::GetSingleton()));
+  UpdateState(WeaponArt::Manager::IsEnabled(RE::PlayerCharacter::GetSingleton()));
+}
+
+void WeaponArtHUD::Hide()
+{
+  if (!prisma || !prisma->IsValid(view))
+    return;
+
+  isShow = false;
+  prisma->Hide(view);
+}
+
+void WeaponArtHUD::UpdateState(bool enable)
+{
+  if (!prisma || !prisma->IsValid(view) || !domReady || !isShow)
+    return;
+
+  json payload = {{"enabled", enable}};
+
+  auto data = payload.dump();
+  prisma->InteropCall(view, "setHudState", data.c_str());
+}
+
+void WeaponArtHUD::UpdateName(std::int32_t artID)
+{
+  if (!prisma || !prisma->IsValid(view) || !domReady || !isShow)
+    return;
+
+  json payload = {{"name", ResolveWeaponArtName(artID)}};
+
+  auto data = payload.dump();
+  prisma->InteropCall(view, "setHudName", data.c_str());
+}
+
+void WeaponArtHUD::SyncViewConfig()
+{
+  if (!prisma || !prisma->IsValid(view) || !domReady)
+    return;
+
+  json payload = {{"x", Settings::fWeaponArtHUDPosX},
+                  {"y", Settings::fWeaponArtHUDPosY},
+                  {"scale", Settings::fWeaponArtHUDScale}};
+
+  auto data = payload.dump();
+  prisma->InteropCall(view, "setHudConfig", data.c_str());
+}
+
+std::string WeaponArtHUD::ResolveWeaponArtName(std::int32_t artID)
+{
+  if (artID == 0)
+    return "No Weapon Art";
+
+  if (auto* art = WeaponArt::Manager::GetWeaponArtInfo(artID))
+    return art->GetName();
+
+  return "Unknown Weapon Art";
 }
 
 }  // namespace UI

@@ -2,9 +2,8 @@
 
 namespace Settings
 {
-constexpr inline std::string_view SettingsFile =
-    "Data/SKSE/Plugins/RimCombat/Settings.json";
-constexpr inline std::string_view SettingsDir = "Data/SKSE/Plugins/RimCombat/";
+constexpr inline std::string_view SettingsFile = "Data/SKSE/Plugins/RimCombat/Settings.json";
+constexpr inline std::string_view SettingsDir  = "Data/SKSE/Plugins/RimCombat/";
 
 #pragma region Stamina
 // 是否启用攻击耐力系统
@@ -133,6 +132,19 @@ inline float fBlockStaminaConsumePerDamage = 0.5f;
 inline float fTimedBlockStaminaConsumePerDamage = 0.2f;
 // 限时格挡受到的架势伤害倍率，乘以基础架势伤害
 inline float fTimedBlockPostureDamageMult = 0.2f;
+#pragma endregion
+
+#pragma region WeaponArt
+// 是否启用战技系统
+inline bool bUseWeaponArtSystem = true;
+// 是否启用战技HUD
+inline bool bUseWeaponArtHUD = true;
+// 战技HUD横向位置，单位为屏幕百分比
+inline float fWeaponArtHUDPosX = 5.0f;
+// 战技HUD纵向位置，单位为屏幕百分比
+inline float fWeaponArtHUDPosY = 70.0f;
+// 战技HUD整体缩放
+inline float fWeaponArtHUDScale = 1.0f;
 #pragma endregion
 
 void UpdateGameSettings();

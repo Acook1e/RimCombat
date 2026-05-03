@@ -1,0 +1,190 @@
+:root {
+    --hud-x: 74%;
+    --hud-y: 84%;
+    --hud-scale: 1;
+    --accent: #f4c570;
+    --accent-soft: rgba(244, 197, 112, 0.24);
+    --accent-cool: #8ec6be;
+    --text: #f6efe0;
+    --muted: rgba(246, 239, 224, 0.72);
+    --disabled: #7e8a90;
+    --disabled-soft: rgba(126, 138, 144, 0.18);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
+    pointer-events: none;
+}
+
+.hud-anchor {
+    position: fixed;
+    left: var(--hud-x);
+    top: var(--hud-y);
+    transform: translate(-50%, -50%) scale(var(--hud-scale));
+    transform-origin: center;
+}
+
+.hud-shell {
+    min-width: 260px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 22px;
+    border: 1px solid rgba(244, 197, 112, 0.18);
+    background:
+        linear-gradient(135deg, rgba(6, 11, 14, 0.88), rgba(14, 23, 28, 0.76)),
+        radial-gradient(circle at top left, rgba(244, 197, 112, 0.16), transparent 32%);
+    box-shadow:
+        0 16px 36px rgba(0, 0, 0, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    transition:
+        opacity 180ms ease,
+        filter 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+.hud-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), transparent 24%, transparent 72%, rgba(255, 255, 255, 0.03));
+    pointer-events: none;
+}
+
+.glyph {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+}
+
+.glyph-core,
+.glyph-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    transform: rotate(45deg);
+}
+
+.glyph-core {
+    inset: 10px;
+    background: linear-gradient(135deg, rgba(244, 197, 112, 0.88), rgba(255, 230, 171, 0.42));
+    box-shadow: 0 0 24px rgba(244, 197, 112, 0.34);
+}
+
+.glyph-ring {
+    border: 1px solid rgba(244, 197, 112, 0.56);
+    box-shadow: 0 0 28px rgba(244, 197, 112, 0.14);
+}
+
+.hud-content {
+    min-width: 0;
+}
+
+.hud-label {
+    margin: 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.hud-name {
+    margin: 6px 0 0;
+    font-size: 1.34rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    text-shadow: 0 0 18px rgba(244, 197, 112, 0.2);
+}
+
+.hud-status-row {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hud-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.hud-status {
+    color: #16110b;
+    background: linear-gradient(135deg, var(--accent), #f6db98);
+}
+
+.hud-shell.is-enabled {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
+    border-color: rgba(244, 197, 112, 0.26);
+}
+
+.hud-shell.is-enabled .glyph {
+    animation: glow-pulse 2.4s ease-in-out infinite;
+}
+
+.hud-shell.is-disabled {
+    opacity: 0.78;
+    filter: saturate(0.48) brightness(0.72);
+    border-color: rgba(126, 138, 144, 0.22);
+}
+
+.hud-shell.is-disabled .glyph-core {
+    background: linear-gradient(135deg, rgba(126, 138, 144, 0.92), rgba(168, 179, 184, 0.4));
+    box-shadow: 0 0 18px rgba(126, 138, 144, 0.18);
+}
+
+.hud-shell.is-disabled .glyph-ring {
+    border-color: rgba(126, 138, 144, 0.42);
+}
+
+.hud-shell.is-disabled .hud-name {
+    color: rgba(246, 239, 224, 0.78);
+    text-shadow: none;
+}
+
+.hud-shell.is-disabled .hud-status {
+    color: var(--text);
+    background: var(--disabled-soft);
+    border: 1px solid rgba(126, 138, 144, 0.28);
+}
+
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.04);
+        filter: brightness(1.12);
+    }
+}

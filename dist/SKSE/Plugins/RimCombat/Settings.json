@@ -1,0 +1,9 @@
+{
+    "WeaponArt": {
+        "Enable": true,
+        "UseHUD": true,
+        "PosX": 74.0,
+        "PosY": 84.0,
+        "Scale": 1.0
+    }
+}

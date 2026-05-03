@@ -9,8 +9,6 @@
 #include "API/PrismaUI_API.h"
 #include "API/TrueHUDAPI.h"
 
-#include <cstdlib>
-
 #include "nlohmann/json.hpp"
 
 namespace UI
@@ -238,9 +236,10 @@ WeaponArtMenu::WeaponArtMenu()
     return;
   }
 
-  prisma->SetOrder(view, 120);
   prisma->Hide(view);
-  prisma->RegisterJSListener(view, "closeWeaponArtMenu", Close);
+  prisma->RegisterJSListener(view, "closeWeaponArtMenu", [](const char*) {
+    Hide();
+  });
   prisma->RegisterJSListener(view, "unlockWeaponArt", UnlockWeaponArt);
   prisma->RegisterJSListener(view, "setWeaponArt", SetWeaponArt);
   prisma->RegisterConsoleCallback(view, PrismaConsoleCallback);
@@ -271,12 +270,12 @@ RE::TESObjectWEAP* WeaponArtMenu::GetSelectedWeapon()
 void WeaponArtMenu::OnViewReady(PrismaView readyView)
 {
   domReady = true;
-  logger::info("UI: WeaponArtMenu DOM ready: {}", readyView);
+  logger::info("UI: WeaponArtMenu DOM ready");
 
-  if (!isOpen && prisma && prisma->IsValid(readyView))
+  if (!isShow && prisma && prisma->IsValid(readyView))
     prisma->Hide(readyView);
 
-  if (isOpen)
+  if (isShow)
     SyncViewData();
 }
 
@@ -334,7 +333,7 @@ void WeaponArtMenu::SyncViewData()
 
 void WeaponArtMenu::Toggle()
 {
-  if (isOpen)
+  if (isShow)
     Hide();
   else
     Show();
@@ -342,16 +341,19 @@ void WeaponArtMenu::Toggle()
 
 void WeaponArtMenu::Show()
 {
-  if (!prisma || !prisma->IsValid(view) || !inventoryMenuOpen)
+  if (!prisma || !prisma->IsValid(view) || !inventoryMenuShow)
     return;
 
-  isOpen = true;
+  if (auto invMenu = RE::UI::GetSingleton()->GetMenu(RE::InventoryMenu::MENU_NAME); invMenu) {
+    auto flag = invMenu->menuFlags;
+    flag.set(false, RE::UI_MENU_FLAGS::kUsesCursor);
+  }
+
+  isShow = true;
   prisma->Show(view);
+  prisma->Focus(view);
   if (domReady)
     SyncViewData();
-
-  if (!prisma->HasFocus(view) && !prisma->Focus(view, false, true))
-    logger::warn("UI: WeaponArtMenu focus failed.");
 }
 
 void WeaponArtMenu::Hide()
@@ -359,21 +361,20 @@ void WeaponArtMenu::Hide()
   if (!prisma || !prisma->IsValid(view))
     return;
 
-  isOpen = false;
-  if (prisma->HasFocus(view))
-    prisma->Unfocus(view);
-  prisma->Hide(view);
-}
+  if (auto invMenu = RE::UI::GetSingleton()->GetMenu(RE::InventoryMenu::MENU_NAME); invMenu) {
+    auto flag = invMenu->menuFlags;
+    flag.set(true, RE::UI_MENU_FLAGS::kUsesCursor);
+  }
 
-void WeaponArtMenu::Close(const char*)
-{
-  Hide();
+  isShow = false;
+  prisma->Unfocus(view);
+  prisma->Hide(view);
 }
 
 void WeaponArtMenu::SetInventoryMenuOpen(bool open)
 {
-  inventoryMenuOpen = open;
-  if (!open && isOpen)
+  inventoryMenuShow = open;
+  if (!open && isShow)
     Hide();
 }
 
@@ -383,17 +384,7 @@ void WeaponArtMenu::UnlockWeaponArt(const char* arg)
   if (!id)
     return;
 
-  auto* art = WeaponArt::Manager::GetWeaponArtInfo(*id);
-  if (!art)
-    return;
-
-  auto alreadyUnlocked = WeaponArt::PlayerStat::IsUnlocked(*id);
-  auto unlocked        = WeaponArt::PlayerStat::UnlockArt(*art);
-  if (unlocked && !alreadyUnlocked)
-    logger::info("WeaponArtMenu: unlocked {} ({})", art->GetName(), *id);
-  else if (!unlocked)
-    logger::info("WeaponArtMenu: unlock failed for {} ({})", art->GetName(), *id);
-
+  WeaponArt::PlayerStat::UnlockArt(id.value());
   SyncViewData();
 }
 
@@ -403,22 +394,36 @@ void WeaponArtMenu::SetWeaponArt(const char* arg)
   if (!id)
     return;
 
-  auto* art = WeaponArt::Manager::GetWeaponArtInfo(*id);
-  if (!art || !WeaponArt::PlayerStat::IsUnlocked(*id))
-    return;
-
   auto* weapon = GetSelectedWeapon();
-  if (!weapon || !art->IsWeaponAllowed(weapon))
+  if (!weapon)
     return;
 
-  WeaponArt::Manager::SetWeaponArtInfo(weapon, *id);
-
-  if (auto* player = RE::PlayerCharacter::GetSingleton())
-    WeaponArt::Manager::EnableWeaponArt(player, WeaponArt::Manager::IsEnabled(player));
-
-  logger::info("WeaponArtMenu: set {} ({}) on weapon {:08X}", art->GetName(), *id,
-               weapon->GetFormID());
+  WeaponArt::Manager::SetWeaponArtInfo(weapon, id.value());
   SyncViewData();
+}
+
+WeaponArtHUD::WeaponArtHUD()
+{
+  if (!prisma)
+    return;
+  view = prisma->CreateView("RimCombat_WeaponArtHUD/hud.html", nullptr);
+
+  if (!prisma->IsValid(view)) {
+    logger::info("UI: WeaponArtHUD view creation failed.");
+    return;
+  }
+
+  prisma->Hide(view);
+}
+
+WeaponArtHUD::~WeaponArtHUD()
+{
+  if (prisma && prisma->IsValid(view)) {
+    prisma->Unfocus(view);
+    prisma->Destroy(view);
+  }
+
+  view = 0;
 }
 
 }  // namespace UI

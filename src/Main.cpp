@@ -6,6 +6,7 @@
 #include "Core/Hooks.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "GUI/Localization.h"
 #include "GUI/Menu.h"
 #include "GUI/UI.h"
 
@@ -13,8 +14,11 @@
 void onPostLoad()
 {
   Settings::LoadSettings();
+  Localization::Initialize();
   WeaponArt::Manager::GetSingleton();
   WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
+  Posture::GetSingleton();
+  Exhausted::GetSingleton();
 }
 
 // 依赖外部API的初始化必须在PostLoad之后进行
@@ -23,15 +27,15 @@ void onPostPostLoad()
 {
   // 外部API
   UI::Initialize();
-  UI::TrueHUD::GetSingleton();
-  UI::WeaponArtMenu::GetSingleton();
   Menu::GetSingleton();
 
   // 依赖外部API的系统
-  Posture::GetSingleton();
-  Exhausted::GetSingleton();
+  UI::TrueHUD::GetSingleton();
+  UI::WeaponArtMenu::GetSingleton();
+  UI::WeaponArtHUD::GetSingleton();
 }
 
+// 依赖游戏数据的初始化必须在DataLoaded之后进行
 void onDataLoaded()
 {
   Settings::UpdateGameSettings();

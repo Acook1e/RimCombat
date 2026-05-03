@@ -18,6 +18,18 @@
           "Value B": {
             "value": -1763812470
           }
+        },
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_WeaponArtEnabled",
+            "graphVariableType": "Bool"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": true
+          }
         }
       ]
     }

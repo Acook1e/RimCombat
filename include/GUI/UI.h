@@ -37,13 +37,12 @@ public:
     return singleton;
   }
 
-  static bool IsOpen() { return isOpen; }
-  static bool IsInventoryMenuOpen() { return inventoryMenuOpen; }
+  static bool IsShow() { return isShow; }
+  static bool IsInventoryMenuShow() { return inventoryMenuShow; }
 
   static void Toggle();
   static void Show();
   static void Hide();
-  static void Close(const char* arg);
   static void SetInventoryMenuOpen(bool open);
   static void UnlockWeaponArt(const char* arg);
   static void SetWeaponArt(const char* arg);
@@ -57,9 +56,9 @@ private:
   static RE::TESObjectWEAP* GetSelectedWeapon();
 
   static inline PrismaView view{0};
-  static inline bool isOpen{false};
+  static inline bool isShow{false};
   static inline bool domReady{false};
-  static inline bool inventoryMenuOpen{false};
+  static inline bool inventoryMenuShow{false};
 };
 
 class WeaponArtHUD
@@ -71,7 +70,28 @@ public:
     return singleton;
   }
 
+  static bool IsShow() { return isShow; }
+  static void Show();
+  static void Hide();
+
+  static void SetEnabled(bool enable) { enabled = enable; }
+
+  // 仅为Player更新
+  static void Update(std::int32_t artID)
+  {
+    if (!isShow || !domReady)
+      return;
+
+    // 发送当前的ID
+  };
+
 private:
-  PrismaView view{0};
+  WeaponArtHUD();
+  ~WeaponArtHUD();
+
+  static inline PrismaView view{0};
+  static inline bool isShow{false};
+  static inline bool domReady{false};
+  static inline bool enabled{false};
 };
 }  // namespace UI

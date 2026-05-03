@@ -4,5 +4,11 @@
         "type": "kInt",
         "name": "RimCombat_WeaponArtID",
         "value": 0
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kBool",
+        "name": "RimCombat_WeaponArtEnabled",
+        "value": false
     }
 ]

@@ -1,6 +1,7 @@
 #include "Combat/Weapon.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "GUI/UI.h"
 #include "Utils.h"
 
 namespace WeaponArt
@@ -120,7 +121,7 @@ public:
   }
 
   static void AddExp(float value);
-  static bool UnlockArt(const WeaponArtInfo& art);
+  static bool UnlockArt(std::int32_t artID);
 
 private:
   PlayerStat();
@@ -140,6 +141,12 @@ public:
   {
     static Manager singleton;
     return singleton;
+  }
+
+  static bool IsValidWeaponArtID(std::int32_t artID)
+  {
+    std::lock_guard<std::mutex> lock(mtx);
+    return artMap.find(artID) != artMap.end();
   }
 
   static std::vector<const WeaponArtInfo*> GetAllWeaponArts()
@@ -162,26 +169,31 @@ public:
 
   static const WeaponArtInfo* GetWeaponArtInfo(std::int32_t artID)
   {
-    if (artMap.find(artID) == artMap.end())
+    if (!IsValidWeaponArtID(artID))
       return nullptr;
     return &artMap[artID];
   }
 
-  static bool IsValidWeaponArtID(std::int32_t artID) { return artMap.find(artID) != artMap.end(); }
-
   static void SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
   {
-    std::lock_guard<std::mutex> lock(mtx);
-    auto it = artMap.find(artID);
-    if (it == artMap.end())
-      return;  // 无效的战技ID，不设置战技信息
-    auto& art = it->second;
-    if (!art.IsWeaponAllowed(weapon))
-      return;  // 武器不符合战技使用条件，不设置战技信息
-    infoMap[weapon->GetFormID()] = artID;
+    if (!IsValidWeaponArtID(artID))
+      return;
+
+    auto* art = GetWeaponArtInfo(artID);
+    if (!art || !art->IsWeaponAllowed(weapon))
+      return;
+
+    {
+      std::scoped_lock<std::mutex> lock(mtx);  // 防止死锁
+      infoMap[weapon->GetFormID()] = artID;
+    }
+
+    // 顺便更新玩家当前的战技动画变量，以便立即生效
+    if (auto player = RE::PlayerCharacter::GetSingleton(); player)
+      UpdateWeaponArt(player);
   }
 
-  static std::int32_t GetWeaponArtID(RE::TESObjectWEAP* weapon)
+  static std::int32_t GetWeaponArtID(const RE::TESObjectWEAP* weapon)
   {
     if (!weapon)
       return 0;
@@ -192,7 +204,7 @@ public:
     return 0;
   }
 
-  static std::int32_t GetCurrentWeaponArtID(RE::Actor* actor)
+  static std::int32_t GetActorWeaponArtID(RE::Actor* actor)
   {
     if (!actor)
       return 0;
@@ -200,40 +212,49 @@ public:
     const auto* left  = actor->GetEquippedObject(true);
     const auto* right = actor->GetEquippedObject(false);
 
-    std::lock_guard<std::mutex> lock(mtx);
     // 优先检查右手武器的战技信息映射
-    if (right)
-      if (auto it = infoMap.find(right->GetFormID()); it != infoMap.end())
-        return it->second;
+    if (right && right->IsWeapon())
+      if (auto id = GetWeaponArtID(right->As<RE::TESObjectWEAP>()); id != 0)
+        return id;
 
-    if (left)
-      if (auto it = infoMap.find(left->GetFormID()); it != infoMap.end())
-        return it->second;
+    if (left && left->IsWeapon())
+      if (auto id = GetWeaponArtID(left->As<RE::TESObjectWEAP>()); id != 0)
+        return id;
 
     // 左右手皆为空，返回空手状态战技
-    return Utils::hash("Unarmed");
+    return "Unarmed"_h;
+  }
+
+  static void UpdateWeaponArt(RE::Actor* actor)
+  {
+    std::int32_t artID = GetActorWeaponArtID(actor);
+    actor->SetGraphVariableInt(ID, artID);
+    UI::WeaponArtHUD::Update(artID);
   }
 
   static bool IsEnabled(RE::Actor* actor)
   {
-    std::int32_t res = 0;
-    if (actor->GetGraphVariableInt(ID, res))
-      return res != 0;
+    bool res = false;
+    if (actor->GetGraphVariableBool(ENABLED, res))
+      return res;
     // 如果动画变量不存在，默认返回false
     return false;
   }
 
   static void EnableWeaponArt(RE::Actor* actor, bool enable)
   {
-    std::int32_t id = enable ? GetCurrentWeaponArtID(actor) : 0;
-    actor->SetGraphVariableInt(ID, id);
+    actor->SetGraphVariableBool(ENABLED, enable);
+    UI::WeaponArtHUD::SetEnabled(enable);
   }
 
 private:
   Manager();
 
-  // 单变量动画变量ID，值为当前武器的战技ID，0表示未启用战技
+  // 单变量动画变量ID，值为当前武器的战技ID
+  // 保留0作为非法ID
   const static inline std::string_view ID = "RimCombat_WeaponArtID";
+  // 战技系统开关
+  const static inline std::string_view ENABLED = "RimCombat_WeaponArtEnabled";
 
   // 战技ID映射，无需序列化，根据配置信息初始化
   static inline std::unordered_map<std::int32_t, WeaponArtInfo> artMap;

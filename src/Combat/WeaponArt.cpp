@@ -1,5 +1,7 @@
 #include "Combat/WeaponArt.h"
 
+#include "GUI/UI.h"
+
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
@@ -142,18 +144,20 @@ void PlayerStat::AddExp(float value)
   }
 }
 
-bool PlayerStat::UnlockArt(const WeaponArtInfo& art)
+bool PlayerStat::UnlockArt(std::int32_t artID)
 {
-  if (unlockedArts.find(art.GetID()) != unlockedArts.end())
+  if (unlockedArts.find(artID) != unlockedArts.end())
     return true;  // 已解锁
 
-  if (art.GetUnlockLevel() > level)  // 等级不足
+  auto* art = Manager::GetWeaponArtInfo(artID);
+  if (!art)  // 无效的战技ID
     return false;
-  if (art.GetConsumePoint() > point)  // 战技点数不足
+  if (art->GetUnlockLevel() > level)  // 等级不足
     return false;
-
-  point -= art.GetConsumePoint();
-  unlockedArts.insert(art.GetID());
+  if (art->GetConsumePoint() > point)  // 战技点数不足
+    return false;
+  point -= art->GetConsumePoint();
+  unlockedArts.insert(art->GetID());
   return true;
 }
 

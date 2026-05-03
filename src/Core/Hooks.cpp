@@ -138,16 +138,14 @@ void Hook_OnEquipObject::OnEquipObject(RE::ActorEquipManager* manager, RE::Actor
                                        RE::TESBoundObject* object, std::uint64_t unk)
 {
   _OnEquipObject(manager, actor, object, unk);
-
-  if (actor && WeaponArt::Manager::IsEnabled(actor))
-    WeaponArt::Manager::EnableWeaponArt(actor, true);
+  WeaponArt::Manager::UpdateWeaponArt(actor);
+  logger::info("Equip {}", object ? object->GetName() : "None");
 }
 void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::Actor* actor,
                                            RE::TESBoundObject* object, std::uint64_t unk)
 {
   _OnUnequipObject(manager, actor, object, unk);
-
-  if (actor && WeaponArt::Manager::IsEnabled(actor))
-    WeaponArt::Manager::EnableWeaponArt(actor, true);
+  WeaponArt::Manager::UpdateWeaponArt(actor);
+  logger::info("Unequip {}", object ? object->GetName() : "None");
 }
 }  // namespace Hooks

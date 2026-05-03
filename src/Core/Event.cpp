@@ -105,16 +105,19 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
 void InputEvent::ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
                               RE::InputEvent* const* a_events)
 {
-  if (auto player = RE::PlayerCharacter::GetSingleton(); a_events && *a_events && player) {
+  constexpr RE::InputEvent* const dummy[] = {nullptr};
+
+  if (a_events && *a_events) {
     auto event = *a_events;
-    if (event->eventType == RE::INPUT_EVENT_TYPE::kButton) {
+    if (event->GetEventType() == RE::INPUT_EVENT_TYPE::kButton) {
       auto buttonEvent = event->AsButtonEvent();
       if (buttonEvent && buttonEvent->IsDown()) {
-        // Letter A
-        if (UI::WeaponArtMenu::IsInventoryMenuOpen() && buttonEvent->GetIDCode() == 30)
+        // Letter T
+        if (UI::WeaponArtMenu::IsInventoryMenuShow() && buttonEvent->GetIDCode() == 20)
           UI::WeaponArtMenu::Toggle();
         // Left Alt key code
-        else if (buttonEvent->GetIDCode() == 56)
+        else if (auto player = RE::PlayerCharacter::GetSingleton();
+                 buttonEvent->GetIDCode() == 56 && player)
           WeaponArt::Manager::EnableWeaponArt(player, !WeaponArt::Manager::IsEnabled(player));
       }
     }

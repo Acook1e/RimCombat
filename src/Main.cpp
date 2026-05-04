@@ -14,6 +14,7 @@
 void onPostLoad()
 {
   Settings::LoadSettings();
+  Serialization::Initialize();
   Localization::Initialize();
   WeaponArt::Manager::GetSingleton();
   WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
@@ -57,19 +58,17 @@ void MessageHandler(SKSE::MessagingInterface::Message* msg)
     onDataLoaded();
     break;
   case SKSE::MessagingInterface::kNewGame:
-    UI::WeaponArtHUD::Show();
     break;
   case SKSE::MessagingInterface::kPreLoadGame:
     break;
   case SKSE::MessagingInterface::kPostLoadGame:
-    UI::WeaponArtHUD::Show();
     break;
   }
 }
 
 // TODO: 限时格挡（特效）
 // TODO: 反击系统（触发条件/受击帧/伤害倍率）
-// TODO: 战技分配（资源消耗/解锁/热键/冲突处理）
+// TODO: 战技分配（NPC战技系统）
 // TODO: 架势崩溃（阈值/恢复/动画与AI反应）
 // TODO: 处决系统（目标状态/镜头/安全锁定）
 

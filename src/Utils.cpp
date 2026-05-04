@@ -10,8 +10,7 @@ std::string join(std::vector<std::string>& vec, char delimiter)
 
 std::vector<std::string> split(const std::string& str, char delimiter)
 {
-  return std::views::split(str, delimiter) |
-         std::views::transform([](auto&& part) {
+  return std::views::split(str, delimiter) | std::views::transform([](auto&& part) {
            return std::string(part.begin(), part.end());
          }) |
          std::ranges::to<std::vector>();
@@ -27,13 +26,11 @@ float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av)
 RE::InventoryEntryData* GetSelectedItemEntry()
 {
   auto ui   = RE::UI::GetSingleton();
-  auto menu = ui ? ui->GetMenu<RE::InventoryMenu>(RE::InventoryMenu::MENU_NAME)
-                 : nullptr;
+  auto menu = ui ? ui->GetMenu<RE::InventoryMenu>(RE::InventoryMenu::MENU_NAME) : nullptr;
   if (!menu)
     return nullptr;
   if (RE::GFxValue itemIndex; menu->uiMovie->GetVariable(
-          &itemIndex,
-          "_root.Menu_mc.inventoryLists.itemList.selectedEntry.itemIndex")) {
+          &itemIndex, "_root.Menu_mc.inventoryLists.itemList.selectedEntry.itemIndex")) {
     auto items = menu->itemList->items;
     if (items.empty())
       return nullptr;
@@ -49,5 +46,25 @@ void ActorCanAttack(RE::Actor* actor, bool enable)
 {
   auto& flag = actor->GetActorRuntimeData().boolFlags;
   flag.set(!enable, RE::Actor::BOOL_FLAGS::kAttackingDisabled);
+}
+
+// 主线程相关
+std::mutex taskMutex;
+std::deque<std::function<void()>> mainThreadTasks;
+
+void AddTask(std::function<void()> task)
+{
+  std::lock_guard<std::mutex> lock(taskMutex);
+  mainThreadTasks.push_back(std::move(task));
+}
+void MainUpdate()
+{
+  std::lock_guard<std::mutex> lock(taskMutex);
+  if (mainThreadTasks.empty())
+    return;
+
+  for (auto& task : mainThreadTasks)
+    task();
+  mainThreadTasks.clear();
 }
 }  // namespace Utils

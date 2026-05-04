@@ -336,6 +336,10 @@ void Manager::EnableWeaponArt(RE::Actor* actor, bool enable)
   if (!actor)
     return;
 
+  // 开关时重置连招状态
+  actor->SetGraphVariableInt("MCO_nextattack", 1);
+  actor->SetGraphVariableInt("MCO_nextpowerattack", 1);
+
   actor->SetGraphVariableBool(ENABLED, enable);
 
   if (actor->IsPlayerRef())

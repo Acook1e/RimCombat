@@ -4,28 +4,22 @@ namespace Utils
 {
 // 时间辅助函数，默认精度为毫秒
 template <typename T>
-[[nodiscard]] std::uint64_t
-GetTime(T accuracy = std::chrono::milliseconds()) noexcept
+[[nodiscard]] std::uint64_t GetTime(T accuracy = std::chrono::milliseconds()) noexcept
 {
-  return std::chrono::duration_cast<T>(
-             std::chrono::steady_clock::now().time_since_epoch())
-      .count();
+  return std::chrono::duration_cast<T>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 // 计时辅助类，在析构时输出从创建到析构的时间，单位为毫秒
 class ScopeTimer
 {
 public:
-  ScopeTimer(std::string_view name)
-      : name(name), start(std::chrono::high_resolution_clock::now())
+  ScopeTimer(std::string_view name) : name(name), start(std::chrono::high_resolution_clock::now())
   {}
 
   ~ScopeTimer()
   {
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-            .count();
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     logger::info("{} took {} ms", name, duration);
   }
 
@@ -39,8 +33,7 @@ std::string join(std::vector<std::string>& vec, char delimiter);
 std::vector<std::string> split(const std::string& str, char delimiter);
 
 // 哈希相关函数
-constexpr inline std::uint32_t hash(const char* data,
-                                    size_t const size) noexcept
+constexpr inline std::uint32_t hash(const char* data, size_t const size) noexcept
 {
   uint32_t hash = MOD;
   for (const char* c = data; c < data + size; ++c) {
@@ -60,10 +53,9 @@ void ActorCanAttack(RE::Actor* actor, bool enable);  // 仅对NPC有效
 template <typename T>
 void SetGameSettings(const char* setting, T value)
 {
-  RE::Setting* gameSetting = nullptr;
-  RE::GameSettingCollection* _settingCollection =
-      RE::GameSettingCollection::GetSingleton();
-  gameSetting = _settingCollection->GetSetting(setting);
+  RE::Setting* gameSetting                      = nullptr;
+  RE::GameSettingCollection* _settingCollection = RE::GameSettingCollection::GetSingleton();
+  gameSetting                                   = _settingCollection->GetSetting(setting);
   if (!gameSetting) {
     logger::info("SetGameSetting: Invalid setting: {}", setting);
   } else {
@@ -82,6 +74,11 @@ void SetGameSettings(const char* setting, T value)
     }
   }
 }
+
+// 主线程相关
+void AddTask(std::function<void()> task);
+void MainUpdate();
+
 }  // namespace Utils
 
 // 显式使用Utils命名空间中的ScopeTimer和hash函数

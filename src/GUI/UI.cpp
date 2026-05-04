@@ -9,17 +9,18 @@
 #include "API/PrismaUI_API.h"
 #include "API/TrueHUDAPI.h"
 
+#include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
 namespace UI
 {
+using json = nlohmann::json;
+
 static PRISMA_UI_API::IVPrismaUI2* prisma = nullptr;
 static TRUEHUD_API::IVTrueHUD4* truehud   = nullptr;
 
 namespace
 {
-  using json = nlohmann::json;
-
   std::optional<std::int32_t> ParseArtID(const char* arg)
   {
     if (!arg || !*arg)
@@ -34,85 +35,6 @@ namespace
       return std::nullopt;
 
     return static_cast<std::int32_t>(rawValue);
-  }
-
-  std::string DamageTypeToString(WeaponArt::WeaponArtInfo::DamageType type)
-  {
-    using DamageType = WeaponArt::WeaponArtInfo::DamageType;
-
-    switch (type) {
-    case DamageType::Slash:
-      return "Slash";
-    case DamageType::Thrust:
-      return "Thrust";
-    case DamageType::Strike:
-      return "Strike";
-    case DamageType::Magic:
-      return "Magic";
-    case DamageType::Fire:
-      return "Fire";
-    case DamageType::Frost:
-      return "Frost";
-    case DamageType::Shock:
-      return "Shock";
-    case DamageType::None:
-    default:
-      return "None";
-    }
-  }
-
-  std::string WeaponTypeToString(Weapon::Type type)
-  {
-    switch (type) {
-    case Weapon::Type::Unarm:
-      return "Unarmed";
-    case Weapon::Type::Werewolf:
-      return "Werewolf";
-    case Weapon::Type::VampireLord:
-      return "Vampire Lord";
-    case Weapon::Type::Dagger:
-      return "Dagger";
-    case Weapon::Type::Sword:
-      return "Sword";
-    case Weapon::Type::Axe:
-      return "Axe";
-    case Weapon::Type::Mace:
-      return "Mace";
-    case Weapon::Type::GreatSword:
-      return "Greatsword";
-    case Weapon::Type::GreatAxe:
-      return "Greataxe";
-    case Weapon::Type::GreatMace:
-      return "Greatmace";
-    case Weapon::Type::Bow:
-      return "Bow";
-    case Weapon::Type::Crossbow:
-      return "Crossbow";
-    case Weapon::Type::Staff:
-      return "Staff";
-    case Weapon::Type::Shield:
-      return "Shield";
-    case Weapon::Type::Fist:
-      return "Fist";
-    case Weapon::Type::Claw:
-      return "Claw";
-    case Weapon::Type::Rapier:
-      return "Rapier";
-    case Weapon::Type::Katana:
-      return "Katana";
-    case Weapon::Type::ShortSpear:
-      return "Short Spear";
-    case Weapon::Type::Halberd:
-      return "Halberd";
-    case Weapon::Type::Spear:
-      return "Spear";
-    case Weapon::Type::Quarterstaff:
-      return "Quarterstaff";
-    case Weapon::Type::GreatKatana:
-      return "Great Katana";
-    default:
-      return "Unknown";
-    }
   }
 }  // namespace
 
@@ -275,10 +197,11 @@ void WeaponArtMenu::SyncViewData()
     auto* currentArtInfo = WeaponArt::Manager::GetWeaponArtInfo(currentArtID);
     auto* weaponName     = selectedWeapon->GetName();
 
+    // TODO 以后使用本地化键来获取名称，暂时直接显示英文名
     payload["selectedWeapon"] = {
         {"name", weaponName ? weaponName : ""},
         {"formId", std::format("{:08X}", selectedWeapon->GetFormID())},
-        {"type", WeaponTypeToString(Weapon::GetWeaponType(selectedWeapon))},
+        {"type", magic_enum::enum_name(Weapon::GetWeaponType(selectedWeapon))},
         {"currentArtId", currentArtID},
         {"currentArtName", currentArtInfo ? currentArtInfo->GetName() : "Unassigned"}};
   } else {
@@ -295,7 +218,7 @@ void WeaponArtMenu::SyncViewData()
                     {"description", art->GetDescription()},
                     {"consumePoint", art->GetConsumePoint()},
                     {"unlockLevel", art->GetUnlockLevel()},
-                    {"damageType", DamageTypeToString(art->GetDamageType())},
+                    {"damageType", magic_enum::enum_name(art->GetDamageType())},
                     {"damageMult", art->GetDamageMult()},
                     {"baseDamage", art->GetBaseDamage()},
                     {"postureDamageMult", art->GetPostureDamageMult()},
@@ -323,11 +246,6 @@ void WeaponArtMenu::Show()
   if (!prisma || !prisma->IsValid(view) || !inventoryMenuShow)
     return;
 
-  if (auto invMenu = RE::UI::GetSingleton()->GetMenu(RE::InventoryMenu::MENU_NAME); invMenu) {
-    auto flag = invMenu->menuFlags;
-    flag.set(false, RE::UI_MENU_FLAGS::kUsesCursor);
-  }
-
   isShow = true;
   prisma->Show(view);
   prisma->Focus(view);
@@ -339,11 +257,6 @@ void WeaponArtMenu::Hide()
 {
   if (!prisma || !prisma->IsValid(view))
     return;
-
-  if (auto invMenu = RE::UI::GetSingleton()->GetMenu(RE::InventoryMenu::MENU_NAME); invMenu) {
-    auto flag = invMenu->menuFlags;
-    flag.set(true, RE::UI_MENU_FLAGS::kUsesCursor);
-  }
 
   isShow = false;
   prisma->Unfocus(view);

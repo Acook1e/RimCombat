@@ -8,6 +8,13 @@
 
 namespace Hooks
 {
+void Hook_OnMainUpdate::MainUpdate()
+{
+  _MainUpdate();
+  // 更新Utils提供的主线程接口
+  Utils::MainUpdate();
+}
+
 float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
                                                         RE::BGSAttackData* atkData)
 {

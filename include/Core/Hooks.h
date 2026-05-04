@@ -4,6 +4,26 @@
 
 namespace Hooks
 {
+class Hook_OnMainUpdate
+{
+public:
+  static void Install()
+  {
+    auto& trampoline = SKSE::GetTrampoline();
+    SKSE::AllocTrampoline(14);
+
+    REL::Relocation addr{REL::VariantID(35565, 36564, 0x5BAB10),
+                         REL::VariantOffset(0x748, 0xc26, 0x7ee)};
+
+    _MainUpdate = trampoline.write_call<5>(addr.address(), MainUpdate);
+    logger::info("Hooks: OnMainUpdate installed.");
+  }
+
+private:
+  static void MainUpdate();
+  static inline REL::Relocation<decltype(MainUpdate)> _MainUpdate;
+};
+
 class Hook_OnActorUpdate
 {
 public:
@@ -18,14 +38,8 @@ public:
   }
 
 private:
-  static void Update_NPC(RE::Character* character, float delta)
-  {
-    _Update_NPC(character, delta);
-  }
-  static void Update_PC(RE::PlayerCharacter* player, float delta)
-  {
-    _Update_PC(player, delta);
-  }
+  static void Update_NPC(RE::Character* character, float delta) { _Update_NPC(character, delta); }
+  static void Update_PC(RE::PlayerCharacter* player, float delta) { _Update_PC(player, delta); }
 
   static inline REL::Relocation<decltype(Update_NPC)> _Update_NPC;
   static inline REL::Relocation<decltype(Update_PC)> _Update_PC;
@@ -40,21 +54,18 @@ public:
     auto& trampoline = SKSE::GetTrampoline();
     SKSE::AllocTrampoline(14);
 
-    std::uintptr_t hook = REL::VariantID(37650, 38603, 0).address() +
-                          REL::VariantOffset(0x16E, 0x171, 0x0).offset();
+    std::uintptr_t hook =
+        REL::VariantID(37650, 38603, 0).address() + REL::VariantOffset(0x16E, 0x171, 0x0).offset();
     // SE:627930 + 16E => 3BEC90 AE:64D350 + 171 => 3D6720
 
-    _GetAttackStaminaCost =
-        trampoline.write_call<5>(hook, GetAttackStaminaCost);
+    _GetAttackStaminaCost = trampoline.write_call<5>(hook, GetAttackStaminaCost);
 
     logger::info("Hooks: OnGetAttackStaminaCost installed.");
   }
 
 private:
-  static float GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
-                                    RE::BGSAttackData* atkData);
-  static inline REL::Relocation<decltype(GetAttackStaminaCost)>
-      _GetAttackStaminaCost;
+  static float GetAttackStaminaCost(RE::ActorValueOwner* avOwner, RE::BGSAttackData* atkData);
+  static inline REL::Relocation<decltype(GetAttackStaminaCost)> _GetAttackStaminaCost;
 };
 
 class Hook_OnMeleeHit
@@ -65,8 +76,8 @@ public:
     auto& trampoline = SKSE::GetTrampoline();
     SKSE::AllocTrampoline(14);
 
-    std::uintptr_t hook = REL::VariantID(37673, 38627, 0).address() +
-                          REL::VariantOffset(0x3C0, 0x4A8, 0x0).offset();
+    std::uintptr_t hook =
+        REL::VariantID(37673, 38627, 0).address() + REL::VariantOffset(0x3C0, 0x4A8, 0x0).offset();
     // 140628C20       14064E760
     _ProcessHit = trampoline.write_call<5>(hook, ProcessHit);
     logger::info("Hook: OnMeleeHit installed.");
@@ -92,19 +103,14 @@ public:
   }
 
 private:
-  static void ModActorValue_NPC(RE::ActorValueOwner* avOwner,
-                                RE::ACTOR_VALUE_MODIFIER modifier,
+  static void ModActorValue_NPC(RE::ActorValueOwner* avOwner, RE::ACTOR_VALUE_MODIFIER modifier,
                                 RE::ActorValue akValue, float value);
-  static void ModActorValue_PC(RE::ActorValueOwner* avOwner,
-                               RE::ACTOR_VALUE_MODIFIER modifier,
+  static void ModActorValue_PC(RE::ActorValueOwner* avOwner, RE::ACTOR_VALUE_MODIFIER modifier,
                                RE::ActorValue akValue, float value);
-  static float ModActorValue(RE::Actor* actor,
-                             RE::ACTOR_VALUE_MODIFIER modifier,
+  static float ModActorValue(RE::Actor* actor, RE::ACTOR_VALUE_MODIFIER modifier,
                              RE::ActorValue akValue, float value);
-  static float ModMaxActorValue(RE::Actor* actor, RE::ActorValue akValue,
-                                float value);
-  static float ModCurrentActorValue(RE::Actor* actor, RE::ActorValue akValue,
-                                    float value);
+  static float ModMaxActorValue(RE::Actor* actor, RE::ActorValue akValue, float value);
+  static float ModCurrentActorValue(RE::Actor* actor, RE::ActorValue akValue, float value);
 
   static inline REL::Relocation<decltype(ModActorValue_NPC)> _ModActorValue_NPC;
   static inline REL::Relocation<decltype(ModActorValue_PC)> _ModActorValue_PC;
@@ -118,8 +124,8 @@ public:
     auto& trampoline = SKSE::GetTrampoline();
     SKSE::AllocTrampoline(14);
 
-    std::uintptr_t hook = REL::VariantID(37938, 38894, 0).address() +
-                          REL::VariantOffset(0xE5, 0x170, 0x0).offset();
+    std::uintptr_t hook =
+        REL::VariantID(37938, 38894, 0).address() + REL::VariantOffset(0xE5, 0x170, 0x0).offset();
 
     _OnEquipObject = trampoline.write_call<5>(hook, OnEquipObject);
     logger::info("Hooks: OnEquipObject installed.");
@@ -140,8 +146,8 @@ public:
     auto& trampoline = SKSE::GetTrampoline();
     SKSE::AllocTrampoline(14);
 
-    std::uintptr_t hook = REL::VariantID(37945, 38901, 0).address() +
-                          REL::VariantOffset(0x138, 0x1B9, 0x0).offset();
+    std::uintptr_t hook =
+        REL::VariantID(37945, 38901, 0).address() + REL::VariantOffset(0x138, 0x1B9, 0x0).offset();
 
     _OnUnequipObject = trampoline.write_call<5>(hook, OnUnequipObject);
     logger::info("Hooks: OnUnequipObject installed.");
@@ -156,6 +162,7 @@ private:
 
 inline void Install()
 {
+  Hook_OnMainUpdate::Install();
   Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnMeleeHit::Install();

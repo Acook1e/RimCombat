@@ -4,6 +4,7 @@
 .vscode
 .venv
 .cache
+.claude
 .xmake
 build
 cmake-build*

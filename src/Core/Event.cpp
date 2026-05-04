@@ -22,21 +22,18 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   RE::Actor* actor = const_cast<RE::TESObjectREFR*>(event->holder)->As<RE::Actor>();
 
   // 过滤掉一些不必要的事件，减少日志噪音
-  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" && eventTag != "pie" && false) {
-    logger::info("Player Event: {}", eventTag);
+  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" && eventTag != "pie") {
+    logger::info("Player Event: {}", eventTag == "collision_attackstart");
   }
-  switch (Utils::hash(eventTag.data(), eventTag.size())) {
+  switch (Utils::hash(eventTag)) {
   case "weaponswing"_h:
-    if (Settings::bUseAttackStaminaSystem)
-      Stamina::AttackStaminaConsume(actor, false);
+    Stamina::AttackStaminaConsume(actor, false);
     break;
   case "weaponleftswing"_h:
-    if (Settings::bUseAttackStaminaSystem)
-      Stamina::AttackStaminaConsume(actor, true);
+    Stamina::AttackStaminaConsume(actor, true);
     break;
   case "soundplay.wpnunarmedswing"_h:
-    if (Settings::bUseAttackStaminaSystem)
-      Stamina::AttackStaminaConsume(actor, false);
+    Stamina::AttackStaminaConsume(actor, false, true);
     break;
   case "attackstart"_h:
   case "mco_attackentry"_h:
@@ -93,11 +90,27 @@ RE::BSEventNotifyControl
 MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
                         RE::BSTEventSource<RE::MenuOpenCloseEvent>* eventSource)
 {
+  // 监听物品栏菜单的开关来同步战技菜单的显示状态
   if (event->menuName == RE::InventoryMenu::MENU_NAME) {
     if (event->opening)
       UI::WeaponArtMenu::SetInventoryMenuOpen(true);
     else
       UI::WeaponArtMenu::SetInventoryMenuOpen(false);
+  }
+
+  // 跟随HUD菜单的开关来显示/隐藏战技HUD
+  if (event->menuName == RE::HUDMenu::MENU_NAME || event->menuName == "TrueHUD") {
+    if (event->opening)
+      UI::WeaponArtHUD::Show();
+    else
+      UI::WeaponArtHUD::Hide();
+  }
+  // 加载时隐藏战技HUD，避免和加载界面重叠
+  if (event->menuName == RE::LoadingMenu::MENU_NAME) {
+    if (event->opening)
+      UI::WeaponArtHUD::Hide();
+    else
+      UI::WeaponArtHUD::Show();
   }
   return RE::BSEventNotifyControl::kContinue;
 }

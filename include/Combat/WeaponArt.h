@@ -63,14 +63,14 @@ public:
 
   const std::string& GetName() const { return name; }
   const std::string& GetDescription() const { return description; }
-  const std::int32_t GetID() const { return id; }
+  std::int32_t GetID() const { return id; }
 
-  const std::uint8_t GetConsumePoint() const { return consumePoint; }
-  const std::uint8_t GetUnlockLevel() const { return unlockLevel; }
-  const DamageType GetDamageType() const { return damageType; }
-  const float GetDamageMult() const { return damageMult; }
-  const float GetBaseDamage() const { return baseDamage; }
-  const float GetPostureDamageMult() const { return postureDamageMult; }
+  std::uint8_t GetConsumePoint() const { return consumePoint; }
+  std::uint8_t GetUnlockLevel() const { return unlockLevel; }
+  DamageType GetDamageType() const { return damageType; }
+  float GetDamageMult() const { return damageMult; }
+  float GetBaseDamage() const { return baseDamage; }
+  float GetPostureDamageMult() const { return postureDamageMult; }
 
   bool IsWeaponAllowed(RE::TESObjectWEAP* weapon) const;
 

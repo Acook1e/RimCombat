@@ -3,47 +3,50 @@
 #include "Combat/Weapon.h"
 #include "Core/Settings.h"
 
-void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack)
+void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
 {
-  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
+  if (!Settings::bUseAttackStaminaSystem)
     return;
-
   if (!actor)
+    return;
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
-  RE::TESObjectWEAP* left = nullptr;
-  if (auto* leftHand = actor->GetEquippedObject(true);
-      leftHand && leftHand->IsWeapon())
-    left = leftHand->As<RE::TESObjectWEAP>();
+  auto type          = Weapon::Type::Unarm;
+  float weaponWeight = 0.0f;
 
-  RE::TESObjectWEAP* right = nullptr;
-  if (auto* rightHand = actor->GetEquippedObject(false);
-      rightHand && rightHand->IsWeapon())
-    right = rightHand->As<RE::TESObjectWEAP>();
+  auto GetData = [&]() -> std::pair<Weapon::Type, float> {
+    RE::TESObjectWEAP* left = nullptr;
+    if (auto* leftHand = actor->GetEquippedObject(true); leftHand && leftHand->IsWeapon())
+      left = leftHand->As<RE::TESObjectWEAP>();
 
-  RE::TESObjectWEAP* weapon = nullptr;
-  auto type                 = Weapon::Type::Unarm;
-  if (leftAttack)
-    type = Weapon::GetWeaponType(left);
-  else
-    type = Weapon::GetWeaponType(right);
+    RE::TESObjectWEAP* right = nullptr;
+    if (auto* rightHand = actor->GetEquippedObject(false); rightHand && rightHand->IsWeapon())
+      right = rightHand->As<RE::TESObjectWEAP>();
+
+    if (leftAttack)
+      return {Weapon::GetWeaponType(left), left ? left->GetWeight() : 0.0f};
+    else
+      return {Weapon::GetWeaponType(right), right ? right->GetWeight() : 0.0f};
+  };
+
+  if (!unarm)
+    std::tie(type, weaponWeight) = GetData();
+
+  // 避免重复计算
+  if (!unarm && type == Weapon::Type::Unarm)
+    return;
 
   float staminaCost = Weapon::GetBaseStaminaConsumption(type);
 
-  if (actor->IsPowerAttacking())
+  if (actor->IsPowerAttacking()) {
     staminaCost *= Settings::fPowerAttackStaminaCostMult;
-
-  if (weapon && weapon->GetWeight() > 0.0f) {
-    if (actor->IsPowerAttacking())
-      staminaCost +=
-          Settings::fPowerAttackStaminaCostPerMass * weapon->GetWeight();
-    else
-      staminaCost +=
-          Settings::fNormalAttackStaminaCostPerMass * weapon->GetWeight();
+    staminaCost += Settings::fPowerAttackStaminaCostPerMass * weaponWeight;
+  } else {
+    staminaCost += Settings::fNormalAttackStaminaCostPerMass * weaponWeight;
   }
 
-  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina,
-                                               staminaCost);
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }

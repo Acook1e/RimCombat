@@ -140,7 +140,7 @@ inline bool bUseWeaponArtSystem = true;
 // 是否启用战技HUD
 inline bool bUseWeaponArtHUD = true;
 // 战技HUD横向位置，单位为屏幕百分比
-inline float fWeaponArtHUDPosX = 5.0f;
+inline float fWeaponArtHUDPosX = 10.0f;
 // 战技HUD纵向位置，单位为屏幕百分比
 inline float fWeaponArtHUDPosY = 70.0f;
 // 战技HUD整体缩放

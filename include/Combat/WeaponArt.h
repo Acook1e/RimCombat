@@ -123,10 +123,10 @@ private:
   PlayerStat();
 
   // Weapon Art Player Stat
-  constexpr static inline std::uint32_t WeaponExp = 'WAPS';
-  static inline float exp                         = 0.0f;  // 当前战技经验
-  static inline std::uint8_t level                = 1;     // 当前战技等级
-  static inline std::uint8_t point                = 0;     // 当前战技点数
+  constexpr static inline std::uint32_t serialType = 'WAPS';
+  static inline float exp                          = 0.0f;  // 当前战技经验
+  static inline std::uint8_t level                 = 1;     // 当前战技等级
+  static inline std::uint8_t point                 = 0;     // 当前战技点数
   static inline std::unordered_set<std::int32_t> unlockedArts{};
 };
 
@@ -170,7 +170,7 @@ private:
   static inline std::unordered_map<std::int32_t, WeaponArtInfo> artMap;
 
   // RimCombat Weapon Art Info
-  constexpr static inline std::uint32_t weaponInfo = 'RWAI';
+  constexpr static inline std::uint32_t serialType = 'RWAI';
   static inline std::mutex mtx;
   // 武器与战技信息的映射，键为武器FormID，值为对应的战技ID
   // 需要进行序列化，以便保存和加载游戏时保持武器与战技的对应关系

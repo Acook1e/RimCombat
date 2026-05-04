@@ -22,7 +22,14 @@ float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av)
   return actor->AsActorValueOwner()->GetPermanentActorValue(av) +
          actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, av);
 }
-
+float GetCurrentActorValuePercent(RE::Actor* actor, RE::ActorValue av)
+{
+  float current = actor->AsActorValueOwner()->GetActorValue(av);
+  float max     = GetCurrentMaxActorValue(actor, av);
+  if (max == 0.0f)
+    return 0.0f;
+  return current / max;
+}
 RE::InventoryEntryData* GetSelectedItemEntry()
 {
   auto ui   = RE::UI::GetSingleton();

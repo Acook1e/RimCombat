@@ -1,6 +1,7 @@
 #include "Combat/Posture.h"
 
 #include "Combat/Block.h"
+#include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Weapon.h"
 #include "Core/Serialization.h"
@@ -10,53 +11,50 @@
 
 Posture::Posture()
 {
-  Serialization::RegisterSaveCallback(
-      posture, [](SKSE::SerializationInterface* serial) {
-        std::scoped_lock lock(mtx);
-        // 将FormID转换为持久化格式
-        // 并自动去除非法或未找到的FormID
-        std::unordered_map<std::uint64_t, PostureData> persistMap;
-        for (const auto& [formID, data] : postureMap) {
-          auto persist = Serialization::ToPersistForm(formID);
-          if (persist)
-            persistMap[persist] = std::move(data);
+  Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
+    std::scoped_lock lock(mtx);
+    // 将FormID转换为持久化格式
+    // 并自动去除非法或未找到的FormID
+    std::unordered_map<std::uint64_t, PostureData> persistMap;
+    for (const auto& [formID, data] : postureMap) {
+      auto persist = Serialization::ToPersistForm(formID);
+      if (persist)
+        persistMap[persist] = std::move(data);
+    }
+
+    std::uint32_t count = static_cast<std::uint32_t>(persistMap.size());
+    serial->WriteRecordData(&count, sizeof(count));
+    for (const auto& [persist, data] : persistMap) {
+      serial->WriteRecordData(&persist, sizeof(persist));
+      serial->WriteRecordData(&data, sizeof(data));
+    }
+  });
+
+  Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
+    std::scoped_lock lock(mtx);
+    postureMap.clear();
+    runtimePostureMap.clear();
+
+    std::uint32_t count;
+    if (serial->ReadRecordData(&count, sizeof(count))) {
+      for (std::uint32_t i = 0; i < count; ++i) {
+        std::uint64_t persist;
+        PostureData data;
+        if (serial->ReadRecordData(&persist, sizeof(persist)) &&
+            serial->ReadRecordData(&data, sizeof(data))) {
+          auto formID = Serialization::ToForm(persist);
+          if (formID)
+            postureMap[formID] = std::move(data);
         }
+      }
+    }
+  });
 
-        std::uint32_t count = static_cast<std::uint32_t>(persistMap.size());
-        serial->WriteRecordData(&count, sizeof(count));
-        for (const auto& [persist, data] : persistMap) {
-          serial->WriteRecordData(&persist, sizeof(persist));
-          serial->WriteRecordData(&data, sizeof(data));
-        }
-      });
-
-  Serialization::RegisterLoadCallback(
-      posture, [](SKSE::SerializationInterface* serial) {
-        std::scoped_lock lock(mtx);
-        postureMap.clear();
-        runtimePostureMap.clear();
-
-        std::uint32_t count;
-        if (serial->ReadRecordData(&count, sizeof(count))) {
-          for (std::uint32_t i = 0; i < count; ++i) {
-            std::uint64_t persist;
-            PostureData data;
-            if (serial->ReadRecordData(&persist, sizeof(persist)) &&
-                serial->ReadRecordData(&data, sizeof(data))) {
-              auto formID = Serialization::ToForm(persist);
-              if (formID)
-                postureMap[formID] = std::move(data);
-            }
-          }
-        }
-      });
-
-  Serialization::RegisterRevertCallback(posture,
-                                        [](SKSE::SerializationInterface*) {
-                                          std::scoped_lock lock(mtx);
-                                          postureMap.clear();
-                                          runtimePostureMap.clear();
-                                        });
+  Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
+    std::scoped_lock lock(mtx);
+    postureMap.clear();
+    runtimePostureMap.clear();
+  });
 }
 
 float Posture::InitPosture(RE::Actor* actor)
@@ -76,6 +74,9 @@ float Posture::InitPosture(RE::Actor* actor)
 
 void Posture::ReCalculateMaxPosture(RE::Actor* actor)
 {
+  if (!actor || !Settings::bUsePostureSystem)
+    return;
+
   std::scoped_lock lock(mtx);
   float maxPosture = Settings::fMaxPostureBase;
   maxPosture += Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth) *
@@ -136,9 +137,12 @@ Posture::PostureData& Posture::GetPostureData(RE::Actor* actor)
     return runtimePostureMap[actor];
 }
 
-void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim,
-                              RE::HitData& hitData, bool isTimedBlock)
+void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData,
+                              bool isTimedBlock)
 {
+  if (!aggressor || !victim || !Settings::bUsePostureSystem)
+    return;
+
   auto hitFlags     = hitData.flags;
   auto attackWeapon = hitData.weapon;
 
@@ -173,15 +177,11 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim,
 
   // Process Block
   if (hitFlags.any(RE::HitData::Flag::kBlocked)) {
-    ModPostureValue(aggressor,
-                    -postureDamage * Settings::fBlockPostureDamageToAttacker);
+    ModPostureValue(aggressor, -postureDamage * Settings::fBlockPostureDamageToAttacker);
     if (isTimedBlock)
-      ModPostureValue(victim,
-                      -postureDamage * Settings::fTimedBlockPostureDamageMult,
-                      true);
+      ModPostureValue(victim, -postureDamage * Settings::fTimedBlockPostureDamageMult, true);
     else
-      ModPostureValue(victim,
-                      -postureDamage * Settings::fBlockPostureDamageMult);
+      ModPostureValue(victim, -postureDamage * Settings::fBlockPostureDamageMult);
   } else {
     ModPostureValue(victim, -postureDamage);
   }
@@ -197,11 +197,10 @@ void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
   // 加值处理
   if (value < 0.0f) {
     // 护甲减伤
-    value *= std::expf(
-        -Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kDamageResist) *
-        Settings::fArmorPostureDamageFactor / 1000.0f);
+    value *= std::expf(-Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kDamageResist) *
+                       Settings::fArmorPostureDamageFactor / 1000.0f);
     // 力竭状态增加架势伤害
-    if (Settings::bEnableExhausted && Exhausted::IsActorExhausted(actor)) {
+    if (Exhausted::IsActorExhausted(actor)) {
       value *= Settings::fExhaustedPostureDamageMult;
       // 如果设置了被击打时退出力竭状态，则在此处退出
       if (Settings::bExitExhaustedOnHit)
@@ -223,20 +222,10 @@ void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
 
   // 破防处理
   if (postureData.current <= 0.0f) {
-    PostureBreak(actor);
+    Execution::SetExecutable(actor);
     postureData.current = postureData.max;
   } else if (postureData.current > postureData.max) {
     // 架势值异常处理
     postureData.current = postureData.max;
   }
-}
-
-void Posture::PostureBreak(RE::Actor* actor)
-{
-  if (!actor)
-    return;
-  SKSE::GetTaskInterface()->AddTask([actor]() {
-    actor->SetGraphVariableFloat("staggerMagnitude", 1.0f);
-    actor->NotifyAnimationGraph("staggerStart");
-  });
 }

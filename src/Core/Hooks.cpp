@@ -13,6 +13,9 @@ void Hook_OnMainUpdate::MainUpdate()
   _MainUpdate();
   // 更新Utils提供的主线程接口
   Utils::MainUpdate();
+
+  // 更新格挡系统
+  Block::Update();
 }
 
 float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
@@ -22,6 +25,7 @@ float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avO
   // RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner,
   // offset.offset());
 
+  // 如果启用了攻击耐力系统，则取消掉原版的攻击耐力消耗
   if (Settings::bUseAttackStaminaSystem)
     return 0.0f;
 
@@ -35,11 +39,10 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     return _ProcessHit(victim, hitData);
 
   auto timedBlock = false;
-  if (Settings::bTimedBlockEnabled && hitData.flags.any(RE::HitData::Flag::kBlocked))
-    timedBlock = Block::GetSingleton().IsTimedBlock(victim);
+  if (hitData.flags.any(RE::HitData::Flag::kBlocked))
+    timedBlock = Block::IsTimedBlock(victim);
 
-  if (Settings::bUsePostureSystem)
-    Posture::GetSingleton().ProcessMeleeHit(aggressor, victim, hitData, timedBlock);
+  Posture::ProcessMeleeHit(aggressor, victim, hitData, timedBlock);
 
   _ProcessHit(victim, hitData);
 }
@@ -78,8 +81,7 @@ float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* actor, RE::ActorValue ak
 {
   switch (akValue) {
   case RE::ActorValue::kHealth:
-    if (Settings::bUsePostureSystem)
-      Posture::GetSingleton().ReCalculateMaxPosture(actor);
+    Posture::ReCalculateMaxPosture(actor);
     break;
   }
   return value;
@@ -91,10 +93,9 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor, RE::ActorValu
   if (value < 0) {
     // Process Exhausted State Entry
     if (akValue == RE::ActorValue::kStamina) {
-      if (Settings::bEnableExhausted &&
-          actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + value <= 0) {
+      // 判断当前Actor的耐力如果即将降到0或以下，则进入疲惫状态
+      if (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + value <= 0)
         Exhausted::EnterExhausted(actor);
-      }
     }
     // Process player god mode
     if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode()) {
@@ -127,9 +128,8 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor, RE::ActorValu
       value *= Settings::fStaminaRegenMultBlock;
     }
     // Process Exhausted State Exit
-    if (Settings::bEnableExhausted && Exhausted::IsActorExhausted(actor)) {
-      if (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) /
-              Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kStamina) >=
+    if (Exhausted::IsActorExhausted(actor)) {
+      if (Utils::GetCurrentActorValuePercent(actor, RE::ActorValue::kStamina) >=
           Settings::fExhaustedExitPercent)
         Exhausted::ExitExhausted(actor);
     }

@@ -104,6 +104,8 @@ inline float fArmorPostureDamageFactor = 1.1f;
 #pragma region Exhausted
 // 是否启用力竭系统
 inline bool bEnableExhausted = true;
+// 力竭状态是否禁用攻击
+inline bool bDisableAttackWhenExhausted = true;
 // 力竭受击时是否退出力竭状态
 inline bool bExitExhaustedOnHit = true;
 // 退出力竭状态的耐力值百分比
@@ -145,6 +147,13 @@ inline float fWeaponArtHUDPosX = 10.0f;
 inline float fWeaponArtHUDPosY = 70.0f;
 // 战技HUD整体缩放
 inline float fWeaponArtHUDScale = 1.0f;
+#pragma endregion
+
+#pragma region Execution
+// 是否启用处决系统
+inline bool bUseExecutionSystem = true;
+// 处决状态的持续时间，单位为秒
+inline float fExecutableDuration = 5.0f;
 #pragma endregion
 
 void UpdateGameSettings();

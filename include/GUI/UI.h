@@ -15,17 +15,17 @@ public:
     return singleton;
   }
 
-  bool Require();
-  bool Release();
+  static bool Require();
+  static bool Release();
 
-  void EnterGreyOut(RE::Actor* actor);
-  void ExitGreyOut(RE::Actor* actor);
+  static void EnterGreyOut(RE::Actor* actor);
+  static void ExitGreyOut(RE::Actor* actor);
 
 private:
   TrueHUD();
   ~TrueHUD();
 
-  bool init{false};
+  static inline bool init{false};
 };
 
 class WeaponArtMenu

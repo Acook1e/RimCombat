@@ -21,10 +21,6 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   std::transform(eventTag.begin(), eventTag.end(), eventTag.begin(), ::tolower);
   RE::Actor* actor = const_cast<RE::TESObjectREFR*>(event->holder)->As<RE::Actor>();
 
-  // 过滤掉一些不必要的事件，减少日志噪音
-  if (actor->IsPlayerRef() && eventTag != "scar_updatedummy" && eventTag != "pie") {
-    logger::info("Player Event: {}", eventTag == "collision_attackstart");
-  }
   switch (Utils::hash(eventTag)) {
   case "weaponswing"_h:
     Stamina::AttackStaminaConsume(actor, false);
@@ -49,10 +45,10 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     break;
   case "blockstart"_h:
   case "blockstartout"_h:
-    Block::GetSingleton().StartBlock(actor);
+    Block::StartBlock(actor);
     break;
   case "blockstop"_h:
-    Block::GetSingleton().EndBlock(actor);
+    Block::EndBlock(actor);
     break;
   case "prehitframe"_h:
     break;

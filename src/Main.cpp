@@ -1,3 +1,5 @@
+#include "Combat/Block.h"
+#include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
 #include "Combat/Weapon.h"
@@ -18,8 +20,10 @@ void onPostLoad()
   Localization::Initialize();
   WeaponArt::Manager::GetSingleton();
   WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
+  Block::GetSingleton();
   Posture::GetSingleton();
   Exhausted::GetSingleton();
+  Execution::GetSingleton();
 }
 
 // 依赖外部API的初始化必须在PostLoad之后进行
@@ -66,8 +70,10 @@ void MessageHandler(SKSE::MessagingInterface::Message* msg)
   }
 }
 
-// TODO: 限时格挡（特效）
 // TODO: 反击系统（触发条件/受击帧/伤害倍率）
+// 反击系统搁置，风格不合模组理念，过于强力且难以平衡
+
+// TODO: 限时格挡（特效）
 // TODO: 战技分配（NPC战技系统）
 // TODO: 架势崩溃（阈值/恢复/动画与AI反应）
 // TODO: 处决系统（目标状态/镜头/安全锁定）

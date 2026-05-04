@@ -17,10 +17,9 @@ public:
   }
 
 private:
-  static inline bool
-  ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
-               RE::BSAnimationGraphEvent* event,
-               RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource);
+  static inline bool ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
+                                  RE::BSAnimationGraphEvent* event,
+                                  RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource);
 
   static RE::BSEventNotifyControl
   ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
@@ -36,6 +35,26 @@ private:
   static inline REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
 };
 
+class HitEvent : public RE::BSTEventSink<RE::TESHitEvent>
+{
+public:
+  static HitEvent* GetSingleton()
+  {
+    static HitEvent singleton;
+    return &singleton;
+  }
+  static void Install()
+  {
+    auto source = RE::ScriptEventSourceHolder::GetSingleton()->GetEventSource<RE::TESHitEvent>();
+    if (source)
+      source->AddEventSink(GetSingleton());
+    logger::info("HitEvent: installing event hook");
+  }
+
+  RE::BSEventNotifyControl ProcessEvent(const RE::TESHitEvent* event,
+                                        RE::BSTEventSource<RE::TESHitEvent>* eventSource) override;
+};
+
 // 菜单事件监听
 class MenuEvent : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 {
@@ -48,14 +67,14 @@ public:
   static void Install()
   {
     auto ui = RE::UI::GetSingleton();
-    ui->AddEventSink<RE::MenuOpenCloseEvent>(GetSingleton());
-    logger::info("MenuEvent: installing event hook for {}",
-                 typeid(RE::MenuOpenCloseEvent).name());
+    if (ui)
+      ui->AddEventSink<RE::MenuOpenCloseEvent>(GetSingleton());
+    logger::info("MenuEvent: installing event hook");
   }
 
-  RE::BSEventNotifyControl ProcessEvent(
-      const RE::MenuOpenCloseEvent* event,
-      RE::BSTEventSource<RE::MenuOpenCloseEvent>* eventSource) override;
+  RE::BSEventNotifyControl
+  ProcessEvent(const RE::MenuOpenCloseEvent* event,
+               RE::BSTEventSource<RE::MenuOpenCloseEvent>* eventSource) override;
 };
 
 // 按键事件监听
@@ -64,13 +83,11 @@ class InputEvent
 public:
   static void Install()
   {
-    const REL::Relocation<uintptr_t> addr{
-        REL::VariantID(67315, 68617, 0xC519E0)};
+    const REL::Relocation<uintptr_t> addr{REL::VariantID(67315, 68617, 0xC519E0)};
     auto& trampoline = SKSE::GetTrampoline();
     SKSE::AllocTrampoline(14);
     _ProcessEvent = trampoline.write_call<5>(
-        addr.address() + REL::VariantOffset(0x7B, 0x7B, 0x81).offset(),
-        ProcessEvent);
+        addr.address() + REL::VariantOffset(0x7B, 0x7B, 0x81).offset(), ProcessEvent);
   }
 
 private:

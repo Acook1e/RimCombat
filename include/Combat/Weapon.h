@@ -5,6 +5,7 @@ namespace Weapon
 {
 enum class Type : std::uint8_t
 {
+  None = 0,  // 无类型，主要用于错误处理
   // 原版武器类型
   Unarm,        // 空手，不等于拳
   Werewolf,     // 狼人形态空手，特殊处理
@@ -20,6 +21,7 @@ enum class Type : std::uint8_t
   Crossbow,     // 弩
   Staff,        // 法杖
   Shield,       // 盾牌，特殊处理，主要用于格挡攻击
+  Torch,        // 火把，特殊处理，主要用于点燃目标
 
   // 模组武器类型
   Fist,          // 单手拳套
@@ -35,6 +37,7 @@ enum class Type : std::uint8_t
 
 void Initialize();
 [[nodiscard]] Type GetWeaponType(RE::TESObjectWEAP* object);
+[[nodiscard]] Type GetActorEquipmentType(RE::Actor* actor, bool leftHand = false);
 [[nodiscard]] float GetBasePostureDamage(Type type);
 [[nodiscard]] float GetBaseStaminaConsumption(Type type);
 }  // namespace Weapon

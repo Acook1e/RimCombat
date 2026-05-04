@@ -95,7 +95,7 @@ bool PlayerStat::IsUnlocked(std::int32_t artID)
 
 PlayerStat::PlayerStat()
 {
-  Serialization::RegisterSaveCallback(WeaponExp, [](SKSE::SerializationInterface* serial) {
+  Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
     serial->WriteRecordData(&exp, sizeof(exp));
     serial->WriteRecordData(&level, sizeof(level));
     serial->WriteRecordData(&point, sizeof(point));
@@ -108,7 +108,7 @@ PlayerStat::PlayerStat()
     }
   });
 
-  Serialization::RegisterLoadCallback(WeaponExp, [](SKSE::SerializationInterface* serial) {
+  Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
     serial->ReadRecordData(&exp, sizeof(exp));
     serial->ReadRecordData(&level, sizeof(level));
     serial->ReadRecordData(&point, sizeof(point));
@@ -124,7 +124,7 @@ PlayerStat::PlayerStat()
     }
   });
 
-  Serialization::RegisterRevertCallback(WeaponExp, [](SKSE::SerializationInterface*) {
+  Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     exp   = 0.0f;
     level = 1;
     point = 0;
@@ -223,7 +223,7 @@ Manager::Manager()
   }
 
   // 测试阶段跳过序列化
-  // Serialization::RegisterSaveCallback(weaponInfo,
+  // Serialization::RegisterSaveCallback(serialType,
   // [](SKSE::SerializationInterface* serial) {  });
 }
 

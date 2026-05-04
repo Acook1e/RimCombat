@@ -14,26 +14,10 @@ void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
-  auto type          = Weapon::Type::Unarm;
-  float weaponWeight = 0.0f;
+  auto* equipment = actor->GetEquippedObject(leftAttack);
 
-  auto GetData = [&]() -> std::pair<Weapon::Type, float> {
-    RE::TESObjectWEAP* left = nullptr;
-    if (auto* leftHand = actor->GetEquippedObject(true); leftHand && leftHand->IsWeapon())
-      left = leftHand->As<RE::TESObjectWEAP>();
-
-    RE::TESObjectWEAP* right = nullptr;
-    if (auto* rightHand = actor->GetEquippedObject(false); rightHand && rightHand->IsWeapon())
-      right = rightHand->As<RE::TESObjectWEAP>();
-
-    if (leftAttack)
-      return {Weapon::GetWeaponType(left), left ? left->GetWeight() : 0.0f};
-    else
-      return {Weapon::GetWeaponType(right), right ? right->GetWeight() : 0.0f};
-  };
-
-  if (!unarm)
-    std::tie(type, weaponWeight) = GetData();
+  auto type         = Weapon::GetActorEquipmentType(actor, leftAttack);
+  auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
 
   // 避免重复计算
   if (!unarm && type == Weapon::Type::Unarm)

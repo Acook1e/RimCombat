@@ -3,8 +3,8 @@
 namespace Utils
 {
 // 时间辅助函数，默认精度为毫秒
-template <typename T>
-[[nodiscard]] std::uint64_t GetTime(T accuracy = std::chrono::milliseconds()) noexcept
+template <typename T = std::chrono::milliseconds>
+[[nodiscard]] std::uint64_t GetTime() noexcept
 {
   return std::chrono::duration_cast<T>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
@@ -49,6 +49,7 @@ constexpr inline std::uint32_t hash(std::string_view str) noexcept
 // 游戏相关工具
 RE::InventoryEntryData* GetSelectedItemEntry();
 float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
+float GetCurrentActorValuePercent(RE::Actor* actor, RE::ActorValue av);
 void ActorCanAttack(RE::Actor* actor, bool enable);  // 仅对NPC有效
 template <typename T>
 void SetGameSettings(const char* setting, T value)
@@ -76,6 +77,7 @@ void SetGameSettings(const char* setting, T value)
 }
 
 // 主线程相关
+// 比SKSE的TaskInterface更简单更快
 void AddTask(std::function<void()> task);
 void MainUpdate();
 

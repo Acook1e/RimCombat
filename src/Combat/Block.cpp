@@ -1,51 +1,75 @@
 #include "Combat/Block.h"
 
+#include "Core/Serialization.h"
 #include "Core/Settings.h"
 #include "Utils.h"
+
+Block::Block()
+{
+  Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
+    std::lock_guard lock(mtx);
+    blockStartTimes.clear();
+  });
+}
+
+void Block::Update()
+{
+  std::lock_guard lock(mtx);
+  if (blockStartTimes.empty())
+    return;
+
+  // 定期清理过期的格挡时间记录，避免map无限增长
+  auto now = Utils::GetTime<std::chrono::milliseconds>();
+  for (auto it = blockStartTimes.begin(); it != blockStartTimes.end();) {
+    if (now - it->second > Settings::iTimedBlockLimit)
+      it = blockStartTimes.erase(it);
+    else
+      ++it;
+  }
+}
 
 void Block::StartBlock(RE::Actor* actor)
 {
   if (!actor)
     return;
-  std::lock_guard lock(mutex);
-  blockStartTimes[actor] = Utils::GetTime(std::chrono::milliseconds());
+  std::lock_guard lock(mtx);
+  blockStartTimes[actor] = Utils::GetTime<std::chrono::milliseconds>();
 }
 
 void Block::EndBlock(RE::Actor* actor)
 {
   if (!actor)
     return;
-  std::lock_guard lock(mutex);
+  std::lock_guard lock(mtx);
   blockStartTimes.erase(actor);
-  auto now = Utils::GetTime(std::chrono::milliseconds());
-  // Clean up old block times every second to prevent the map from growing
-  // indefinitely, which may cause performance issues.
-  if (lastCleanTime < now - 1000) {
-    std::erase_if(blockStartTimes, [now](auto& pair) {
-      // Remove Dead actors or block times more than timed block limit
-      return pair.first->IsDead() ||
-             pair.second < now - Settings::iTimedBlockLimit;
-    });
-    lastCleanTime = now;
-  }
 }
 
 bool Block::IsTimedBlock(RE::Actor* actor)
 {
-  if (!actor)
+  if (!actor || !Settings::bTimedBlockEnabled)
     return false;
-  std::lock_guard lock(mutex);
-  int64_t interval = 0;
-  if (blockStartTimes.find(actor) != blockStartTimes.end())
-    interval =
-        Utils::GetTime(std::chrono::milliseconds()) - blockStartTimes[actor];
-  logger::info("Block::IsTimedBlock: Actor: {}, Interval: {}.",
-               actor->GetName(), interval);
-  if (interval > 0 && interval < Settings::iTimedBlockLimit) {
-    // Timed block only trigger once and cold down at next block start, so we
-    // set the start time to a past time to avoid repeated trigger.
-    blockStartTimes[actor] -= 100;
+
+  std::lock_guard<std::mutex> lock(mtx);
+  // 如果没有格挡记录，说明不是限时格挡
+  if (blockStartTimes.find(actor) == blockStartTimes.end())
+    return false;
+
+  // 每次格挡只能触发一次限时格挡，所以这里直接删除记录
+  auto startTime = blockStartTimes[actor];
+  blockStartTimes.erase(actor);
+
+  auto now = Utils::GetTime<std::chrono::milliseconds>();
+  if (now - startTime < Settings::iTimedBlockLimit) {
+    logger::info("Timed Block: Actor {} performed a timed block!", actor->GetDisplayFullName());
+    for (auto& callback : timeBlockCallbacks)
+      callback(actor);
     return true;
   }
   return false;
+}
+
+void Block::AddTimeBlockListener(std::function<void(RE::Actor*)> callback)
+{
+  std::lock_guard lock(mtx);
+  timeBlockCallbacks.push_back(callback);
 }

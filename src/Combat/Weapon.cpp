@@ -6,6 +6,8 @@ namespace Weapon
 {
 // 原版
 static RE::BGSKeyword* warhammerKeyword = nullptr;
+static RE::TESRace* werewolfRace        = nullptr;
+static RE::TESRace* vampireLordRace     = nullptr;
 
 // 动画军械库
 static bool animatedArmoryLoaded = false;
@@ -48,10 +50,33 @@ Type GetWeaponType(RE::TESObjectWEAP* weapon)
   case RE::WEAPON_TYPE::kCrossbow:
     return Type::Crossbow;
   default:
-    logger::warn("Weapon::GetWeaponType: Why this thing gets here? {}",
-                 weapon->GetFullName());
+    logger::warn("Weapon::GetWeaponType: Why this thing gets here? {}", weapon->GetFullName());
     return Type::Claw;
   }
+}
+
+Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
+{
+  if (!actor)
+    return Type::None;
+
+  auto equipment = actor->GetEquippedObject(leftHand);
+
+  if (!equipment)
+    return Type::Unarm;
+
+  if (equipment->IsArmor())
+    return Type::Shield;
+
+  if (equipment->formType == RE::FormType::Light)
+    return Type::Torch;
+
+  if (equipment->IsWeapon())
+    return GetWeaponType(equipment->As<RE::TESObjectWEAP>());
+
+  logger::warn("Weapon::GetActorEquipmentType: Unsupported equipment type: {}",
+               equipment->GetName());
+  return Type::None;
 }
 
 float GetBasePostureDamage(Type type)
@@ -104,9 +129,8 @@ float GetBaseStaminaConsumption(Type type)
   case Type::Fist:
     return Settings::fNormalAttackStaminaCostBase_Fist;
   default:
-    logger::warn(
-        "Weapon::GetBaseStaminaConsumption: Unsupported weapon type: {}",
-        static_cast<int>(type));
+    logger::warn("Weapon::GetBaseStaminaConsumption: Unsupported weapon type: {}",
+                 static_cast<int>(type));
     return Settings::fNormalAttackStaminaCostBase_Unarm;
   }
 }

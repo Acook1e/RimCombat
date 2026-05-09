@@ -13,7 +13,8 @@
         "baseDamage": 0.0,
         "postureDamageMult": 1.0,
         "consumePoint": 1,
-        "unlockLevel": 0
+        "unlockLevel": 0,
+        "needPrepare": false
     },
     "Unshethe": {
         "name": "居合",
@@ -28,7 +29,8 @@
         "baseDamage": 0.0,
         "postureDamageMult": 1.0,
         "consumePoint": 1,
-        "unlockLevel": 0
+        "unlockLevel": 0,
+        "needPrepare": true
     },
     "DoubleSlash": {
         "name": "二连斩",
@@ -45,6 +47,7 @@
         "baseDamage": 0.0,
         "postureDamageMult": 1.0,
         "consumePoint": 1,
-        "unlockLevel": 0
+        "unlockLevel": 0,
+        "needPrepare": false
     }
 }

@@ -15,7 +15,7 @@ WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
                              const std::string& description, AvailableWeapon availableWeapon,
                              const std::vector<RE::FormID>& weapons, DamageType damageType,
                              float damageMult, float baseDamage, float postureDamageMult,
-                             std::uint8_t consumePoint, std::uint8_t unlockLevel)
+                             std::uint8_t consumePoint, std::uint8_t unlockLevel, bool needPrepare)
 {
   this->id                = id;
   this->name              = std::move(name);
@@ -28,6 +28,7 @@ WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
   this->postureDamageMult = postureDamageMult;
   this->consumePoint      = consumePoint;
   this->unlockLevel       = unlockLevel;
+  this->needPrepare       = needPrepare;
 }
 
 inline AvailableWeapon operator|(AvailableWeapon lhs, AvailableWeapon rhs)
@@ -204,6 +205,7 @@ Manager::Manager()
           float postureDamageMult   = value.at("postureDamageMult").get<float>();
           std::uint8_t consumePoint = value.at("consumePoint").get<std::uint8_t>();
           std::uint8_t unlockLevel  = value.at("unlockLevel").get<std::uint8_t>();
+          bool needPrepare          = value.at("needPrepare").get<bool>();
 
           consumePoint = 0;  // 测试阶段先跳过
 
@@ -212,7 +214,7 @@ Manager::Manager()
                        entry.path().string());
 
           WeaponArtInfo art(id, name, description, availableWeapon, weapons, damageType, damageMult,
-                            baseDamage, postureDamageMult, consumePoint, unlockLevel);
+                            baseDamage, postureDamageMult, consumePoint, unlockLevel, needPrepare);
           artMap[id] = std::move(art);
         }
       } catch (const std::exception& e) {
@@ -229,6 +231,9 @@ Manager::Manager()
 
 bool Manager::IsValidWeaponArtID(std::int32_t artID)
 {
+  if (!Settings::bUseWeaponArtSystem)
+    return false;
+
   std::lock_guard<std::mutex> lock(mtx);
   return artMap.find(artID) != artMap.end();
 }
@@ -322,7 +327,7 @@ void Manager::UpdateWeaponArt(RE::Actor* actor)
 
 bool Manager::IsEnabled(RE::Actor* actor)
 {
-  if (!actor)
+  if (!actor || !Settings::bUseWeaponArtSystem)
     return false;
 
   bool res = false;
@@ -331,20 +336,39 @@ bool Manager::IsEnabled(RE::Actor* actor)
   return false;
 }
 
+bool Manager::IsPrepared(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseWeaponArtSystem)
+    return false;
+
+  bool res = false;
+  if (actor->GetGraphVariableBool(PREPARED, res))
+    return res;
+  return false;
+}
+
 void Manager::EnableWeaponArt(RE::Actor* actor, bool enable)
 {
-  if (!actor)
+  if (!actor || !Settings::bUseWeaponArtSystem)
     return;
 
+  UpdateWeaponArt(actor);
   // 开关时重置连招状态
   actor->SetGraphVariableInt("MCO_nextattack", 1);
   actor->SetGraphVariableInt("MCO_nextpowerattack", 1);
 
-  actor->SetGraphVariableBool(ENABLED, enable);
+  if (enable) {
+    // 如果战技需要准备动画，则声明进入准备
+    // 如果不需，此变量不影响其他状态
+    actor->SetGraphVariableBool(PREPARED, false);
+    actor->SetGraphVariableBool(ENABLED, true);
+  } else {
+    // 关闭战技时无论如何都重置动画变量，确保能正确退出动画状态
+    actor->SetGraphVariableBool(PREPARED, false);
+    actor->SetGraphVariableBool(ENABLED, false);
+  }
 
   if (actor->IsPlayerRef())
     UI::WeaponArtHUD::UpdateState(enable);
-
-  UpdateWeaponArt(actor);
 }
 }  // namespace WeaponArt

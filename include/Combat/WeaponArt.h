@@ -59,7 +59,7 @@ public:
   WeaponArtInfo(std::int32_t id, const std::string& name, const std::string& description,
                 AvailableWeapon availableWeapon, const std::vector<RE::FormID>& weapons,
                 DamageType damageType, float damageMult, float baseDamage, float postureDamageMult,
-                std::uint8_t consumePoint, std::uint8_t unlockLevel);
+                std::uint8_t consumePoint, std::uint8_t unlockLevel, bool useIntroAnim = false);
 
   const std::string& GetName() const { return name; }
   const std::string& GetDescription() const { return description; }
@@ -67,6 +67,7 @@ public:
 
   std::uint8_t GetConsumePoint() const { return consumePoint; }
   std::uint8_t GetUnlockLevel() const { return unlockLevel; }
+  bool NeedPrepare() const { return needPrepare; }
   DamageType GetDamageType() const { return damageType; }
   float GetDamageMult() const { return damageMult; }
   float GetBaseDamage() const { return baseDamage; }
@@ -101,6 +102,10 @@ private:
   std::uint8_t consumePoint = 0;
   // 解锁该战技所需的战技等级
   std::uint8_t unlockLevel = 0;
+
+  //  是否使用进入战技状态动画
+  // 如果为true，则开启战技时设置
+  bool needPrepare = false;
 };
 
 class PlayerStat
@@ -155,15 +160,24 @@ public:
 
   static bool IsEnabled(RE::Actor* actor);
 
+  static bool IsPrepared(RE::Actor* actor);
+
   static void EnableWeaponArt(RE::Actor* actor, bool enable);
 
 private:
   Manager();
 
-  // 单变量动画变量ID，值为当前武器的战技ID
+  // 单变量动画变量ID，值为当前武器的战技ID，类型为int
   // 保留0作为非法ID
   const static inline std::string_view ID = "RimCombat_WeaponArtID";
-  // 战技系统开关
+  // 用于标志播放引入动画的变量，类型为bool
+  // 在动画开始声明
+  // PIE.@SGVI|MCO_nextattack|1
+  // PIE.@SGVI|MCO_nextpowerattack|1
+  // 记得在动画结束的前0.1s加入以下事件
+  // PIE.@SGVB|RimCombat_WeaponArtPrepared|1
+  const static inline std::string_view PREPARED = "RimCombat_WeaponArtPrepared";
+  // 战技系统开关 bool
   const static inline std::string_view ENABLED = "RimCombat_WeaponArtEnabled";
 
   // 战技ID映射，无需序列化，根据配置信息初始化

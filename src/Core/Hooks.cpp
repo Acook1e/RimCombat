@@ -46,6 +46,22 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   _ProcessHit(victim, hitData);
 }
+bool Hook_OnAttackAction::PerformAttackAction(RE::TESActionData* a_actionData)
+{
+  auto* attackerRef = a_actionData->source ? a_actionData->source.get() : nullptr;
+  auto* attacker    = attackerRef ? attackerRef->As<RE::Actor>() : nullptr;
+  if (!attacker)
+    return _PerformAttackAction(a_actionData);
+
+  if (Settings::bDisableAttackWhenStaminaZero &&
+      attacker->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0.0f)
+    return false;
+
+  if (Settings::bDisableAttackWhenExhausted && Exhausted::IsActorExhausted(attacker))
+    return false;
+
+  return _PerformAttackAction(a_actionData);
+}
 void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* avOwner,
                                              RE::ACTOR_VALUE_MODIFIER modifier,
                                              RE::ActorValue akValue, float value)
@@ -146,13 +162,11 @@ void Hook_OnEquipObject::OnEquipObject(RE::ActorEquipManager* manager, RE::Actor
 {
   _OnEquipObject(manager, actor, object, unk);
   WeaponArt::Manager::UpdateWeaponArt(actor);
-  logger::info("Equip {}", object ? object->GetName() : "None");
 }
 void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::Actor* actor,
                                            RE::TESBoundObject* object, std::uint64_t unk)
 {
   _OnUnequipObject(manager, actor, object, unk);
   WeaponArt::Manager::UpdateWeaponArt(actor);
-  logger::info("Unequip {}", object ? object->GetName() : "None");
 }
 }  // namespace Hooks

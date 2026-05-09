@@ -28,20 +28,18 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "weaponleftswing"_h:
     Stamina::AttackStaminaConsume(actor, true);
     break;
+  // 对于空手攻击，swing事件无法保证一定触发
+  // 因此使用且仅使用weaponplay.wpnunarmedswing事件来检测空手攻击
+  // 以确保在任何情况下都能正确消耗耐力
   case "soundplay.wpnunarmedswing"_h:
     Stamina::AttackStaminaConsume(actor, false, true);
     break;
+  // 原版和MCO/BFCO框架下的攻击触发
   case "attackstart"_h:
   case "mco_attackentry"_h:
   case "mco_powerattackentry"_h:
   case "bfco_playerattackstart"_h:
   case "bfco_npcattackstart"_h:
-    if (Settings::bDisableAttackWhenStaminaZero &&
-        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0.0f) {
-      SKSE::GetTaskInterface()->AddTask([actor]() {
-        actor->NotifyAnimationGraph("attackStop");
-      });
-    }
     break;
   case "blockstart"_h:
   case "blockstartout"_h:
@@ -49,6 +47,15 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     break;
   case "blockstop"_h:
     Block::EndBlock(actor);
+    break;
+  case "staggerstart"_h:
+    // 用于在硬直触发后解除战技状态，暂时搁置
+    // if (WeaponArt::Manager::IsEnabled(actor)) {
+    //   auto artID = WeaponArt::Manager::GetActorWeaponArtID(actor);
+    //   auto* art  = WeaponArt::Manager::GetWeaponArtInfo(artID);
+    //   if (art && art->UseIntroAnim())
+    //     WeaponArt::Manager::EnableWeaponArt(actor, false);
+    // }
     break;
   case "prehitframe"_h:
     break;
@@ -100,13 +107,6 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
       UI::WeaponArtHUD::Show();
     else
       UI::WeaponArtHUD::Hide();
-  }
-  // 加载时隐藏战技HUD，避免和加载界面重叠
-  if (event->menuName == RE::LoadingMenu::MENU_NAME) {
-    if (event->opening)
-      UI::WeaponArtHUD::Hide();
-    else
-      UI::WeaponArtHUD::Show();
   }
   return RE::BSEventNotifyControl::kContinue;
 }

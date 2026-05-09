@@ -1,5 +1,6 @@
 #include "Combat/Execution.h"
 
+#include "Combat/Exhausted.h"
 #include "Combat/Weapon.h"
 #include "Core/Settings.h"
 #include "Utils.h"
@@ -37,8 +38,16 @@ void Execution::Update()
   auto now = Utils::GetTime<std::chrono::milliseconds>();
   for (auto it = executableActors.begin(); it != executableActors.end();) {
     if (now - it->second > static_cast<std::uint64_t>(Settings::fExecutableDuration * 1000)) {
-      it = executableActors.erase(it);
       // TODO: 可以在这里添加一些退出处决状态的逻辑，比如通知UI更新等
+      if (it->first->IsPlayerRef()) {
+        RE::PlayerCharacter::GetSingleton()->SetAIDriven(false);
+      } else {
+        if (Settings::bDisableAttackWhenExhausted)
+          Utils::ActorCanAttack(it->first, !Exhausted::IsActorExhausted(it->first));
+        else
+          Utils::ActorCanAttack(it->first, true);
+      }
+      it = executableActors.erase(it);
     } else {
       ++it;
     }
@@ -61,6 +70,11 @@ void Execution::SetExecutable(RE::Actor* actor)
   std::lock_guard lock(mtx);
   executableActors.emplace(actor, Utils::GetTime<std::chrono::milliseconds>());
   // TODO: 可以在这里添加一些进入处决状态的逻辑，比如通知UI更新等
+  if (actor->IsPlayerRef()) {
+    RE::PlayerCharacter::GetSingleton()->SetAIDriven(true);
+  } else {
+    Utils::ActorCanAttack(actor, false);
+  }
 }
 
 void Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)

@@ -94,5 +94,47 @@ void Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
     return;
   }
 
-  // 处决逻辑
+  // 弧度转角度
+  constexpr float Deg60  = 60.0f * 3.14159265f / 180.0f;
+  constexpr float Deg120 = 120.0f * 3.14159265f / 180.0f;
+
+  // 距离和角度检测
+  auto aggressorPos = aggressor->GetPosition();
+  auto victimPos    = victim->GetPosition();
+  auto direction    = victimPos - aggressorPos;
+  auto distance     = direction.Length();
+  if (distance > 250.0f)
+    return;
+
+  direction           = direction / distance;   // 单位向量，从攻击者指向受害者
+  auto aggressorAngle = aggressor->GetAngle();  // 攻击者正前方向（单位向量）
+  auto victimAngle    = victim->GetAngle();     // 受害者正前方向（单位向量）
+
+  // 攻击者朝向 与 攻击者→受害者方向 的夹角（弧度）
+  auto angleDiff = std::acos(aggressorAngle.Dot(direction));
+
+  // 两个角色朝向之间的夹角（弧度）
+  auto angleBetween = std::acos(aggressorAngle.Dot(victimAngle));
+
+  // 正向处决：二者朝向反向，且攻击者正对受害者（60度内）
+  bool isFrontExecution = (angleBetween > Deg120)  // 反向：夹角 > 120°
+                          && (angleDiff < Deg60);  // 攻击者正对目标
+
+  // 背刺处决：二者朝向同向，且攻击者大致面对受害者（120度内）
+  bool isBackExecution = (angleBetween < Deg120)   // 同向：夹角 < 120°
+                         && (angleDiff < Deg120);  // 攻击者指向目标方向在120度内
+
+  // 不可能同时满足，但如果发生了，就不执行
+  if (isFrontExecution && isBackExecution)
+    return;
+
+  if (isFrontExecution) {
+    logger::info("Attempting front execution on {} by {}", victim->GetDisplayFullName(),
+                 aggressor->GetDisplayFullName());
+  }
+
+  if (isBackExecution) {
+    logger::info("Attempting back execution on {} by {}", victim->GetDisplayFullName(),
+                 aggressor->GetDisplayFullName());
+  }
 }

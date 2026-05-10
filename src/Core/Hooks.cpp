@@ -46,22 +46,6 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   _ProcessHit(victim, hitData);
 }
-bool Hook_OnAttackAction::PerformAttackAction(RE::TESActionData* a_actionData)
-{
-  auto* attackerRef = a_actionData->source ? a_actionData->source.get() : nullptr;
-  auto* attacker    = attackerRef ? attackerRef->As<RE::Actor>() : nullptr;
-  if (!attacker)
-    return _PerformAttackAction(a_actionData);
-
-  if (Settings::bDisableAttackWhenStaminaZero &&
-      attacker->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0.0f)
-    return false;
-
-  if (Settings::bDisableAttackWhenExhausted && Exhausted::IsActorExhausted(attacker))
-    return false;
-
-  return _PerformAttackAction(a_actionData);
-}
 void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* avOwner,
                                              RE::ACTOR_VALUE_MODIFIER modifier,
                                              RE::ActorValue akValue, float value)

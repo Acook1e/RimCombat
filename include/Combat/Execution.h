@@ -26,6 +26,11 @@ public:
 private:
   Execution();
 
+  // bool行为图变量
+  // 表示当前的处决应该位于背部
+  // 仅作为推荐，实际处决依然由OAR条件和动画来决定
+  constexpr static inline std::string_view BACKSTAB = "RimCombat_Backstab";
+
   // 可处决的 种族+武器组合
   // 意味某个种族可被人类使用特定类型的武器处决
   // 无需锁定，处决组合只在初始化时设置一次，且之后不再修改

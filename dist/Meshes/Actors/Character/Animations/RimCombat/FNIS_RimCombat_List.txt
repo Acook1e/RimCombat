@@ -1,7 +1,0 @@
-b -md RimCombat_WeaponArtIntro WeaponArtIntro.hkx
-b -md RimCombat_WeaponArtOutro WeaponArtOutro.hkx
-
-b -md RimCombat_ExecutableIntro ExecutableIntro.hkx
-b -md RimCombat_ExecutableLoop ExecutableLoop.hkx
-b -md RimCombat_Execution Execution.hkx
-b -md RimCombat_Victim Victim.hkx

@@ -89,25 +89,6 @@ private:
   // 140626400       14064BAB0
 };
 
-class Hook_OnAttackAction
-{
-public:
-  static void Install()
-  {
-    auto& trampoline = SKSE::GetTrampoline();
-    SKSE::AllocTrampoline(14);
-
-    std::uintptr_t hook =
-        REL::VariantID(48139, 49170, 0).address() + REL::VariantOffset(0x4D7, 0xd35, 0x0).offset();
-    _PerformAttackAction = trampoline.write_call<5>(hook, PerformAttackAction);
-    logger::info("Hooks: OnAttackAction installed.");
-  }
-
-private:
-  static bool PerformAttackAction(RE::TESActionData* a_actionData);
-  static inline REL::Relocation<decltype(PerformAttackAction)> _PerformAttackAction;
-};
-
 class Hook_OnModActorValue
 {
 public:
@@ -185,7 +166,6 @@ inline void Install()
   Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnMeleeHit::Install();
-  Hook_OnAttackAction::Install();
   Hook_OnModActorValue::Install();
   Hook_OnEquipObject::Install();
   Hook_OnUnequipObject::Install();

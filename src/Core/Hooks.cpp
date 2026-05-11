@@ -6,8 +6,26 @@
 #include "Combat/WeaponArt.h"
 #include "Utils.h"
 
+#include "detours.h"
+
 namespace Hooks
 {
+// 辅助函数
+namespace
+{
+  bool NeedDisableAttack(RE::Actor* actor)
+  {
+    if (Settings::bDisablePlayerAttackWhenStaminaZero &&
+        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0)
+      return true;
+
+    if (Settings::bDisablePlayerAttackWhenExhausted && Exhausted::IsActorExhausted(actor))
+      return true;
+
+    return false;
+  };
+}  // namespace
+
 void Hook_OnMainUpdate::MainUpdate()
 {
   _MainUpdate();
@@ -46,6 +64,105 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   _ProcessHit(victim, hitData);
 }
+void Hook_OnPlayIdle::Install()
+{
+  std::uintptr_t addr = REL::VariantID(38290, 39256, 0).address();
+  _PlayIdle           = reinterpret_cast<decltype(_PlayIdle)>(addr);
+
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(reinterpret_cast<PVOID*>(&_PlayIdle), PlayIdle);
+  if (DetourTransactionCommit() != NO_ERROR) {
+    logger::error("Failed to install Hook_OnPlayIdle.");
+    return;
+  }
+  logger::info("Hook: OnPlayIdle installed.");
+}
+bool Hook_OnPlayIdle::PlayIdle(RE::AIProcess* aiProcess, RE::Actor* actor,
+                               RE::DEFAULT_OBJECT action, RE::TESIdleForm* idle, bool arg5,
+                               bool arg6, RE::TESObjectREFR* target)
+{
+  // 仅针对玩家
+  if (!aiProcess || !actor || !idle || !actor->IsPlayerRef())
+    return _PlayIdle(aiProcess, actor, action, idle, arg5, arg6, target);
+
+  // 只有当执行攻击相关的Idle时才进行干预
+  std::string animEvent = idle->animEventName.data();
+  std::transform(animEvent.begin(), animEvent.end(), animEvent.begin(), ::tolower);
+  auto animEventHash = Utils::hash(animEvent);
+
+  switch (animEventHash) {
+  case "attackstart"_h:
+  case "attackpowerstartinplace"_h:
+  case "attackstartsprint"_h:
+  case "attackpowerstart_sprint"_h:
+    if (NeedDisableAttack(actor))
+      return false;
+  default:
+    return _PlayIdle(aiProcess, actor, action, idle, arg5, arg6, target);
+  }
+}
+
+void Hook_OnPerformAction::Install()
+{
+  std::uintptr_t addr = REL::VariantID(40551, 41557, 0).address();
+  _PerformAction      = reinterpret_cast<decltype(_PerformAction)>(addr);
+
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(reinterpret_cast<PVOID*>(&_PerformAction), PerformAction);
+  if (DetourTransactionCommit() != NO_ERROR) {
+    logger::error("Failed to install Hook_OnPerformAction.");
+    return;
+  }
+  logger::info("Hook: OnPerformAction installed.");
+}
+
+bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
+{
+  if (!actionData)
+    return _PerformAction(actionData);
+
+  auto actorState = actionData->GetSourceActorState();
+  if (!actorState)
+    return _PerformAction(actionData);
+
+  REL::VariantOffset offset(-0xB8, -0xC0, 0x0);
+  RE::Actor* sourceActor = &REL::RelocateMember<RE::Actor>(actorState, offset.offset());
+  if (!sourceActor || !sourceActor->IsPlayerRef())
+    return _PerformAction(actionData);
+
+  std::string animEvent = actionData->animEvent.data();
+  auto action           = actionData->action;
+  if (!action)
+    return _PerformAction(actionData);
+
+  switch (action->GetFormID()) {
+    // MCO/BFCO框架下的攻击
+    // 对于Right，一般都是真正的攻击动作
+    // 对于Left，一般都是防御动作
+    // 对于Dual，几乎用不到，暂时不处理
+  case 0x13005:  // ActionRightAttack
+  case 0x13383:  // ActionRightPowerAttack
+
+    // case 0x13004:  // ActionLeftAttack
+    // case 0x2E2F6:  // ActionLeftPowerAttack
+    // case 0x50C96:  // ActionDualAttack
+    // case 0x2E2F7: // ActionDualPowerAttack
+
+    if (NeedDisableAttack(sourceActor))
+      return false;
+    break;
+  // 对于idle，转交给PlayIdle的hook来处理
+  case 0x13002:  // ActionIdle
+  // 其他类型不处理
+  default:
+    break;
+  }
+
+  return _PerformAction(actionData);
+}
+
 void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* avOwner,
                                              RE::ACTOR_VALUE_MODIFIER modifier,
                                              RE::ActorValue akValue, float value)
@@ -152,5 +269,18 @@ void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::A
 {
   _OnUnequipObject(manager, actor, object, unk);
   WeaponArt::Manager::UpdateWeaponArt(actor);
+}
+
+void Install()
+{
+  Hook_OnMainUpdate::Install();
+  Hook_OnActorUpdate::Install();
+  Hook_OnGetAttackStaminaCost::Install();
+  Hook_OnMeleeHit::Install();
+  Hook_OnPlayIdle::Install();
+  Hook_OnPerformAction::Install();
+  Hook_OnModActorValue::Install();
+  Hook_OnEquipObject::Install();
+  Hook_OnUnequipObject::Install();
 }
 }  // namespace Hooks

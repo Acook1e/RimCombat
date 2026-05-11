@@ -12,8 +12,11 @@ inline bool bUseAttackStaminaSystem = true;
 inline bool bConsumeStaminaOutCombat = true;
 // 是否普通攻击消耗耐力
 inline bool bNormalAttackComsumeStamina = true;
-// 是否在耐力为零时禁用攻击
-inline bool bDisableAttackWhenStaminaZero = true;
+// 是否在玩家耐力为零时禁用攻击
+// 推荐开启，关闭后可能会影响战斗平衡
+// 另外不设置耐力为零禁用NPC攻击的选项
+// 推荐使用力竭系统来实现NPC攻击禁用，更加灵活且具有沉浸感
+inline bool bDisablePlayerAttackWhenStaminaZero = true;
 
 // 全局耐力再生倍率
 inline float fStaminaRegenMult = 5.0f;
@@ -104,16 +107,24 @@ inline float fArmorPostureDamageFactor = 1.1f;
 #pragma region Exhausted
 // 是否启用力竭系统
 inline bool bEnableExhausted = true;
-// 力竭状态是否禁用攻击
-inline bool bDisableAttackWhenExhausted = true;
+// 力竭状态是否禁用玩家攻击
+// 默认关闭，按需开启，几乎不影响战斗平衡，但能增加一些沉浸感
+inline bool bDisablePlayerAttackWhenExhausted = false;
+// 力竭状态是否禁用NPC攻击
+// 推荐开启，否则NPC会无限制攻击玩家，导致玩家无法反击
+inline bool bDisableNPCAttackWhenExhausted = true;
 // 力竭受击时是否退出力竭状态
 inline bool bExitExhaustedOnHit = true;
 // 退出力竭状态的耐力值百分比
 inline float fExhaustedExitPercent = 0.2f;
+// 力竭状态下的攻击伤害倍率，乘以原始伤害
+inline float fAttackDamageMultWhenExhausted = 0.7f;
+// 力竭状态下的攻击架势伤害倍率，乘以基础架势伤害
+inline float fAttackPostureDamageMultWhenExhausted = 0.7f;
 // 力竭状态的受击倍率
-inline float fExhaustedHitDamageMult = 1.8f;
-// 力竭状态下的架势伤害倍率，乘以基础架势伤害
-inline float fExhaustedPostureDamageMult = 1.5f;
+inline float fOnHitDamageMultWhenExhausted = 1.8f;
+// 力竭状态下的收到架势伤害倍率，乘以基础架势伤害
+inline float fOnHitPostureDamageMultWhenExhausted = 1.5f;
 #pragma endregion
 
 #pragma region Block

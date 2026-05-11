@@ -50,7 +50,7 @@ constexpr inline std::uint32_t hash(std::string_view str) noexcept
 RE::InventoryEntryData* GetSelectedItemEntry();
 float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av);
 float GetCurrentActorValuePercent(RE::Actor* actor, RE::ActorValue av);
-void ActorCanAttack(RE::Actor* actor, bool enable);  // 仅对NPC有效
+void SetNPCAttackEnable(RE::Actor* actor, bool enable);  // 仅对NPC有效
 template <typename T>
 void SetGameSettings(const char* setting, T value)
 {

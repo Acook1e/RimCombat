@@ -89,6 +89,28 @@ private:
   // 140626400       14064BAB0
 };
 
+class Hook_OnPlayIdle
+{
+public:
+  static void Install();
+
+private:
+  static bool PlayIdle(RE::AIProcess* aiProcess, RE::Actor* actor, RE::DEFAULT_OBJECT action,
+                       RE::TESIdleForm* idle, bool arg5, bool arg6, RE::TESObjectREFR* target);
+  static inline bool (*_PlayIdle)(RE::AIProcess*, RE::Actor*, RE::DEFAULT_OBJECT, RE::TESIdleForm*,
+                                  bool, bool, RE::TESObjectREFR*) = nullptr;
+};
+
+class Hook_OnPerformAction
+{
+public:
+  static void Install();
+
+private:
+  static bool PerformAction(RE::TESActionData* actionData);
+  static inline bool (*_PerformAction)(RE::TESActionData*) = nullptr;
+};
+
 class Hook_OnModActorValue
 {
 public:
@@ -160,14 +182,6 @@ private:
   static inline REL::Relocation<decltype(OnUnequipObject)> _OnUnequipObject;
 };
 
-inline void Install()
-{
-  Hook_OnMainUpdate::Install();
-  Hook_OnActorUpdate::Install();
-  Hook_OnGetAttackStaminaCost::Install();
-  Hook_OnMeleeHit::Install();
-  Hook_OnModActorValue::Install();
-  Hook_OnEquipObject::Install();
-  Hook_OnUnequipObject::Install();
-}
+void Install();
+void Uninstall();
 }  // namespace Hooks

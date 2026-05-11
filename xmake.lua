@@ -22,7 +22,7 @@ elseif is_mode("release") then
     set_symbols("debug")
 end
 
-add_requires("nlohmann_json", "magic_enum")
+add_requires("nlohmann_json", "magic_enum", "microsoft-detours")
 add_requires("spdlog", { configs = { header_only = false, wchar = true, std_format = true } })
 
 target(PROJECT_NAME)
@@ -41,6 +41,7 @@ target(PROJECT_NAME)
 
     add_packages("nlohmann_json")
     add_packages("magic_enum")
+    add_packages("microsoft-detours")
     add_packages("spdlog")
 
     add_files("src/**.cpp")

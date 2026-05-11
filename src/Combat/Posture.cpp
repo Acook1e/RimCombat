@@ -201,7 +201,7 @@ void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
                        Settings::fArmorPostureDamageFactor / 1000.0f);
     // 力竭状态增加架势伤害
     if (Exhausted::IsActorExhausted(actor)) {
-      value *= Settings::fExhaustedPostureDamageMult;
+      value *= Settings::fOnHitPostureDamageMultWhenExhausted;
       // 如果设置了被击打时退出力竭状态，则在此处退出
       if (Settings::bExitExhaustedOnHit)
         Exhausted::ExitExhausted(actor);

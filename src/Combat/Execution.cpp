@@ -40,12 +40,10 @@ void Execution::Update()
     if (now - it->second > static_cast<std::uint64_t>(Settings::fExecutableDuration * 1000)) {
       // TODO: 可以在这里添加一些退出处决状态的逻辑，比如通知UI更新等
       if (it->first->IsPlayerRef()) {
+        // 对于玩家禁用AI驱动，恢复玩家控制权
         RE::PlayerCharacter::GetSingleton()->SetAIDriven(false);
       } else {
-        if (Settings::bDisableAttackWhenExhausted)
-          Utils::ActorCanAttack(it->first, !Exhausted::IsActorExhausted(it->first));
-        else
-          Utils::ActorCanAttack(it->first, true);
+        // 对于NPC重新启用AI
       }
       it = executableActors.erase(it);
     } else {
@@ -71,9 +69,10 @@ void Execution::SetExecutable(RE::Actor* actor)
   executableActors.emplace(actor, Utils::GetTime<std::chrono::milliseconds>());
   // TODO: 可以在这里添加一些进入处决状态的逻辑，比如通知UI更新等
   if (actor->IsPlayerRef()) {
+    // 对于玩家启用AI驱动，但因为不存在真正的AI，所以相当于禁用玩家控制权
     RE::PlayerCharacter::GetSingleton()->SetAIDriven(true);
   } else {
-    Utils::ActorCanAttack(actor, false);
+    // 对于NPC禁用AI
   }
 }
 

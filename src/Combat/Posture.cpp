@@ -5,6 +5,7 @@
 #include "Combat/Exhausted.h"
 #include "Combat/Weapon.h"
 #include "Core/Serialization.h"
+#include "Core/Settings.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
@@ -12,7 +13,6 @@
 Posture::Posture()
 {
   Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
-    std::scoped_lock lock(mtx);
     // 将FormID转换为持久化格式
     // 并自动去除非法或未找到的FormID
     std::unordered_map<std::uint64_t, PostureData> persistMap;
@@ -26,12 +26,14 @@ Posture::Posture()
     serial->WriteRecordData(&count, sizeof(count));
     for (const auto& [persist, data] : persistMap) {
       serial->WriteRecordData(&persist, sizeof(persist));
-      serial->WriteRecordData(&data, sizeof(data));
+      serial->WriteRecordData(&data.current, sizeof(data.current));
+      serial->WriteRecordData(&data.max, sizeof(data.max));
+      // 不保存lastDamageTime，因为这个值在游戏加载时会被重置为0，不需要持久化
     }
   });
 
   Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
-    std::scoped_lock lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     postureMap.clear();
     runtimePostureMap.clear();
 
@@ -41,7 +43,8 @@ Posture::Posture()
         std::uint64_t persist;
         PostureData data;
         if (serial->ReadRecordData(&persist, sizeof(persist)) &&
-            serial->ReadRecordData(&data, sizeof(data))) {
+            serial->ReadRecordData(&data.current, sizeof(data.current)) &&
+            serial->ReadRecordData(&data.max, sizeof(data.max))) {
           auto formID = Serialization::ToForm(persist);
           if (formID)
             postureMap[formID] = std::move(data);
@@ -51,10 +54,48 @@ Posture::Posture()
   });
 
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
-    std::scoped_lock lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     postureMap.clear();
     runtimePostureMap.clear();
   });
+}
+
+void Posture::Update(std::uint64_t deltaTime)
+{
+  std::lock_guard<std::mutex> lock(mtx);
+  auto now = Utils::GetTime<std::chrono::milliseconds>();
+
+  const auto update = [&](RE::Actor* actor, PostureData& data) {
+    if (data.current < data.max) {
+      if (Execution::IsExecutable(actor)) {
+        // 作为平衡性和视觉表现上的优化
+        // 进入处决状态默认恢复到一半的最大值，并在持续时间内逐渐恢复到满值
+        data.current +=
+            (deltaTime / static_cast<float>(Settings::uExecutableDuration * 2)) * data.max;
+        data.current = std::clamp(data.current, 0.0f, data.max);
+      } else if (now - data.lastDamageTime >= Settings::uPostureRegenDelay) {
+        data.current +=
+            data.max * (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 1000.0f);
+        data.current = std::clamp(data.current, 0.0f, data.max);
+      }
+    }
+  };
+
+  // 架势恢复
+  for (auto& [actor, data] : runtimePostureMap)
+    update(actor, data);
+  for (auto& [formID, data] : postureMap) {
+    if (auto actor = RE::TESForm::LookupByID(formID)->As<RE::Actor>(); actor)
+      update(actor, data);
+  }
+}
+
+float Posture::CalculateMaxPosture(RE::Actor* actor)
+{
+  float maxPosture = Settings::fMaxPostureBase;
+  maxPosture += Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth) *
+                Settings::fMaxPostureHealthMult;
+  return maxPosture;
 }
 
 float Posture::InitPosture(RE::Actor* actor)
@@ -62,13 +103,11 @@ float Posture::InitPosture(RE::Actor* actor)
   // 仅在获取值时初始化架势数据，避免不必要的初始化开销
   // 因此可以无锁
 
-  float maxPosture = Settings::fMaxPostureBase;
-  maxPosture += Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth) *
-                Settings::fMaxPostureHealthMult;
+  float maxPosture = CalculateMaxPosture(actor);
   if (actor->GetActorBase()->IsUnique())
-    postureMap[actor->GetFormID()] = {maxPosture, maxPosture};
+    postureMap[actor->GetFormID()] = {maxPosture, maxPosture, 0};
   else
-    runtimePostureMap[actor] = {maxPosture, maxPosture};
+    runtimePostureMap[actor] = {maxPosture, maxPosture, 0};
   return maxPosture;
 }
 
@@ -77,52 +116,41 @@ void Posture::ReCalculateMaxPosture(RE::Actor* actor)
   if (!actor || !Settings::bUsePostureSystem)
     return;
 
-  std::scoped_lock lock(mtx);
-  float maxPosture = Settings::fMaxPostureBase;
-  maxPosture += Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth) *
-                Settings::fMaxPostureHealthMult;
-  if (actor->GetActorBase()->IsUnique()) {
-    if (postureMap.contains(actor->GetFormID()))
-      postureMap[actor->GetFormID()].max = maxPosture;
-    else
-      postureMap[actor->GetFormID()] = {maxPosture, maxPosture};
-  } else {
-    if (runtimePostureMap.contains(actor))
-      runtimePostureMap[actor].max = maxPosture;
-    else
-      runtimePostureMap[actor] = {maxPosture, maxPosture};
-  }
+  std::lock_guard<std::mutex> lock(mtx);
+  float maxPosture = CalculateMaxPosture(actor);
+  auto& data       = GetPostureDataRef(actor);
+  data.max         = maxPosture;
+  if (data.current > data.max)
+    data.current = data.max;
 }
 
 float Posture::GetCurrentPosture(RE::Actor* actor)
 {
-  std::scoped_lock lock(mtx);
-  if (actor->GetActorBase()->IsUnique()) {
-    if (postureMap.contains(actor->GetFormID()))
-      return postureMap[actor->GetFormID()].current;
-  } else {
-    if (runtimePostureMap.contains(actor))
-      return runtimePostureMap[actor].current;
-  }
-  return InitPosture(actor);
+  return GetPostureData(actor).current;
 }
 
 float Posture::GetMaxPosture(RE::Actor* actor)
 {
-  std::scoped_lock lock(mtx);
-  if (actor->GetActorBase()->IsUnique()) {
-    if (postureMap.contains(actor->GetFormID()))
-      return postureMap[actor->GetFormID()].max;
-  } else {
-    if (runtimePostureMap.contains(actor))
-      return runtimePostureMap[actor].max;
-  }
-  return InitPosture(actor);
+  return GetPostureData(actor).max;
 }
 
-Posture::PostureData& Posture::GetPostureData(RE::Actor* actor)
+Posture::PostureData Posture::GetPostureData(RE::Actor* actor)
 {
-  std::scoped_lock lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx);
+  if (actor->GetActorBase()->IsUnique()) {
+    if (postureMap.contains(actor->GetFormID()))
+      return postureMap[actor->GetFormID()];
+  } else {
+    if (runtimePostureMap.contains(actor))
+      return runtimePostureMap[actor];
+  }
+  float maxPosture = InitPosture(actor);
+  return {maxPosture, maxPosture, 0};
+}
+
+Posture::PostureData& Posture::GetPostureDataRef(RE::Actor* actor)
+{
+  // 无锁，仅用于内部调用
   if (actor->GetActorBase()->IsUnique()) {
     if (postureMap.contains(actor->GetFormID()))
       return postureMap[actor->GetFormID()];
@@ -177,43 +205,39 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
 
   // Process Block
   if (hitFlags.any(RE::HitData::Flag::kBlocked)) {
-    ModPostureValue(aggressor, -postureDamage * Settings::fBlockPostureDamageToAttacker);
+    DamagePostureValue(aggressor, postureDamage * Settings::fBlockPostureDamageToAttacker);
     if (isTimedBlock)
-      ModPostureValue(victim, -postureDamage * Settings::fTimedBlockPostureDamageMult, true);
+      DamagePostureValue(victim, postureDamage * Settings::fTimedBlockPostureDamageMult, true);
     else
-      ModPostureValue(victim, -postureDamage * Settings::fBlockPostureDamageMult);
+      DamagePostureValue(victim, postureDamage * Settings::fBlockPostureDamageMult);
   } else {
-    ModPostureValue(victim, -postureDamage);
+    DamagePostureValue(victim, postureDamage);
   }
 }
-void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
+void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak)
 {
-  if (value == 0.0f)
+  if (value <= 0.0f)
     return;
 
-  auto& postureData = GetPostureData(actor);
+  // 如果目标处于可被处决状态，则不再处理架势伤害，直接返回
+  if (Execution::IsExecutable(actor))
+    return;
 
-  std::scoped_lock lock(mtx);
-  // 加值处理
-  if (value < 0.0f) {
-    // 护甲减伤
-    value *= std::expf(-Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kDamageResist) *
-                       Settings::fArmorPostureDamageFactor / 1000.0f);
-    // 力竭状态增加架势伤害
-    if (Exhausted::IsActorExhausted(actor)) {
-      value *= Settings::fOnHitPostureDamageMultWhenExhausted;
-      // 如果设置了被击打时退出力竭状态，则在此处退出
-      if (Settings::bExitExhaustedOnHit)
-        Exhausted::ExitExhausted(actor);
-    }
-  } else {
-    if (postureData.current == postureData.max)
-      return;
-  }
+  std::lock_guard<std::mutex> lock(mtx);
+  // 在锁中获取引用以避免同一个引用被多次获取导致的线程安全问题
+  auto& postureData = GetPostureDataRef(actor);
 
-  postureData.current += value;
+  // 护甲值带来的架势伤害减慢
+  // 这里使用指数衰减函数来计算护甲对架势伤害的减缓效果，确保在高护甲值时仍然有一定的架势伤害，但不会完全免疫
+  value *= std::expf(-Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kDamageResist) *
+                     Settings::fArmorPostureDamageFactor / 1000.0f);
 
-  // 加值后处理
+  // 力竭状态增加架势伤害
+  if (Exhausted::IsActorExhausted(actor))
+    value *= Settings::fOnHitPostureDamageMultWhenExhausted;
+
+  postureData.current -= value;
+  postureData.lastDamageTime = Utils::GetTime<std::chrono::milliseconds>();
 
   // 如果此次免疫破防则不进行破防处理，即使架势值降到0也不会触发破防
   // 而是保留在0.1的微弱架势值以避免重复触发
@@ -222,10 +246,7 @@ void Posture::ModPostureValue(RE::Actor* actor, float value, bool ignoreBreak)
 
   // 破防处理
   if (postureData.current <= 0.0f) {
-    Execution::SetExecutable(actor);
-    postureData.current = postureData.max;
-  } else if (postureData.current > postureData.max) {
-    // 架势值异常处理
-    postureData.current = postureData.max;
+    Execution::EnterExecutable(actor);
+    postureData.current = 0.5f * postureData.max;  // 进入处决状态后默认恢复到一半的最大值
   }
 }

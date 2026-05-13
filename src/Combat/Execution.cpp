@@ -11,40 +11,36 @@
 using Race       = Execution::Race;
 using WeaponType = Weapon::Type;
 
-std::uint16_t operator|(Race r, WeaponType w)
+std::uint16_t operator|(WeaponType w, Race r)
 {
-  return (static_cast<std::uint16_t>(r) << 8) | static_cast<std::uint16_t>(w);
+  return (static_cast<std::uint16_t>(w) << 8) | static_cast<std::uint16_t>(r);
 }
 
 Execution::Execution()
 {
   // 从文件加载可用的处决组合
 
+  auto KillMoveShortA = RE::TESForm::LookupByID<RE::TESIdleForm>(0x6440D);
+
   for (const auto& value : magic_enum::enum_values<WeaponType>()) {
     if (value == WeaponType::None)
       continue;
 
-    availableExcutions.insert(Race::Human | value);
+    availableExcutions.emplace((value | Race::Human), KillMoveShortA);
   }
 }
 
 void Execution::Update()
 {
   // 定期更新可处决Actor列表，移除已不满足条件的Actor
-  std::lock_guard lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx);
   if (executableActors.empty())
     return;
 
   auto now = Utils::GetTime<std::chrono::milliseconds>();
   for (auto it = executableActors.begin(); it != executableActors.end();) {
-    if (now - it->second > static_cast<std::uint64_t>(Settings::fExecutableDuration * 1000)) {
-      // TODO: 可以在这里添加一些退出处决状态的逻辑，比如通知UI更新等
-      if (it->first->IsPlayerRef()) {
-        // 对于玩家禁用AI驱动，恢复玩家控制权
-        RE::PlayerCharacter::GetSingleton()->SetAIDriven(false);
-      } else {
-        // 对于NPC重新启用AI
-      }
+    if (now - it->second > Settings::uExecutableDuration) {
+      UnlockActor(it->first);
       it = executableActors.erase(it);
     } else {
       ++it;
@@ -60,80 +56,153 @@ Race Execution::GetRace(RE::Actor* actor)
   return Race::Human;
 }
 
-void Execution::SetExecutable(RE::Actor* actor)
+void Execution::LockActor(RE::Actor* actor)
 {
-  if (!actor || !Settings::bUseExecutionSystem)
+  if (!actor)
     return;
 
-  std::lock_guard lock(mtx);
-  executableActors.emplace(actor, Utils::GetTime<std::chrono::milliseconds>());
-  // TODO: 可以在这里添加一些进入处决状态的逻辑，比如通知UI更新等
+  // 首先强制打断当前动作
+  actor->InterruptCast(false);
+  actor->GetActorRuntimeData().currentProcess->StopCurrentIdle(actor, true);
+
+  actor->SetGraphVariableBool(EXECUTABLE, true);
+
   if (actor->IsPlayerRef()) {
     // 对于玩家启用AI驱动，但因为不存在真正的AI，所以相当于禁用玩家控制权
     RE::PlayerCharacter::GetSingleton()->SetAIDriven(true);
   } else {
-    // 对于NPC禁用AI
+    // 对于NPC禁用移动
+    actor->AsActorState()->actorState1.lifeState = RE::ACTOR_LIFE_STATE::kUnconcious;
+  }
+
+  // 发送默认姿势事件，由OAR条件播放对应的动画
+  Utils::AddTask([actor]() {
+    actor->NotifyAnimationGraph("IdleDefaultStart");
+  });
+}
+
+void Execution::UnlockActor(RE::Actor* actor)
+{
+  if (!actor)
+    return;
+
+  actor->SetGraphVariableBool(EXECUTABLE, false);
+
+  if (actor->IsPlayerRef()) {
+    // 对于玩家禁用AI驱动，恢复玩家控制权
+    RE::PlayerCharacter::GetSingleton()->SetAIDriven(false);
+  } else {
+    // 对于NPC重新启用移动
+    actor->AsActorState()->actorState1.lifeState = RE::ACTOR_LIFE_STATE::kAlive;
   }
 }
 
-void Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
+bool Execution::IsExecutable(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseExecutionSystem)
+    return false;
+
+  std::lock_guard<std::mutex> lock(mtx);
+  return executableActors.contains(actor);
+}
+
+void Execution::EnterExecutable(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseExecutionSystem)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx);
+  executableActors.emplace(actor, Utils::GetTime<std::chrono::milliseconds>());
+  LockActor(actor);
+}
+
+void Execution::ExitExecutable(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseExecutionSystem)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx);
+  executableActors.erase(actor);
+  UnlockActor(actor);
+}
+
+RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
+{
+  std::lock_guard<std::mutex> lock(mtx);
+  if (executableActors.empty())
+    return nullptr;
+
+  RE::Actor* closestTarget = nullptr;
+  float closestDistance    = (std::numeric_limits<float>::max)();
+  for (auto& [actor, timestamp] : executableActors) {
+    float distance = aggressor->GetPosition().GetDistance(actor->GetPosition());
+    if (distance > 250.0f)
+      continue;
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestTarget   = actor;
+    }
+  }
+  return closestTarget;
+}
+
+bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
 {
   if (!aggressor || !victim || !Settings::bUseExecutionSystem)
-    return;
+    return false;
 
   // 约定只有人类能作为处决者
   if (GetRace(aggressor) != Race::Human)
-    return;
+    return false;
 
-  auto race       = GetRace(victim);
   auto weaponType = Weapon::GetActorEquipmentType(aggressor);
-  if (!availableExcutions.contains(race | weaponType)) {
-    logger::info("Execution::TryExecute: No execution available for Race {} and Weapon {}",
-                 magic_enum::enum_name(race), magic_enum::enum_name(weaponType));
-    return;
+  auto race       = GetRace(victim);
+  if (!availableExcutions.contains(weaponType | race)) {
+    logger::info("Execution::TryExecute: No available Idle for using Weapon {} to execute Race {}",
+                 magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
+    return false;
   }
 
-  // 弧度转角度
-  constexpr float Deg60  = 60.0f * 3.14159265f / 180.0f;
-  constexpr float Deg120 = 120.0f * 3.14159265f / 180.0f;
+  constexpr float Deg60  = 60.0f;
+  constexpr float Deg120 = 120.0f;
 
   // 距离和角度检测
   auto aggressorPos = aggressor->GetPosition();
   auto victimPos    = victim->GetPosition();
-  auto direction    = victimPos - aggressorPos;
-  auto distance     = direction.Length();
+  auto distance     = aggressorPos.GetDistance(victimPos);
   if (distance > 250.0f)
-    return;
+    return false;
 
-  direction           = direction / distance;   // 单位向量，从攻击者指向受害者
-  auto aggressorAngle = aggressor->GetAngle();  // 攻击者正前方向（单位向量）
-  auto victimAngle    = victim->GetAngle();     // 受害者正前方向（单位向量）
+  // GetHeadingAngle返回的是-180 ~ 180度
+  // 正负表示左右偏，绝对值表示偏转角度
+  auto aggressorHeadingToVictim = aggressor->GetHeadingAngle(victimPos, true);
+  auto victimHeadingToAggressor = victim->GetHeadingAngle(aggressorPos, true);
 
-  // 攻击者朝向 与 攻击者→受害者方向 的夹角（弧度）
-  auto angleDiff = std::acos(aggressorAngle.Dot(direction));
+  // 面对面处决：双方都基本正对对方。
+  bool isFrontExecution = aggressorHeadingToVictim < Deg60 && victimHeadingToAggressor < Deg60;
 
-  // 两个角色朝向之间的夹角（弧度）
-  auto angleBetween = std::acos(aggressorAngle.Dot(victimAngle));
+  // 背刺处决：攻击者面对目标，但目标基本背对攻击者。
+  bool isBackExecution = aggressorHeadingToVictim < Deg60 && victimHeadingToAggressor > Deg120;
 
-  // 正向处决：二者朝向反向，且攻击者正对受害者（60度内）
-  bool isFrontExecution = (angleBetween > Deg120)  // 反向：夹角 > 120°
-                          && (angleDiff < Deg60);  // 攻击者正对目标
-
-  // 背刺处决：二者朝向同向，且攻击者大致面对受害者（120度内）
-  bool isBackExecution = (angleBetween < Deg120)   // 同向：夹角 < 120°
-                         && (angleDiff < Deg120);  // 攻击者指向目标方向在120度内
-
-  // 不可能同时满足，但如果发生了，就不执行
-  if (isFrontExecution && isBackExecution)
-    return;
+  // 同时不满足或同时满足都不执行
+  if (isFrontExecution == isBackExecution)
+    return false;
 
   if (isFrontExecution) {
     logger::info("Attempting front execution on {} by {}", victim->GetDisplayFullName(),
                  aggressor->GetDisplayFullName());
+    aggressor->SetGraphVariableBool(BACKSTAB, false);
   }
 
   if (isBackExecution) {
     logger::info("Attempting back execution on {} by {}", victim->GetDisplayFullName(),
                  aggressor->GetDisplayFullName());
+    aggressor->SetGraphVariableBool(BACKSTAB, true);
   }
+
+  auto* idle = availableExcutions[weaponType | race];
+
+  aggressor->GetActorRuntimeData().currentProcess->PlayIdle(aggressor, idle, victim);
+  executableActors.erase(victim);
+  return true;
 }

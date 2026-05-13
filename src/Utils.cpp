@@ -49,12 +49,6 @@ RE::InventoryEntryData* GetSelectedItemEntry()
   return nullptr;
 }
 
-void SetNPCAttackEnable(RE::Actor* actor, bool enable)
-{
-  auto& flag = actor->GetActorRuntimeData().boolFlags;
-  flag.set(!enable, RE::Actor::BOOL_FLAGS::kAttackingDisabled);
-}
-
 // 主线程相关
 std::mutex taskMutex;
 std::deque<std::function<void()>> mainThreadTasks;

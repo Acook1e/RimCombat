@@ -71,8 +71,6 @@ void Exhausted::EnterExhausted(RE::Actor* actor)
     exhaustedActors.insert(actor->GetFormID());
   else
     runtimeExhaustedActors.insert(actor);
-  if (Settings::bDisableNPCAttackWhenExhausted)
-    Utils::SetNPCAttackEnable(actor, false);
   UI::TrueHUD::EnterGreyOut(actor);
 }
 
@@ -85,7 +83,5 @@ void Exhausted::ExitExhausted(RE::Actor* actor)
     exhaustedActors.erase(actor->GetFormID());
   else
     runtimeExhaustedActors.erase(actor);
-  if (Settings::bDisableNPCAttackWhenExhausted)
-    Utils::SetNPCAttackEnable(actor, true);
   UI::TrueHUD::ExitGreyOut(actor);
 }

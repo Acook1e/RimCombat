@@ -16,5 +16,11 @@
         "type": "kBool",
         "name": "RimCombat_WeaponArtPrepared",
         "value": false
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kBool",
+        "name": "RimCombat_Executable",
+        "value": false
     }
 ]

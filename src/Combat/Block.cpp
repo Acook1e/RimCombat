@@ -21,7 +21,7 @@ void Block::Update()
   // 定期清理过期的格挡时间记录，避免map无限增长
   auto now = Utils::GetTime<std::chrono::milliseconds>();
   for (auto it = blockStartTimes.begin(); it != blockStartTimes.end();) {
-    if (now - it->second > Settings::iTimedBlockLimit)
+    if (now - it->second > Settings::uTimedBlockLimit)
       it = blockStartTimes.erase(it);
     else
       ++it;
@@ -59,7 +59,7 @@ bool Block::IsTimedBlock(RE::Actor* actor)
   blockStartTimes.erase(actor);
 
   auto now = Utils::GetTime<std::chrono::milliseconds>();
-  if (now - startTime < Settings::iTimedBlockLimit) {
+  if (now - startTime < Settings::uTimedBlockLimit) {
     logger::info("Timed Block: Actor {} performed a timed block!", actor->GetDisplayFullName());
     for (auto& callback : timeBlockCallbacks)
       callback(actor);

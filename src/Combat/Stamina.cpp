@@ -1,6 +1,7 @@
 #include "Combat/Stamina.h"
 
 #include "Combat/Weapon.h"
+#include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
 
 void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
@@ -10,6 +11,10 @@ void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm
   if (!actor)
     return;
   if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
+    return;
+  // 战技中不消耗耐力
+  // TODO: 新增新的图变量修改战技的耐力消耗倍率
+  if (WeaponArt::Manager::IsEnabled(actor))
     return;
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;

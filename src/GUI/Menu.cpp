@@ -1,6 +1,7 @@
 #include "GUI/Menu.h"
 
 #include "Core/Serialization.h"
+#include "Core/Settings.h"
 #include "GUI/Localization.h"
 #include "Utils.h"
 
@@ -122,6 +123,7 @@ Menu::Menu()
     case SKSEMenuFramework::Model::EventType::kOpenMenu:
       break;
     case SKSEMenuFramework::Model::EventType::kCloseMenu:
+      Settings::SaveSettings();
       break;
     }
   };

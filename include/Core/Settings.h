@@ -67,6 +67,10 @@ inline bool bUsePostureHUD = true;
 inline float fMaxPostureBase = 100.0f;
 // 每点生命值对应的最大架势值增加量
 inline float fMaxPostureHealthMult = 0.1f;
+// 架势值恢复的延迟，单位为毫秒
+inline std::uint64_t uPostureRegenDelay = 2000;
+// 每秒恢复的架势值百分比
+inline float fPostureRegenPercentPerSecond = 5.0f;
 
 // 空手基础架势伤害
 inline float fNormalAttackPostureDamage_Unarm = 6.0f;
@@ -133,7 +137,7 @@ inline bool bTimedBlockEnabled = true;
 // 是否允许限时格挡完全免疫破防
 inline bool bTimedBlockNeverPostureBreak = true;
 // 限时格挡的时间窗口，单位为毫秒
-inline int32_t iTimedBlockLimit = 150;  // ms
+inline std::uint64_t uTimedBlockLimit = 150;  // ms
 
 // 格挡时减免伤害的倍率，乘以原始伤害
 inline float fBlockDamageMult = 0.80f;
@@ -163,8 +167,10 @@ inline float fWeaponArtHUDScale = 1.0f;
 #pragma region Execution
 // 是否启用处决系统
 inline bool bUseExecutionSystem = true;
-// 处决状态的持续时间，单位为秒
-inline float fExecutableDuration = 5.0f;
+// 是否启用受击退出处决状态
+inline bool bExitExecutionOnHit = true;
+// 处决状态的持续时间，单位为毫秒
+inline std::uint64_t uExecutableDuration = 5000;
 #pragma endregion
 
 void UpdateGameSettings();

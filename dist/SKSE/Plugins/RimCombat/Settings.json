@@ -1,9 +1,83 @@
 {
+    "Block": {
+        "BlockDamageMult": 0.800000011920929,
+        "BlockStaminaConsumePerDamage": 0.5,
+        "TimedBlockDamageMult": 0.949999988079071,
+        "TimedBlockEnabled": true,
+        "TimedBlockLimit": 150,
+        "TimedBlockNeverPostureBreak": true,
+        "TimedBlockPostureDamageMult": 0.20000000298023224,
+        "TimedBlockStaminaConsumePerDamage": 0.20000000298023224
+    },
+    "Execution": {
+        "ExecutableDuration": 5000,
+        "ExitExecutionOnHit": true,
+        "UseExecutionSystem": true
+    },
+    "Exhausted": {
+        "AttackDamageMultWhenExhausted": 0.699999988079071,
+        "AttackPostureDamageMultWhenExhausted": 0.699999988079071,
+        "DisableNPCAttackWhenExhausted": true,
+        "DisablePlayerAttackWhenExhausted": false,
+        "EnableExhausted": true,
+        "ExhaustedExitPercent": 0.20000000298023224,
+        "ExitExhaustedOnHit": true,
+        "OnHitDamageMultWhenExhausted": 1.7999999523162842,
+        "OnHitPostureDamageMultWhenExhausted": 1.5
+    },
+    "Posture": {
+        "ArmorPostureDamageFactor": 1.100000023841858,
+        "BashPostureDamageMult": 2.0,
+        "BashPostureDamageShield": 32.0,
+        "BlockPostureDamageMult": 0.5,
+        "BlockPostureDamageToAttacker": 0.10000000149011612,
+        "MaxPostureBase": 100.0,
+        "MaxPostureHealthMult": 0.10000000149011612,
+        "NormalAttackPostureDamageAxe": 12.0,
+        "NormalAttackPostureDamageDagger": 8.0,
+        "NormalAttackPostureDamageFist": 6.0,
+        "NormalAttackPostureDamageGreatAxe": 28.0,
+        "NormalAttackPostureDamageGreatMace": 32.0,
+        "NormalAttackPostureDamageGreatSword": 24.0,
+        "NormalAttackPostureDamageMace": 14.0,
+        "NormalAttackPostureDamageSword": 10.0,
+        "NormalAttackPostureDamageUnarm": 6.0,
+        "PostureRegenDelay": 2000,
+        "PostureRegenPercentPerSecond": 5.0,
+        "PowerAttackPostureDamageMult": 1.5,
+        "PowerBashPostureDamageMult": 2.5,
+        "UsePostureHUD": true,
+        "UsePostureSystem": true
+    },
+    "Stamina": {
+        "ConsumeStaminaOutCombat": true,
+        "DisablePlayerAttackWhenStaminaZero": true,
+        "NormalAttackConsumeStamina": true,
+        "NormalAttackStaminaCostBaseAxe": 8.0,
+        "NormalAttackStaminaCostBaseDagger": 6.0,
+        "NormalAttackStaminaCostBaseFist": 5.0,
+        "NormalAttackStaminaCostBaseGreatAxe": 15.0,
+        "NormalAttackStaminaCostBaseGreatMace": 15.0,
+        "NormalAttackStaminaCostBaseGreatSword": 15.0,
+        "NormalAttackStaminaCostBaseMace": 8.0,
+        "NormalAttackStaminaCostBaseSword": 8.0,
+        "NormalAttackStaminaCostBaseUnarm": 5.0,
+        "NormalAttackStaminaCostPerMass": 0.20000000298023224,
+        "PowerAttackStaminaCostMult": 2.5,
+        "PowerAttackStaminaCostPerMass": 0.5,
+        "StaminaRegenDelay": 1.5,
+        "StaminaRegenMax": 50.0,
+        "StaminaRegenMin": 10.0,
+        "StaminaRegenMult": 5.0,
+        "StaminaRegenMultBlock": 0.5,
+        "StaminaRegenMultCombat": 1.0,
+        "UseAttackStaminaSystem": true
+    },
     "WeaponArt": {
-        "Enable": true,
-        "UseHUD": true,
-        "PosX": 74.0,
-        "PosY": 84.0,
-        "Scale": 1.0
+        "UseWeaponArtHUD": true,
+        "UseWeaponArtSystem": true,
+        "WeaponArtHUDPosX": 10.0,
+        "WeaponArtHUDPosY": 70.0,
+        "WeaponArtHUDScale": 1.0
     }
 }

@@ -1,6 +1,7 @@
 #include "Core/Hooks.h"
 
 #include "Combat/Block.h"
+#include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
 #include "Combat/WeaponArt.h"
@@ -15,11 +16,28 @@ namespace
 {
   bool NeedDisableAttack(RE::Actor* actor)
   {
-    if (Settings::bDisablePlayerAttackWhenStaminaZero &&
-        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0)
-      return true;
 
-    if (Settings::bDisablePlayerAttackWhenExhausted && Exhausted::IsActorExhausted(actor))
+    if (!actor)
+      return false;
+
+    auto right = actor->GetEquippedObject(false);
+    // 右手装备不是武器不禁用攻击
+    if (right && !right->IsWeapon())
+      return false;
+
+    if (actor->IsPlayerRef()) {
+      if (Settings::bDisablePlayerAttackWhenStaminaZero &&
+          actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0)
+        return true;
+
+      if (Settings::bDisablePlayerAttackWhenExhausted && Exhausted::IsActorExhausted(actor))
+        return true;
+    } else {
+      if (Settings::bDisableNPCAttackWhenExhausted && Exhausted::IsActorExhausted(actor))
+        return true;
+    }
+
+    if (Execution::IsExecutable(actor))
       return true;
 
     return false;
@@ -29,20 +47,32 @@ namespace
 void Hook_OnMainUpdate::MainUpdate()
 {
   _MainUpdate();
+
+  static std::uint64_t now       = 0;
+  static std::uint64_t deltaTime = 0;
+
+  if (!now)
+    now = Utils::GetTime<std::chrono::milliseconds>();
+
+  deltaTime = Utils::GetTime<std::chrono::milliseconds>() - now;
+  now       = Utils::GetTime<std::chrono::milliseconds>();
+
   // 更新Utils提供的主线程接口
   Utils::MainUpdate();
 
   // 更新格挡系统
   Block::Update();
+
+  // 更新架势系统
+  Posture::Update(deltaTime);
+
+  // 更新处决系统
+  Execution::Update();
 }
 
 float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
                                                         RE::BGSAttackData* atkData)
 {
-  // REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  // RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner,
-  // offset.offset());
-
   // 如果启用了攻击耐力系统，则取消掉原版的攻击耐力消耗
   if (Settings::bUseAttackStaminaSystem)
     return 0.0f;
@@ -60,7 +90,15 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   if (hitData.flags.any(RE::HitData::Flag::kBlocked))
     timedBlock = Block::IsTimedBlock(victim);
 
+  // 如果设置处决状态被击打时退出，则在此处退出
+  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
+    Execution::ExitExecutable(victim);
+
   Posture::ProcessMeleeHit(aggressor, victim, hitData, timedBlock);
+
+  // 如果设置了被击打时退出力竭状态，则在此处退出
+  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
+    Exhausted::ExitExhausted(victim);
 
   _ProcessHit(victim, hitData);
 }
@@ -83,7 +121,7 @@ bool Hook_OnPlayIdle::PlayIdle(RE::AIProcess* aiProcess, RE::Actor* actor,
                                bool arg6, RE::TESObjectREFR* target)
 {
   // 仅针对玩家
-  if (!aiProcess || !actor || !idle || !actor->IsPlayerRef())
+  if (!aiProcess || !actor || !idle)
     return _PlayIdle(aiProcess, actor, action, idle, arg5, arg6, target);
 
   // 只有当执行攻击相关的Idle时才进行干预
@@ -127,13 +165,11 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
   if (!actorState)
     return _PerformAction(actionData);
 
-  REL::VariantOffset offset(-0xB8, -0xC0, 0x0);
-  RE::Actor* sourceActor = &REL::RelocateMember<RE::Actor>(actorState, offset.offset());
-  if (!sourceActor || !sourceActor->IsPlayerRef())
+  RE::Actor* sourceActor = skyrim_cast<RE::Actor*>(actorState);
+  if (!sourceActor)
     return _PerformAction(actionData);
 
-  std::string animEvent = actionData->animEvent.data();
-  auto action           = actionData->action;
+  auto action = actionData->action;
   if (!action)
     return _PerformAction(actionData);
 
@@ -145,15 +181,24 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
   case 0x13005:  // ActionRightAttack
   case 0x13383:  // ActionRightPowerAttack
 
-    // case 0x13004:  // ActionLeftAttack
-    // case 0x2E2F6:  // ActionLeftPowerAttack
-    // case 0x50C96:  // ActionDualAttack
-    // case 0x2E2F7: // ActionDualPowerAttack
+    if (auto victim = Execution::FindExecutableTarget(sourceActor); victim) {
+      // 如果找到了可处决的目标，则强制进入处决处决判断
+      // 如果判断成功取消攻击进入处决动作
+      // 否则正常执行攻击动作
+      if (Execution::TryExecute(sourceActor, victim))
+        return false;
+    }
 
     if (NeedDisableAttack(sourceActor))
       return false;
     break;
-  // 对于idle，转交给PlayIdle的hook来处理
+
+    // case 0x13004:  // ActionLeftAttack
+    // case 0x2E2F6:  // ActionLeftPowerAttack
+    // case 0x50C96:  // ActionDualAttack
+    // case 0x2E2F7:  // ActionDualPowerAttack
+
+    // 对于idle，转交给PlayIdle的hook来处理
   case 0x13002:  // ActionIdle
   // 其他类型不处理
   default:
@@ -167,8 +212,7 @@ void Hook_OnModActorValue::ModActorValue_NPC(RE::ActorValueOwner* avOwner,
                                              RE::ACTOR_VALUE_MODIFIER modifier,
                                              RE::ActorValue akValue, float value)
 {
-  REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
+  RE::Actor* actor = skyrim_cast<RE::Actor*>(avOwner);
   value            = ModActorValue(actor, modifier, akValue, value);
   _ModActorValue_NPC(avOwner, modifier, akValue, value);
 }
@@ -176,8 +220,7 @@ void Hook_OnModActorValue::ModActorValue_PC(RE::ActorValueOwner* avOwner,
                                             RE::ACTOR_VALUE_MODIFIER modifier,
                                             RE::ActorValue akValue, float value)
 {
-  REL::VariantOffset offset(-0xB0, -0xB8, 0x0);
-  RE::Actor* actor = &REL::RelocateMember<RE::Actor>(avOwner, offset.offset());
+  RE::Actor* actor = skyrim_cast<RE::Actor*>(avOwner);
   value            = ModActorValue(actor, modifier, akValue, value);
   _ModActorValue_PC(avOwner, modifier, akValue, value);
 }

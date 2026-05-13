@@ -23,7 +23,6 @@ void onPostLoad()
   Block::GetSingleton();
   Posture::GetSingleton();
   Exhausted::GetSingleton();
-  Execution::GetSingleton();
 }
 
 // 依赖外部API的初始化必须在PostLoad之后进行
@@ -47,6 +46,7 @@ void onDataLoaded()
   Hooks::Install();
   Events::Install();
   Weapon::Initialize();
+  Execution::GetSingleton();
 }
 
 void MessageHandler(SKSE::MessagingInterface::Message* msg)

@@ -1,6 +1,7 @@
 #include "Core/Event.h"
 
 #include "Combat/Block.h"
+#include "Combat/Execution.h"
 #include "Combat/Stamina.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
@@ -47,6 +48,9 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     break;
   case "blockstop"_h:
     Block::EndBlock(actor);
+    break;
+  case "rimcombat_executionend"_h:
+    Execution::ExecutionEnd(actor);
     break;
   case "staggerstart"_h:
     // 用于在硬直触发后解除战技状态，暂时搁置

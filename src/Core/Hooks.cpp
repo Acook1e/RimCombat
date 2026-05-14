@@ -90,11 +90,21 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   if (hitData.flags.any(RE::HitData::Flag::kBlocked))
     timedBlock = Block::IsTimedBlock(victim);
 
+  if (timedBlock) {
+    logger::info("Timed Block! Victim: {}, Aggressor: {}, stagger: {}",
+                 victim->GetDisplayFullName(), aggressor->GetDisplayFullName(), hitData.stagger);
+    hitData.stagger = 0;  // 强制格挡成功不产生硬直
+  }
+
   // 如果设置处决状态被击打时退出，则在此处退出
   if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
     Execution::ExitExecutable(victim);
 
-  Posture::ProcessMeleeHit(aggressor, victim, hitData, timedBlock);
+  bool ignoreBreak = false;
+  if (Settings::bTimedBlockNeverPostureBreak && timedBlock)
+    ignoreBreak = true;
+
+  Posture::ProcessMeleeHit(aggressor, victim, hitData, ignoreBreak);
 
   // 如果设置了被击打时退出力竭状态，则在此处退出
   if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))

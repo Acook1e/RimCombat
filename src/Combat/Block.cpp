@@ -60,7 +60,6 @@ bool Block::IsTimedBlock(RE::Actor* actor)
 
   auto now = Utils::GetTime<std::chrono::milliseconds>();
   if (now - startTime < Settings::uTimedBlockLimit) {
-    logger::info("Timed Block: Actor {} performed a timed block!", actor->GetDisplayFullName());
     for (auto& callback : timeBlockCallbacks)
       callback(actor);
     return true;

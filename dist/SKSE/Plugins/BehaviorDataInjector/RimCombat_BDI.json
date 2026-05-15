@@ -22,5 +22,16 @@
         "type": "kBool",
         "name": "RimCombat_Executable",
         "value": false
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kInt",
+        "name": "RimCombat_ExecutionFlag",
+        "value": 0
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kEvent",
+        "name": "RimExecution"
     }
 ]

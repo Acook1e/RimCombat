@@ -93,12 +93,10 @@ namespace
         {"BashPostureDamageMult", fBashPostureDamageMult},
         {"PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult},
         {"PowerBashPostureDamageMult", fPowerBashPostureDamageMult},
-        {"BlockPostureDamageMult", fBlockPostureDamageMult},
-        {"BlockPostureDamageToAttacker", fBlockPostureDamageToAttacker},
         {"ArmorPostureDamageFactor", fArmorPostureDamageFactor}};
 
     root["Exhausted"] = {
-        {"EnableExhausted", bEnableExhausted},
+        {"UseExhaustedSystem", bUseExhaustedSystem},
         {"DisablePlayerAttackWhenExhausted", bDisablePlayerAttackWhenExhausted},
         {"DisableNPCAttackWhenExhausted", bDisableNPCAttackWhenExhausted},
         {"ExitExhaustedOnHit", bExitExhaustedOnHit},
@@ -108,14 +106,23 @@ namespace
         {"OnHitDamageMultWhenExhausted", fOnHitDamageMultWhenExhausted},
         {"OnHitPostureDamageMultWhenExhausted", fOnHitPostureDamageMultWhenExhausted}};
 
-    root["Block"] = {{"TimedBlockEnabled", bTimedBlockEnabled},
+    root["Block"] = {{"UseBlockSystem", bUseBlockSystem},
+                     {"TimedBlockEnabled", bTimedBlockEnabled},
                      {"TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak},
                      {"TimedBlockLimit", uTimedBlockLimit},
-                     {"BlockDamageMult", fBlockDamageMult},
-                     {"TimedBlockDamageMult", fTimedBlockDamageMult},
-                     {"BlockStaminaConsumePerDamage", fBlockStaminaConsumePerDamage},
-                     {"TimedBlockStaminaConsumePerDamage", fTimedBlockStaminaConsumePerDamage},
-                     {"TimedBlockPostureDamageMult", fTimedBlockPostureDamageMult}};
+                     {"BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent},
+                     {"BlockMinStaminaConsume", fBlockMinStaminaConsume},
+                     {"BlockStrengthUnarm", fBlockStrength_Unarm},
+                     {"BlockStrengthDagger", fBlockStrength_Dagger},
+                     {"BlockStrengthSword", fBlockStrength_Sword},
+                     {"BlockStrengthAxe", fBlockStrength_Axe},
+                     {"BlockStrengthMace", fBlockStrength_Mace},
+                     {"BlockStrengthGreatSword", fBlockStrength_GreatSword},
+                     {"BlockStrengthGreatAxe", fBlockStrength_GreatAxe},
+                     {"BlockStrengthGreatMace", fBlockStrength_GreatMace},
+                     {"BlockStrengthShield", fBlockStrength_Shield},
+                     {"BlockStrengthFist", fBlockStrength_Fist},
+                     {"TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult}};
 
     root["WeaponArt"] = {{"UseWeaponArtSystem", bUseWeaponArtSystem},
                          {"UseWeaponArtHUD", bUseWeaponArtHUD},
@@ -280,14 +287,12 @@ void LoadSettings()
     LoadSetting(posture, "Posture", "BashPostureDamageMult", fBashPostureDamageMult);
     LoadSetting(posture, "Posture", "PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult);
     LoadSetting(posture, "Posture", "PowerBashPostureDamageMult", fPowerBashPostureDamageMult);
-    LoadSetting(posture, "Posture", "BlockPostureDamageMult", fBlockPostureDamageMult);
-    LoadSetting(posture, "Posture", "BlockPostureDamageToAttacker", fBlockPostureDamageToAttacker);
     LoadSetting(posture, "Posture", "ArmorPostureDamageFactor", fArmorPostureDamageFactor);
   }
 
   if (const auto it = root.find("Exhausted"); it != root.end() && it->is_object()) {
     const auto& exhausted = *it;
-    LoadSetting(exhausted, "Exhausted", "EnableExhausted", bEnableExhausted);
+    LoadSetting(exhausted, "Exhausted", "UseExhaustedSystem", bUseExhaustedSystem);
     LoadSetting(exhausted, "Exhausted", "DisablePlayerAttackWhenExhausted",
                 bDisablePlayerAttackWhenExhausted);
     LoadSetting(exhausted, "Exhausted", "DisableNPCAttackWhenExhausted",
@@ -306,15 +311,23 @@ void LoadSettings()
 
   if (const auto it = root.find("Block"); it != root.end() && it->is_object()) {
     const auto& block = *it;
+    LoadSetting(block, "Block", "UseBlockSystem", bUseBlockSystem);
     LoadSetting(block, "Block", "TimedBlockEnabled", bTimedBlockEnabled);
     LoadSetting(block, "Block", "TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak);
     LoadSetting(block, "Block", "TimedBlockLimit", uTimedBlockLimit);
-    LoadSetting(block, "Block", "BlockDamageMult", fBlockDamageMult);
-    LoadSetting(block, "Block", "TimedBlockDamageMult", fTimedBlockDamageMult);
-    LoadSetting(block, "Block", "BlockStaminaConsumePerDamage", fBlockStaminaConsumePerDamage);
-    LoadSetting(block, "Block", "TimedBlockStaminaConsumePerDamage",
-                fTimedBlockStaminaConsumePerDamage);
-    LoadSetting(block, "Block", "TimedBlockPostureDamageMult", fTimedBlockPostureDamageMult);
+    LoadSetting(block, "Block", "BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent);
+    LoadSetting(block, "Block", "BlockMinStaminaConsume", fBlockMinStaminaConsume);
+    LoadSetting(block, "Block", "BlockStrengthUnarm", fBlockStrength_Unarm);
+    LoadSetting(block, "Block", "BlockStrengthDagger", fBlockStrength_Dagger);
+    LoadSetting(block, "Block", "BlockStrengthSword", fBlockStrength_Sword);
+    LoadSetting(block, "Block", "BlockStrengthAxe", fBlockStrength_Axe);
+    LoadSetting(block, "Block", "BlockStrengthMace", fBlockStrength_Mace);
+    LoadSetting(block, "Block", "BlockStrengthGreatSword", fBlockStrength_GreatSword);
+    LoadSetting(block, "Block", "BlockStrengthGreatAxe", fBlockStrength_GreatAxe);
+    LoadSetting(block, "Block", "BlockStrengthGreatMace", fBlockStrength_GreatMace);
+    LoadSetting(block, "Block", "BlockStrengthShield", fBlockStrength_Shield);
+    LoadSetting(block, "Block", "BlockStrengthFist", fBlockStrength_Fist);
+    LoadSetting(block, "Block", "TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult);
   }
 
   if (const auto it = root.find("WeaponArt"); it != root.end() && it->is_object()) {

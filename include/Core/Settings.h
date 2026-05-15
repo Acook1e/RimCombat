@@ -99,10 +99,6 @@ inline float fBashPostureDamageMult = 2.0f;
 inline float fPowerAttackPostureDamageMult = 1.5f;
 // 格挡猛击架势伤害倍率，乘以基础架势伤害
 inline float fPowerBashPostureDamageMult = 2.5f;
-// 格挡时受击者的架势伤害乘数，乘以基础架势伤害
-inline float fBlockPostureDamageMult = 0.5f;
-// 格挡时返回给攻击者的架势伤害乘数
-inline float fBlockPostureDamageToAttacker = 0.1f;
 
 // 护甲值减少的架势伤害计算因子
 inline float fArmorPostureDamageFactor = 1.1f;
@@ -110,7 +106,7 @@ inline float fArmorPostureDamageFactor = 1.1f;
 
 #pragma region Exhausted
 // 是否启用力竭系统
-inline bool bEnableExhausted = true;
+inline bool bUseExhaustedSystem = true;
 // 力竭状态是否禁用玩家攻击
 // 默认关闭，按需开启，几乎不影响战斗平衡，但能增加一些沉浸感
 inline bool bDisablePlayerAttackWhenExhausted = false;
@@ -126,29 +122,56 @@ inline float fAttackDamageMultWhenExhausted = 0.7f;
 // 力竭状态下的攻击架势伤害倍率，乘以基础架势伤害
 inline float fAttackPostureDamageMultWhenExhausted = 0.7f;
 // 力竭状态的受击倍率
-inline float fOnHitDamageMultWhenExhausted = 1.8f;
+inline float fOnHitDamageMultWhenExhausted = 1.5f;
 // 力竭状态下的收到架势伤害倍率，乘以基础架势伤害
 inline float fOnHitPostureDamageMultWhenExhausted = 1.5f;
 #pragma endregion
 
 #pragma region Block
+// 是否启用格挡系统
+inline bool bUseBlockSystem = true;
 // 是否启用限时格挡系统
 inline bool bTimedBlockEnabled = true;
 // 是否允许限时格挡完全免疫破防
 inline bool bTimedBlockNeverPostureBreak = true;
 // 限时格挡的时间窗口，单位为毫秒
-inline std::uint64_t uTimedBlockLimit = 150;  // ms
+inline std::uint64_t uTimedBlockLimit = 150;
+// 限时格挡触发持续一段时间的效果，单位为毫秒
+// 在这段时间内，触发者免疫后座力/硬直，并且被认为是限时格挡
+inline std::uint64_t uTimedBlockDuration = 500;
+// 一次格挡时最多消耗的耐力百分比
+inline float fBlockMaxStaminaConsumePercent = 0.5f;
+// 耐力不足消耗的时候，附带的额外耐力数值
+inline float fBlockMinStaminaConsume = 10.0f;
 
-// 格挡时减免伤害的倍率，乘以原始伤害
-inline float fBlockDamageMult = 0.80f;
-// 限时格挡时减免伤害的倍率，乘以原始伤害
-inline float fTimedBlockDamageMult = 0.95f;
+// 格挡强度，通过这个数值计算
 // 格挡时每点伤害对应的耐力消耗
-inline float fBlockStaminaConsumePerDamage = 0.5f;
-// 限时格挡时每点伤害对应的耐力消耗
-inline float fTimedBlockStaminaConsumePerDamage = 0.2f;
-// 限时格挡受到的架势伤害倍率，乘以基础架势伤害
-inline float fTimedBlockPostureDamageMult = 0.2f;
+// 格挡时的最大伤害减免
+// 格挡时的架势伤害乘数
+// 格挡时返还的架势伤害乘数
+
+// 空手格挡强度
+inline float fBlockStrength_Unarm = 8.0f;
+// 匕首格挡强度
+inline float fBlockStrength_Dagger = 16.0f;
+// 单手剑格挡强度
+inline float fBlockStrength_Sword = 22.0f;
+// 单手斧格挡强度
+inline float fBlockStrength_Axe = 24.0f;
+// 单手锤格挡强度
+inline float fBlockStrength_Mace = 26.0f;
+// 双手剑格挡强度
+inline float fBlockStrength_GreatSword = 36.0f;
+// 双手斧格挡强度
+inline float fBlockStrength_GreatAxe = 38.0f;
+// 双手锤格挡强度
+inline float fBlockStrength_GreatMace = 42.0f;
+// 盾牌格挡强度
+inline float fBlockStrength_Shield = 48.0f;
+// 拳套格挡强度
+inline float fBlockStrength_Fist = 10.0f;
+// 限时格挡的额外格挡强度乘数
+inline float fTimedBlockBlockStrengthMult = 6.0f;
 #pragma endregion
 
 #pragma region WeaponArt
@@ -171,6 +194,31 @@ inline bool bUseExecutionSystem = true;
 inline bool bExitExecutionOnHit = true;
 // 处决状态的持续时间，单位为毫秒
 inline std::uint64_t uExecutableDuration = 5000;
+// 处决状态受击是受到的伤害倍率，乘以原始伤害
+inline float fOnHitDamageMultWhenExecutable = 1.8f;
+
+// 处决伤害倍率，由右手类型决定倍率
+// 由右手基础伤害作为基础伤害
+// 设定要高于重击，且为真实伤害，因此至少为2.0倍
+
+// 空手处决伤害倍率
+inline float fExecutionDamageMult_Unarm = 3.0f;
+// 匕首处决伤害倍率
+inline float fExecutionDamageMult_Dagger = 8.0f;
+// 单手剑处决伤害倍率
+inline float fExecutionDamageMult_Sword = 3.0f;
+// 单手斧处决伤害倍率
+inline float fExecutionDamageMult_Axe = 3.2f;
+// 单手锤处决伤害倍率
+inline float fExecutionDamageMult_Mace = 3.5f;
+// 双手剑处决伤害倍率
+inline float fExecutionDamageMult_GreatSword = 2.0f;
+// 双手斧处决伤害倍率
+inline float fExecutionDamageMult_GreatAxe = 2.2f;
+// 双手锤处决伤害倍率
+inline float fExecutionDamageMult_GreatMace = 2.3f;
+// 拳套处决伤害倍率
+inline float fExecutionDamageMult_Fist = 3.0f;
 #pragma endregion
 
 void UpdateGameSettings();

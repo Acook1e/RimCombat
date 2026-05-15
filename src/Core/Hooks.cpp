@@ -79,36 +79,34 @@ float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avO
 
   return _GetAttackStaminaCost(avOwner, atkData);
 }
+
 void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 {
-  auto aggressor = hitData.aggressor.get().get();
+  auto* aggressor = hitData.aggressor.get().get();
 
   if (!victim || !aggressor || victim->IsDead())
     return _ProcessHit(victim, hitData);
 
-  auto timedBlock = false;
-  if (hitData.flags.any(RE::HitData::Flag::kBlocked))
-    timedBlock = Block::IsTimedBlock(victim);
-
-  if (timedBlock) {
-    logger::info("Timed Block! Victim: {}, Aggressor: {}, stagger: {}",
-                 victim->GetDisplayFullName(), aggressor->GetDisplayFullName(), hitData.stagger);
-    hitData.stagger = 0;  // 强制格挡成功不产生硬直
+  if (hitData.flags.any(RE::HitData::Flag::kBlocked)) {
+    Block::ProcessBlock(victim);
+    Block::ProcessDamage(victim, hitData);
   }
 
+  // 处决状态受击
+
   // 如果设置处决状态被击打时退出，则在此处退出
-  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
+  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim)) {
+    hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
     Execution::ExitExecutable(victim);
+  }
 
-  bool ignoreBreak = false;
-  if (Settings::bTimedBlockNeverPostureBreak && timedBlock)
-    ignoreBreak = true;
-
-  Posture::ProcessMeleeHit(aggressor, victim, hitData, ignoreBreak);
+  Posture::ProcessMeleeHit(aggressor, victim, hitData);
 
   // 如果设置了被击打时退出力竭状态，则在此处退出
-  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
+  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim)) {
+    hitData.totalDamage *= Settings::fOnHitDamageMultWhenExhausted;
     Exhausted::ExitExhausted(victim);
+  }
 
   _ProcessHit(victim, hitData);
 }
@@ -208,10 +206,20 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
     // case 0x50C96:  // ActionDualAttack
     // case 0x2E2F7:  // ActionDualPowerAttack
 
-    // 对于idle，转交给PlayIdle的hook来处理
+  case 0x13AF5:  // ActionRecoil
+  case 0x13EC8:  // ActionRecoilLarge
+  case 0x138D2:  // ActionStaggerStart
+    // 不清楚ActionRecoilLarge和ActionRecoil的区别，暂时都当做被击退动作来处理
+    if (Block::IsTimedBlock(sourceActor))
+      return false;
+    break;
+
   case 0x13002:  // ActionIdle
-  // 其他类型不处理
+    // 对于idle，转交给PlayIdle的hook来处理
+    break;
+
   default:
+    // 其他类型不处理
     break;
   }
 

@@ -52,7 +52,7 @@ Exhausted::Exhausted()
 
 bool Exhausted::IsActorExhausted(RE::Actor* actor)
 {
-  if (!actor || !Settings::bEnableExhausted)
+  if (!actor || !Settings::bUseExhaustedSystem)
     return false;
   std::scoped_lock lock(mtx);
   if (actor->GetActorBase()->IsUnique()) {
@@ -64,7 +64,7 @@ bool Exhausted::IsActorExhausted(RE::Actor* actor)
 
 void Exhausted::EnterExhausted(RE::Actor* actor)
 {
-  if (!actor || !Settings::bEnableExhausted)
+  if (!actor || !Settings::bUseExhaustedSystem)
     return;
   std::scoped_lock lock(mtx);
   if (actor->GetActorBase()->IsUnique())
@@ -76,7 +76,7 @@ void Exhausted::EnterExhausted(RE::Actor* actor)
 
 void Exhausted::ExitExhausted(RE::Actor* actor)
 {
-  if (!actor || !Settings::bEnableExhausted)
+  if (!actor || !Settings::bUseExhaustedSystem)
     return;
   std::scoped_lock lock(mtx);
   if (actor->GetActorBase()->IsUnique())

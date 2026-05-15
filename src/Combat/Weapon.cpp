@@ -20,6 +20,32 @@ void Initialize()
   warhammerKeyword = RE::TESForm::LookupByID<RE::BGSKeyword>(0x6D930);
 }
 
+Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
+{
+  if (!actor)
+    return Type::None;
+
+  auto equipment = actor->GetEquippedObject(leftHand);
+
+  if (!equipment) {
+    // TODO: 这里可以根据种族返回不同的空手类型，目前只有狼人和吸血鬼领主有特殊处理
+    return Type::Unarm;
+  }
+
+  if (equipment->IsArmor())
+    return Type::Shield;
+
+  if (equipment->formType == RE::FormType::Light)
+    return Type::Torch;
+
+  if (equipment->IsWeapon())
+    return GetWeaponType(equipment->As<RE::TESObjectWEAP>());
+
+  logger::warn("Weapon::GetActorEquipmentType: Unsupported equipment type: {}",
+               equipment->GetName());
+  return Type::None;
+}
+
 Type GetWeaponType(RE::TESObjectWEAP* weapon)
 {
   if (!weapon)
@@ -55,28 +81,34 @@ Type GetWeaponType(RE::TESObjectWEAP* weapon)
   }
 }
 
-Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
+Type GetBlockType(RE::Actor* actor)
 {
   if (!actor)
     return Type::None;
 
-  auto equipment = actor->GetEquippedObject(leftHand);
+  auto left  = GetActorEquipmentType(actor, true);
+  auto right = GetActorEquipmentType(actor, false);
 
-  if (!equipment)
-    return Type::Unarm;
-
-  if (equipment->IsArmor())
+  // 盾牌和火把总是占据格挡动作，且只能装备在左手
+  if (left == Type::Shield)
     return Type::Shield;
-
-  if (equipment->formType == RE::FormType::Light)
+  else if (left == Type::Torch)
     return Type::Torch;
 
-  if (equipment->IsWeapon())
-    return GetWeaponType(equipment->As<RE::TESObjectWEAP>());
+  // 左右手相同返回什么都行
+  if (left == right)
+    return left;
 
-  logger::warn("Weapon::GetActorEquipmentType: Unsupported equipment type: {}",
-               equipment->GetName());
-  return Type::None;
+  // 如果左手是空手或特殊空手类型，返回右手的类型
+  if (left == Type::Unarm || left == Type::Werewolf || left == Type::VampireLord)
+    return right;
+
+  // 如果右手是空手或特殊空手类型，返回左手的类型
+  if (right == Type::Unarm || right == Type::Werewolf || right == Type::VampireLord)
+    return left;
+
+  // 其他类型的格挡动作都用右手武器的类型来判断
+  return right;
 }
 
 float GetBasePostureDamage(Type type)
@@ -132,6 +164,64 @@ float GetBaseStaminaConsumption(Type type)
     logger::warn("Weapon::GetBaseStaminaConsumption: Unsupported weapon type: {}",
                  static_cast<int>(type));
     return Settings::fNormalAttackStaminaCostBase_Unarm;
+  }
+}
+
+float GetBlockStrength(Type type)
+{
+  switch (type) {
+  case Type::Unarm:
+    return Settings::fBlockStrength_Unarm;
+  case Type::Dagger:
+    return Settings::fBlockStrength_Dagger;
+  case Type::Sword:
+    return Settings::fBlockStrength_Sword;
+  case Type::Axe:
+    return Settings::fBlockStrength_Axe;
+  case Type::Mace:
+    return Settings::fBlockStrength_Mace;
+  case Type::GreatSword:
+    return Settings::fBlockStrength_GreatSword;
+  case Type::GreatAxe:
+    return Settings::fBlockStrength_GreatAxe;
+  case Type::GreatMace:
+    return Settings::fBlockStrength_GreatMace;
+  case Type::Shield:
+    return Settings::fBlockStrength_Shield;
+  case Type::Fist:
+    return Settings::fBlockStrength_Fist;
+  default:
+    logger::warn("Weapon::GetBlockStrength: Unsupported weapon type: {}", static_cast<int>(type));
+    return Settings::fBlockStrength_Unarm;
+  }
+}
+
+float GetBaseExecutionMultiplier(RE::Actor* actor)
+{
+  auto type = GetActorEquipmentType(actor, false);
+  switch (type) {
+  case Type::Unarm:
+    return Settings::fExecutionDamageMult_Unarm;
+  case Type::Dagger:
+    return Settings::fExecutionDamageMult_Dagger;
+  case Type::Sword:
+    return Settings::fExecutionDamageMult_Sword;
+  case Type::Axe:
+    return Settings::fExecutionDamageMult_Axe;
+  case Type::Mace:
+    return Settings::fExecutionDamageMult_Mace;
+  case Type::GreatSword:
+    return Settings::fExecutionDamageMult_GreatSword;
+  case Type::GreatAxe:
+    return Settings::fExecutionDamageMult_GreatAxe;
+  case Type::GreatMace:
+    return Settings::fExecutionDamageMult_GreatMace;
+  case Type::Fist:
+    return Settings::fExecutionDamageMult_Fist;
+  default:
+    logger::warn("Weapon::GetBaseExecutionMultiplier: Unsupported weapon type: {}",
+                 static_cast<int>(type));
+    return 1.0f;
   }
 }
 }  // namespace Weapon

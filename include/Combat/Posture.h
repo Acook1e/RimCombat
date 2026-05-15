@@ -26,8 +26,7 @@ public:
   static float GetMaxPosture(RE::Actor* actor);
   static PostureData GetPostureData(RE::Actor* actor);
 
-  static void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData,
-                              bool isTimedBlock);
+  static void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
   static void DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak = false);
 
 private:

@@ -165,8 +165,7 @@ Posture::PostureData& Posture::GetPostureDataRef(RE::Actor* actor)
     return runtimePostureMap[actor];
 }
 
-void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData,
-                              bool isTimedBlock)
+void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
 {
   if (!aggressor || !victim || !Settings::bUsePostureSystem)
     return;
@@ -205,17 +204,18 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
 
   // Process Block
   if (hitFlags.any(RE::HitData::Flag::kBlocked)) {
-    DamagePostureValue(aggressor, postureDamage * Settings::fBlockPostureDamageToAttacker);
-    if (isTimedBlock)
-      DamagePostureValue(victim, postureDamage * Settings::fTimedBlockPostureDamageMult, true);
-    else
-      DamagePostureValue(victim, postureDamage * Settings::fBlockPostureDamageMult);
+    Block::ProcessPostureDamage(aggressor, victim, postureDamage);
   } else {
     DamagePostureValue(victim, postureDamage);
   }
 }
 void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak)
 {
+  if (!actor)
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
   if (value <= 0.0f)
     return;
 

@@ -16,26 +16,86 @@ std::uint16_t operator|(WeaponType w, Race r)
   return (static_cast<std::uint16_t>(w) << 8) | static_cast<std::uint16_t>(r);
 }
 
-std::string_view GetVictimAnimEvent(Race race, bool back)
+std::pair<std::string_view, std::string_view> GetAnimEvent(Race race, bool back)
 {
-  // 调用的均是成对动画中的位置2
+  // 处决者调用的均是成对动画的位置1
+  // 受击者调用位置2
 
+  // 除人类外的种族很少具有背刺动画
   if (back) {
     switch (race) {
     case Race::Human:
-      // KillMove1HMBackStab -> Animations\Paired_1HMKillMoveBackStab.hkx
-      return "KillMove1HMBackStab";
+      // Animations\Paired_1HMKillMoveBackStab.hkx
+      return {"pa_KillMove1HMBackStab", "KillMove1HMBackStab"};
     default:
-      return "";
+      return {"", ""};
     }
   }
 
+  // 部分种族不具有原版的KillMove
+  // 但保留种族的入口以便未来行为图的更新
   switch (race) {
   case Race::Human:
-    // KillMove -> Animations\Paired_1HMKillMove.hkx
-    return "KillMove";
+    // Animations\Paired_1HMKillMove.hkx
+    return {"pa_KillMove", "KillMove"};
+  case Race::Boar:
+  case Race::BoarMounted:
+
+  case Race::Chaurus:
+  case Race::ChaurusReaper:
+
+  case Race::Dog:
+  case Race::Fox:
+  case Race::Wolf:
+
+  case Race::Spider:
+  case Race::GiantSpider:
+  case Race::LargeSpider:
+
+  case Race::Werebear:
+  case Race::Werewolf:
+
+  case Race::AshHopper:
+  case Race::Bear:
+  case Race::ChaurusHunter:
+  case Race::Chicken:
+  case Race::Cow:
+  case Race::Deer:
+  case Race::Dragon:
+  case Race::DragonPriest:
+  case Race::Draugr:
+  case Race::DwarvenBallista:
+  case Race::DwarvenCenturion:
+  case Race::DwarvenSphere:
+  case Race::DwarvenSpider:
+  case Race::Falmer:
+  case Race::FlameAtronach:
+  case Race::FrostAtronach:
+  case Race::Gargoyle:
+  case Race::Giant:
+  case Race::Goat:
+  case Race::Hagraven:
+  case Race::Hare:
+  case Race::Horker:
+  case Race::Horse:
+  case Race::IceWraith:
+  case Race::Lurker:
+  case Race::Mammoth:
+  case Race::Mudcrab:
+  case Race::Netch:
+  case Race::Riekling:
+  case Race::Sabrecat:
+  case Race::Seeker:
+  case Race::Skeever:
+  case Race::Slaughterfish:
+  case Race::Spriggan:
+  case Race::StormAtronach:
+  case Race::Troll:
+  case Race::VampireLord:
+  case Race::Wisp:
+  case Race::Wispmother:
   default:
-    return "";
+    return {"", ""};
   }
 }
 
@@ -74,10 +134,102 @@ void Execution::Update()
 
 Race Execution::GetRace(RE::Actor* actor)
 {
-  if (!actor)
-    return Race::None;
+  static std::unordered_map<std::string_view, Race> raceMap = {
+      {"0_Master.hkx", Race::Human},
+      {"WolfBehavior.hkx", Race::Wolf},
+      {"DogBehavior.hkx", Race::Dog},
+      {"ChickenBehavior.hkx", Race::Chicken},
+      {"HareBehavior.hkx", Race::Hare},
+      {"AtronachFlameBehavior.hkx", Race::FlameAtronach},
+      {"AtronachFrostBehavior.hkx", Race::FrostAtronach},
+      {"AtronachStormBehavior.hkx", Race::StormAtronach},
+      {"BearBehavior.hkx", Race::Bear},
+      {"ChaurusBehavior.hkx", Race::Chaurus},
+      {"H-CowBehavior.hkx", Race::Cow},
+      {"DeerBehavior.hkx", Race::Deer},
+      {"CHaurusFlyerBehavior.hkx", Race::ChaurusHunter},
+      {"VampireBruteBehavior.hkx", Race::Gargoyle},
+      {"BenthicLurkerBehavior.hkx", Race::Lurker},
+      {"BoarBehavior.hkx", Race::Boar},
+      {"BCBehavior.hkx", Race::DwarvenBallista},
+      {"HMDaedra.hkx", Race::Seeker},
+      {"NetchBehavior.hkx", Race::Netch},
+      {"RieklingBehavior.hkx", Race::Riekling},
+      {"ScribBehavior.hkx", Race::AshHopper},
+      {"DragonBehavior.hkx", Race::Dragon},
+      {"Dragon_Priest.hkx", Race::DragonPriest},
+      {"DraugrBehavior.hkx", Race::Draugr},
+      {"SCBehavior.hkx", Race::DwarvenSphere},
+      {"DwarvenSpiderBehavior.hkx", Race::DwarvenSpider},
+      {"SteamBehavior.hkx", Race::DwarvenCenturion},
+      {"FalmerBehavior.hkx", Race::Falmer},
+      {"FrostbiteSpiderBehavior.hkx", Race::Spider},
+      {"GiantBehavior.hkx", Race::Giant},
+      {"GoatBehavior.hkx", Race::Goat},
+      {"HavgravenBehavior.hkx", Race::Hagraven},
+      {"HorkerBehavior.hkx", Race::Horker},
+      {"HorseBehavior.hkx", Race::Horse},
+      {"IceWraithBehavior.hkx", Race::IceWraith},
+      {"MammothBehavior.hkx", Race::Mammoth},
+      {"MudcrabBehavior.hkx", Race::Mudcrab},
+      {"SabreCatBehavior.hkx", Race::Sabrecat},
+      {"SkeeverBehavior.hkx", Race::Skeever},
+      {"SlaughterfishBehavior.hkx", Race::Slaughterfish},
+      {"SprigganBehavior.hkx", Race::Spriggan},
+      {"TrollBehavior.hkx", Race::Troll},
+      {"VampireLord.hkx", Race::VampireLord},
+      {"WerewolfBehavior.hkx", Race::Werewolf},
+      {"WispBehavior.hkx", Race::Wispmother},
+      {"WitchlightBehavior.hkx", Race::Wisp},
+  };
 
-  return Race::Human;
+  auto behaviorPath =
+      actor->GetRace()->rootBehaviorGraphNames[actor->GetActorBase()->IsFemale() ? 1 : 0].data();
+  auto behaviorName = std::filesystem::path(behaviorPath).filename().string();
+
+  auto res = Race::None;
+  if (auto it = raceMap.find(behaviorName); it != raceMap.end()) {
+    res = it->second;
+  } else {
+    logger::warn("Execution::GetRace: Unknown behavior graph: {}", behaviorName);
+    return Race::None;
+  }
+
+  if (res == Race::Human)
+    return res;
+
+  auto editorId = std::string{actor->GetRace()->GetFormEditorID()};
+  switch (res) {
+  case Race::Boar:
+    static const auto DLC2RieklingMountedKeyword =
+        RE::TESDataHandler::GetSingleton()->LookupForm<RE::BGSKeyword>(0x03A159, "Dragonborn.esm");
+    if (actor->GetRace()->HasKeyword(DLC2RieklingMountedKeyword))
+      res = Race::BoarMounted;
+    break;
+  case Race::Chaurus:
+    if (editorId.find("reaper") != std::string::npos)
+      res = Race::ChaurusReaper;
+    else
+      res = Race::Chaurus;
+    break;
+  case Race::Spider:
+    if (editorId.find("giant") != std::string::npos)
+      res = Race::GiantSpider;
+    else if (editorId.find("large") != std::string::npos)
+      res = Race::LargeSpider;
+    break;
+  case Race::Wolf:
+    if (editorId.find("fox") != std::string::npos)
+      res = Race::Fox;
+    break;
+  case Race::Werewolf:
+    if (editorId.find("werebear") != std::string::npos)
+      res = Race::Werebear;
+    break;
+  default:
+    break;
+  }
+  return res;
 }
 
 void Execution::LockActor(RE::Actor* actor)
@@ -191,17 +343,15 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
 
   auto weaponType = Weapon::GetActorEquipmentType(aggressor);
   auto race       = GetRace(victim);
-
+  auto flag       = weaponType | race;
   std::lock_guard<std::mutex> lock(mtx_executable);
-  if (!availableExcutions.contains(weaponType | race)) {
+  if (!availableExcutions.contains(flag)) {
     logger::info("Execution::TryExecute: No available Idle for using Weapon {} to execute Race {}",
                  magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
     return false;
   }
 
-  float initDistance     = availableExcutions[weaponType | race];
-  constexpr float Deg60  = 60.0f;
-  constexpr float Deg120 = 120.0f;
+  constexpr float MaxAggressorAngleDiff = 60.0f;
 
   // 距离和角度检测
   auto aggressorPos = aggressor->GetPosition();
@@ -215,21 +365,25 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   auto aggressorHeadingToVictim = aggressor->GetHeadingAngle(victimPos, true);
   auto victimHeadingToAggressor = victim->GetHeadingAngle(aggressorPos, true);
 
-  // 面对面处决：双方都基本正对对方。
-  bool isFrontExecution = aggressorHeadingToVictim < Deg60 && victimHeadingToAggressor < Deg60;
+  // 如果攻击者与目标的相对角度过大，则无法触发处决
+  if (aggressorHeadingToVictim > MaxAggressorAngleDiff)
+    return false;
 
-  // 背刺处决：攻击者面对目标，但目标基本背对攻击者。
-  bool isBackExecution = aggressorHeadingToVictim < Deg60 && victimHeadingToAggressor > Deg120;
+  // 正面处决条件：攻击者和目标相互面向
+  bool front = victimHeadingToAggressor < 60.0f;
 
-  // 同时不满足或同时满足都不执行
-  if (isFrontExecution == isBackExecution)
+  // 背刺处决条件：攻击者面向目标，且目标背对攻击者
+  bool back = victimHeadingToAggressor > 120.0f;
+
+  // 同时满足或者同时不满足正面和背刺则视为不满足处决条件
+  if (front == back)
     return false;
 
   // 判断是否存在对应的动画事件
-  auto victimAnimEvent = GetVictimAnimEvent(race, isBackExecution);
-  if (victimAnimEvent.empty()) {
+  auto [aggressorAnimEvent, victimAnimEvent] = GetAnimEvent(race, back);
+  if (aggressorAnimEvent.empty() || victimAnimEvent.empty()) {
     logger::info("Execution::TryExecute: Executing Race {} in the {} is not supported yet",
-                 magic_enum::enum_name(race), isBackExecution ? "back" : "front");
+                 magic_enum::enum_name(race), back ? "back" : "front");
     return false;
   }
 
@@ -239,18 +393,20 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   // 因为不使用havok同步
   // 可能存在先后不一致和位移没有锁定的bug
 
+  // 先设置Flag，给OAR缓冲时间来切换动画
+  aggressor->SetGraphVariableInt(EXECUTION_FLAG, flag);
+  victim->SetGraphVariableInt(EXECUTION_FLAG, flag);
+
   // 放置到同一高度
   float maxZ     = (std::max)(aggressorPos.z, victimPos.z);
   aggressorPos.z = maxZ;
   victimPos.z    = maxZ;
 
-  // 设置统一的距离
-  // TODO: 可能需要根据不同的动画包调整这个距离
-  // 但目前默认 150.0f
+  // 根据不同的动画调整距离
   auto direction = (victimPos - aggressorPos);
   direction /= direction.Length();
-  auto squr150 = std::sqrt(initDistance);
-  victimPos    = aggressorPos + direction * squr150;
+  float initDistance = availableExcutions[flag];
+  victimPos          = aggressorPos + direction * initDistance;
   aggressor->SetPosition(aggressorPos, false);
   victim->SetPosition(victimPos, false);
 
@@ -258,55 +414,101 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   auto heading = aggressor->GetAimHeading();
   heading += aggressor->GetHeadingAngle(victimPos, false);
   aggressor->SetHeading(heading);
-  if (isFrontExecution) {
+
+  if (back) {
+    victim->SetHeading(heading);
+  } else {
     float newHeading = 0.0f;
     if (heading >= 0)
       newHeading = heading - 180.0f;
     else
       newHeading = heading + 180.0f;
     victim->SetHeading(newHeading);
-  } else if (isBackExecution) {
-    victim->SetHeading(heading);
   }
 
-  // 正向时调用的动画
-  // pa_KillMove -> Animations\Paired_1HMKillMove.hkx
-  if (isFrontExecution)
-    aggressor->NotifyAnimationGraph("pa_KillMove");
+  // TODO: 位移，旋转锁定
 
-  // 背向时调用的动画
-  // pa_KillMove1HMBackStab -> Animations\Paired_1HMKillMoveBackStab.hkx
-  if (isBackExecution)
-    aggressor->NotifyAnimationGraph("pa_KillMove1HMBackStab");
-
-  // 处决者调用的动画是确认的
-  // 受击者的动画事件由GetVictimAnimEvent根据种族和背刺与否来确认
-  victim->NotifyAnimationGraph(victimAnimEvent);
+  if (!aggressor->NotifyAnimationGraph(aggressorAnimEvent) ||
+      !victim->NotifyAnimationGraph(victimAnimEvent)) {
+    logger::warn("Execution::TryExecute: Failed to send animation event. Aggressor: {}, Victim: {}",
+                 aggressor->GetDisplayFullName(), victim->GetDisplayFullName());
+    UnlockActor(victim);
+    return false;
+  }
 
   std::lock_guard<std::mutex> lock_executing(mtx_executing);
-  executingActors[aggressor] = victim;
+  executingActors[victim] = aggressor;
   executableActors.erase(victim);
-
-  UnlockActor(victim);
   return true;
 }
 
-RE::Actor* Execution::GetExecutionVictim(RE::Actor* aggressor)
+RE::Actor* Execution::GetExecutingAggressor(RE::Actor* victim)
 {
   std::lock_guard<std::mutex> lock(mtx_executing);
-  if (executingActors.contains(aggressor))
-    return executingActors[aggressor];
+  if (executingActors.contains(victim))
+    return executingActors[victim];
   return nullptr;
 }
 
-void Execution::ExecutionEnd(RE::Actor* aggressor)
+bool Execution::IsExecutingVictim(RE::Actor* victim)
 {
+  std::lock_guard<std::mutex> lock(mtx_executing);
+  return executingActors.contains(victim);
+}
+
+void Execution::ApplyExecutionDamage(RE::Actor* victim, std::string payload)
+{
+  if (!victim || !Settings::bUseExecutionSystem)
+    return;
+
+  auto aggressor = GetExecutingAggressor(victim);
   if (!aggressor)
     return;
 
+  // payload格式：damage_xxx，xxx为伤害倍率
+  if (!payload.starts_with("damage_"))
+    return;
+
+  float damageMult = 1.0f;
+  try {
+    damageMult = std::stof(payload.substr(7));
+  } catch (const std::exception& e) {
+    logger::error("Execution::ApplyExecutionDamage: Invalid damage multiplier in payload: {}",
+                  payload);
+    return;
+  }
+
+  float baseDamage = aggressor->CalcUnarmedDamage();
+  if (auto right = aggressor->GetEquippedObject(false); right && right->IsWeapon())
+    baseDamage = right->As<RE::TESObjectWEAP>()->GetAttackDamage();
+
+  float baseDamageMult = Weapon::GetBaseExecutionMultiplier(aggressor);
+  float totalDamage    = baseDamage * baseDamageMult * damageMult;
+  logger::info("Execution::ApplyExecutionDamage: Base damage: {} Base multiplier: {} Damage "
+               "multiplier: {} Total damage: {}",
+               baseDamage, baseDamageMult, damageMult, totalDamage);
+
+  // 处决伤害结算，直接对目标造成真实伤害
+  victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);
+}
+
+void Execution::ExecutionEnd(RE::Actor* victim)
+{
+  if (!victim || !Settings::bUseExecutionSystem)
+    return;
+
+  // 处决结束，重置状态
+  auto aggressor = GetExecutingAggressor(victim);
+  if (aggressor)
+    aggressor->SetGraphVariableInt(EXECUTION_FLAG, 0);
+
+  victim->SetGraphVariableInt(EXECUTION_FLAG, 0);
+
+  UnlockActor(victim);
+
   std::lock_guard<std::mutex> lock(mtx_executing);
-  if (executingActors.contains(aggressor))
-    executingActors.erase(aggressor);
+  if (executingActors.contains(victim))
+    executingActors.erase(victim);
 }
 
 void Execution::AddExecutionStartListener(ExecutionStartCallback callback)

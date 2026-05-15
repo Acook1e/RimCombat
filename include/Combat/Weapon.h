@@ -36,8 +36,11 @@ enum class Type : std::uint8_t
 };
 
 void Initialize();
-[[nodiscard]] Type GetWeaponType(RE::TESObjectWEAP* object);
 [[nodiscard]] Type GetActorEquipmentType(RE::Actor* actor, bool leftHand = false);
+[[nodiscard]] Type GetWeaponType(RE::TESObjectWEAP* object);
+[[nodiscard]] Type GetBlockType(RE::Actor* actor);
 [[nodiscard]] float GetBasePostureDamage(Type type);
 [[nodiscard]] float GetBaseStaminaConsumption(Type type);
+[[nodiscard]] float GetBlockStrength(Type type);
+[[nodiscard]] float GetBaseExecutionMultiplier(RE::Actor* actor);
 }  // namespace Weapon

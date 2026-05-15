@@ -14,11 +14,13 @@ public:
   static void StartBlock(RE::Actor* actor);
   static void EndBlock(RE::Actor* actor);
 
-  // 在一次攻击中判断，否则无效
-  // 成功会发发送一个限时格挡事件
+  static void ProcessBlock(RE::Actor* actor);
+  static void ProcessDamage(RE::Actor* victim, RE::HitData& hitData);
+  static void ProcessPostureDamage(RE::Actor* aggressor, RE::Actor* victim, float postureDamage);
+
   static bool IsTimedBlock(RE::Actor* actor);
 
-  static void AddTimeBlockListener(std::function<void(RE::Actor*)> callback);
+  static void AddTimedBlockListener(std::function<void(RE::Actor*)> callback);
 
 private:
   Block();
@@ -26,7 +28,18 @@ private:
   // 用于读档的时候清空所有记录
   constexpr static inline std::uint32_t serialType = 'RCBR';
 
-  static inline std::mutex mtx;
+  // 需要锁
+  // Actor的格挡开始时间，单位为毫秒
+  static inline std::mutex mtx_blockStart;
   static inline std::unordered_map<RE::Actor*, std::uint64_t> blockStartTimes;
-  static inline std::vector<std::function<void(RE::Actor*)>> timeBlockCallbacks;
+
+  // 高频调用，需要读写锁
+  // 限时格挡触发后进行的计时，在这个窗口
+  static inline std::shared_mutex mtx_timedBlockDuration;
+  static inline std::unordered_map<RE::Actor*, std::uint64_t> timedBlockDurationStartTimes;
+
+  // 需要锁
+  // 限时格挡事件回调列表
+  static inline std::mutex mtx_timedBlockCallback;
+  static inline std::vector<std::function<void(RE::Actor*)>> timedBlockCallbacks;
 };

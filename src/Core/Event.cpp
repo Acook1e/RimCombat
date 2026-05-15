@@ -15,14 +15,17 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
                              RE::BSAnimationGraphEvent* event,
                              RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
 {
-  if (!event->holder) {
+  if (!event->holder)
     return false;
-  }
-  std::string eventTag = event->tag.data();
-  std::transform(eventTag.begin(), eventTag.end(), eventTag.begin(), ::tolower);
+
+  std::string animEvent = event->tag.data();
+  std::string payload   = event->payload.data();
+  std::transform(animEvent.begin(), animEvent.end(), animEvent.begin(), ::tolower);
+  std::transform(payload.begin(), payload.end(), payload.begin(), ::tolower);
+
   RE::Actor* actor = const_cast<RE::TESObjectREFR*>(event->holder)->As<RE::Actor>();
 
-  switch (Utils::hash(eventTag)) {
+  switch (Utils::hash(animEvent)) {
   case "weaponswing"_h:
     Stamina::AttackStaminaConsume(actor, false);
     break;
@@ -49,17 +52,19 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "blockstop"_h:
     Block::EndBlock(actor);
     break;
-  case "rimcombat_executionend"_h:
-    Execution::ExecutionEnd(actor);
+  case "killactor"_h:
+    // 如果进入处决状态，忽略KillMove的处决事件
+    if (Execution::IsExecutingVictim(actor))
+      return true;
     break;
+  case "rimexecution"_h: {
+    if (payload == "end")
+      Execution::ExecutionEnd(actor);
+    else if (payload.starts_with("damage_"))
+      Execution::ApplyExecutionDamage(actor, payload);
+    // 等待拓展
+  } break;
   case "staggerstart"_h:
-    // 用于在硬直触发后解除战技状态，暂时搁置
-    // if (WeaponArt::Manager::IsEnabled(actor)) {
-    //   auto artID = WeaponArt::Manager::GetActorWeaponArtID(actor);
-    //   auto* art  = WeaponArt::Manager::GetWeaponArtInfo(artID);
-    //   if (art && art->UseIntroAnim())
-    //     WeaponArt::Manager::EnableWeaponArt(actor, false);
-    // }
     break;
   case "prehitframe"_h:
     break;
@@ -79,7 +84,7 @@ AnimEvent::ProcessEvent_NPC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
                             RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
 {
   if (ProcessEvent(sink, event, eventSource))
-    return RE::BSEventNotifyControl::kContinue;
+    return RE::BSEventNotifyControl::kStop;
   return _ProcessEvent_NPC(sink, event, eventSource);
 }
 
@@ -89,7 +94,7 @@ AnimEvent::ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
                            RE::BSTEventSource<RE::BSAnimationGraphEvent>* eventSource)
 {
   if (ProcessEvent(sink, event, eventSource))
-    return RE::BSEventNotifyControl::kContinue;
+    return RE::BSEventNotifyControl::kStop;
   return _ProcessEvent_PC(sink, event, eventSource);
 }
 

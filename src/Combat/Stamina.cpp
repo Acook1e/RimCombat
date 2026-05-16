@@ -4,6 +4,8 @@
 #include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
 
+#include "magic_enum/magic_enum.hpp"
+
 void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
 {
   if (!Settings::bUseAttackStaminaSystem)
@@ -16,6 +18,7 @@ void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm
   // TODO: 新增新的图变量修改战技的耐力消耗倍率
   if (WeaponArt::Manager::IsEnabled(actor))
     return;
+
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
@@ -37,5 +40,7 @@ void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm
     staminaCost += Settings::fNormalAttackStaminaCostPerMass * weaponWeight;
   }
 
+  logger::trace("Stamina::AttackStaminaConsume: type={}, weight={}, cost={}",
+                magic_enum::enum_name(type), weaponWeight, staminaCost);
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }

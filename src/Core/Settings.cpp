@@ -1,12 +1,10 @@
 #include "Core/Settings.h"
 
+#include "Combat/Weapon.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
-
-#include <filesystem>
-#include <fstream>
 
 using json = nlohmann::json;
 
@@ -14,6 +12,8 @@ namespace Settings
 {
 namespace
 {
+  using WeaponType = Weapon::Type;
+
   bool EnsureSettingsDir()
   {
     std::error_code ec;
@@ -42,6 +42,86 @@ namespace
     }
   }
 
+  constexpr WeaponEnumType ToWeaponKey(WeaponType type)
+  {
+    return static_cast<WeaponEnumType>(type);
+  }
+
+  void ClearWeaponSettingMaps()
+  {
+    baseStaminaCostMap.clear();
+    basePostureDamageMap.clear();
+    blockStrengthMap.clear();
+    executionDamageMultMap.clear();
+  }
+
+  bool OverwriteSettingsFromDefault()
+  {
+    std::error_code ec;
+    if (!std::filesystem::exists(SettingsDefaultFile, ec)) {
+      logger::warn("Settings: default settings file not found: {}", SettingsDefaultFile);
+      return false;
+    }
+
+    std::filesystem::copy_file(SettingsDefaultFile, SettingsFile,
+                               std::filesystem::copy_options::overwrite_existing, ec);
+    if (ec) {
+      logger::warn("Settings: failed to overwrite settings file from default: {}", ec.message());
+      return false;
+    }
+
+    return true;
+  }
+
+  void SaveWeaponFloatMap(json& section, std::string_view subsectionName,
+                          const std::unordered_map<WeaponEnumType, float>& map)
+  {
+    auto& subsection = section[std::string(subsectionName)];
+    subsection       = json::object();
+    for (auto type : magic_enum::enum_values<WeaponType>()) {
+      if (type == WeaponType::None)
+        continue;
+
+      auto name = magic_enum::enum_name(type);
+      if (name.empty())
+        continue;
+
+      if (auto it = map.find(ToWeaponKey(type)); it != map.end())
+        subsection[std::string(name)] = it->second;
+    }
+  }
+
+  void LoadWeaponFloatMap(const json& section, std::string_view sectionName,
+                          std::string_view subsectionName,
+                          std::unordered_map<WeaponEnumType, float>& map)
+  {
+    if (const auto it = section.find(subsectionName); it != section.end()) {
+      if (!it->is_object()) {
+        logger::warn("Settings: {}.{} is not a JSON object.", sectionName, subsectionName);
+        return;
+      }
+
+      const auto& subsection   = *it;
+      const auto qualifiedName = std::string(sectionName) + "." + std::string(subsectionName);
+      for (auto type : magic_enum::enum_values<WeaponType>()) {
+        if (type == WeaponType::None)
+          continue;
+
+        auto name = magic_enum::enum_name(type);
+        if (name.empty())
+          continue;
+
+        if (auto valueIt = subsection.find(name); valueIt != subsection.end()) {
+          try {
+            map.insert_or_assign(ToWeaponKey(type), valueIt->get<float>());
+          } catch (const std::exception& e) {
+            logger::warn("Settings: failed to parse {}.{}: {}", qualifiedName, name, e.what());
+          }
+        }
+      }
+    }
+  }
+
   bool WriteSettingsFile()
   {
     if (!EnsureSettingsDir())
@@ -49,51 +129,34 @@ namespace
 
     json root;
 
-    root["Stamina"] = {
-        {"UseAttackStaminaSystem", bUseAttackStaminaSystem},
-        {"ConsumeStaminaOutCombat", bConsumeStaminaOutCombat},
-        {"NormalAttackConsumeStamina", bNormalAttackComsumeStamina},
-        {"DisablePlayerAttackWhenStaminaZero", bDisablePlayerAttackWhenStaminaZero},
-        {"StaminaRegenMult", fStaminaRegenMult},
-        {"StaminaRegenMin", fStaminaRegenMin},
-        {"StaminaRegenMax", fStaminaRegenMax},
-        {"StaminaRegenDelay", fStaminaRegenDelay},
-        {"StaminaRegenMultCombat", fStaminaRegenMultCombat},
-        {"StaminaRegenMultBlock", fStaminaRegenMultBlock},
-        {"NormalAttackStaminaCostBaseUnarm", fNormalAttackStaminaCostBase_Unarm},
-        {"NormalAttackStaminaCostBaseDagger", fNormalAttackStaminaCostBase_Dagger},
-        {"NormalAttackStaminaCostBaseSword", fNormalAttackStaminaCostBase_Sword},
-        {"NormalAttackStaminaCostBaseAxe", fNormalAttackStaminaCostBase_Axe},
-        {"NormalAttackStaminaCostBaseMace", fNormalAttackStaminaCostBase_Mace},
-        {"NormalAttackStaminaCostBaseGreatSword", fNormalAttackStaminaCostBase_GreatSword},
-        {"NormalAttackStaminaCostBaseGreatAxe", fNormalAttackStaminaCostBase_GreatAxe},
-        {"NormalAttackStaminaCostBaseGreatMace", fNormalAttackStaminaCostBase_GreatMace},
-        {"NormalAttackStaminaCostBaseFist", fNormalAttackStaminaCostBase_Fist},
-        {"NormalAttackStaminaCostPerMass", fNormalAttackStaminaCostPerMass},
-        {"PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult},
-        {"PowerAttackStaminaCostPerMass", fPowerAttackStaminaCostPerMass}};
+    json stamina = {{"UseAttackStaminaSystem", bUseAttackStaminaSystem},
+                    {"ConsumeStaminaOutCombat", bConsumeStaminaOutCombat},
+                    {"NormalAttackConsumeStamina", bNormalAttackComsumeStamina},
+                    {"DisablePlayerAttackWhenStaminaZero", bDisablePlayerAttackWhenStaminaZero},
+                    {"StaminaRegenMult", fStaminaRegenMult},
+                    {"StaminaRegenMin", fStaminaRegenMin},
+                    {"StaminaRegenMax", fStaminaRegenMax},
+                    {"StaminaRegenDelay", fStaminaRegenDelay},
+                    {"StaminaRegenMultCombat", fStaminaRegenMultCombat},
+                    {"StaminaRegenMultBlock", fStaminaRegenMultBlock},
+                    {"NormalAttackStaminaCostPerMass", fNormalAttackStaminaCostPerMass},
+                    {"PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult},
+                    {"PowerAttackStaminaCostPerMass", fPowerAttackStaminaCostPerMass}};
+    SaveWeaponFloatMap(stamina, "BaseStaminaCost", baseStaminaCostMap);
+    root["Stamina"] = std::move(stamina);
 
-    root["Posture"] = {
-        {"UsePostureSystem", bUsePostureSystem},
-        {"UsePostureHUD", bUsePostureHUD},
-        {"MaxPostureBase", fMaxPostureBase},
-        {"MaxPostureHealthMult", fMaxPostureHealthMult},
-        {"PostureRegenDelay", uPostureRegenDelay},
-        {"PostureRegenPercentPerSecond", fPostureRegenPercentPerSecond},
-        {"NormalAttackPostureDamageUnarm", fNormalAttackPostureDamage_Unarm},
-        {"NormalAttackPostureDamageDagger", fNormalAttackPostureDamage_Dagger},
-        {"NormalAttackPostureDamageSword", fNormalAttackPostureDamage_Sword},
-        {"NormalAttackPostureDamageAxe", fNormalAttackPostureDamage_Axe},
-        {"NormalAttackPostureDamageMace", fNormalAttackPostureDamage_Mace},
-        {"NormalAttackPostureDamageGreatSword", fNormalAttackPostureDamage_GreatSword},
-        {"NormalAttackPostureDamageGreatAxe", fNormalAttackPostureDamage_GreatAxe},
-        {"NormalAttackPostureDamageGreatMace", fNormalAttackPostureDamage_GreatMace},
-        {"BashPostureDamageShield", fBashPostureDamage_Shield},
-        {"NormalAttackPostureDamageFist", fNormalAttackPostureDamage_Fist},
-        {"BashPostureDamageMult", fBashPostureDamageMult},
-        {"PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult},
-        {"PowerBashPostureDamageMult", fPowerBashPostureDamageMult},
-        {"ArmorPostureDamageFactor", fArmorPostureDamageFactor}};
+    json posture = {{"UsePostureSystem", bUsePostureSystem},
+                    {"UsePostureHUD", bUsePostureHUD},
+                    {"MaxPostureBase", fMaxPostureBase},
+                    {"MaxPostureHealthMult", fMaxPostureHealthMult},
+                    {"PostureRegenDelay", uPostureRegenDelay},
+                    {"PostureRegenPercentPerSecond", fPostureRegenPercentPerSecond},
+                    {"BashPostureDamageMult", fBashPostureDamageMult},
+                    {"PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult},
+                    {"PowerBashPostureDamageMult", fPowerBashPostureDamageMult},
+                    {"ArmorPostureDamageFactor", fArmorPostureDamageFactor}};
+    SaveWeaponFloatMap(posture, "BasePostureDamage", basePostureDamageMap);
+    root["Posture"] = std::move(posture);
 
     root["Exhausted"] = {
         {"UseExhaustedSystem", bUseExhaustedSystem},
@@ -106,23 +169,16 @@ namespace
         {"OnHitDamageMultWhenExhausted", fOnHitDamageMultWhenExhausted},
         {"OnHitPostureDamageMultWhenExhausted", fOnHitPostureDamageMultWhenExhausted}};
 
-    root["Block"] = {{"UseBlockSystem", bUseBlockSystem},
-                     {"TimedBlockEnabled", bTimedBlockEnabled},
-                     {"TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak},
-                     {"TimedBlockLimit", uTimedBlockLimit},
-                     {"BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent},
-                     {"BlockMinStaminaConsume", fBlockMinStaminaConsume},
-                     {"BlockStrengthUnarm", fBlockStrength_Unarm},
-                     {"BlockStrengthDagger", fBlockStrength_Dagger},
-                     {"BlockStrengthSword", fBlockStrength_Sword},
-                     {"BlockStrengthAxe", fBlockStrength_Axe},
-                     {"BlockStrengthMace", fBlockStrength_Mace},
-                     {"BlockStrengthGreatSword", fBlockStrength_GreatSword},
-                     {"BlockStrengthGreatAxe", fBlockStrength_GreatAxe},
-                     {"BlockStrengthGreatMace", fBlockStrength_GreatMace},
-                     {"BlockStrengthShield", fBlockStrength_Shield},
-                     {"BlockStrengthFist", fBlockStrength_Fist},
-                     {"TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult}};
+    json block = {{"UseBlockSystem", bUseBlockSystem},
+                  {"TimedBlockEnabled", bTimedBlockEnabled},
+                  {"TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak},
+                  {"TimedBlockLimit", uTimedBlockLimit},
+                  {"TimedBlockDuration", uTimedBlockDuration},
+                  {"BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent},
+                  {"BlockMinStaminaConsume", fBlockMinStaminaConsume},
+                  {"TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult}};
+    SaveWeaponFloatMap(block, "BlockStrength", blockStrengthMap);
+    root["Block"] = std::move(block);
 
     root["WeaponArt"] = {{"UseWeaponArtSystem", bUseWeaponArtSystem},
                          {"UseWeaponArtHUD", bUseWeaponArtHUD},
@@ -130,9 +186,12 @@ namespace
                          {"WeaponArtHUDPosY", fWeaponArtHUDPosY},
                          {"WeaponArtHUDScale", fWeaponArtHUDScale}};
 
-    root["Execution"] = {{"UseExecutionSystem", bUseExecutionSystem},
-                         {"ExitExecutionOnHit", bExitExecutionOnHit},
-                         {"ExecutableDuration", uExecutableDuration}};
+    json execution = {{"UseExecutionSystem", bUseExecutionSystem},
+                      {"ExitExecutionOnHit", bExitExecutionOnHit},
+                      {"ExecutableDuration", uExecutableDuration},
+                      {"OnHitDamageMultWhenExecutable", fOnHitDamageMultWhenExecutable}};
+    SaveWeaponFloatMap(execution, "ExecutionDamageMult", executionDamageMultMap);
+    root["Execution"] = std::move(execution);
 
     try {
       std::ofstream ofs(std::string(SettingsFile), std::ios::out | std::ios::trunc);
@@ -189,13 +248,14 @@ void UpdateGameSettings()
 
 void LoadSettings()
 {
+  ClearWeaponSettingMaps();
+
   if (!EnsureSettingsDir())
     return;
 
   const auto settingsPath = std::string(SettingsFile);
   if (!std::filesystem::exists(settingsPath)) {
-    logger::info("Settings: settings file not found, writing defaults.");
-    WriteSettingsFile();
+    logger::warn("Settings: settings file not found: {}", settingsPath);
     return;
   }
 
@@ -210,13 +270,11 @@ void LoadSettings()
     root = json::parse(ifs);
   } catch (const std::exception& e) {
     logger::warn("Settings: failed to parse settings file: {}", e.what());
-    WriteSettingsFile();
     return;
   }
 
   if (!root.is_object()) {
     logger::warn("Settings: settings root is not a JSON object.");
-    WriteSettingsFile();
     return;
   }
 
@@ -233,29 +291,12 @@ void LoadSettings()
     LoadSetting(stamina, "Stamina", "StaminaRegenDelay", fStaminaRegenDelay);
     LoadSetting(stamina, "Stamina", "StaminaRegenMultCombat", fStaminaRegenMultCombat);
     LoadSetting(stamina, "Stamina", "StaminaRegenMultBlock", fStaminaRegenMultBlock);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseUnarm",
-                fNormalAttackStaminaCostBase_Unarm);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseDagger",
-                fNormalAttackStaminaCostBase_Dagger);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseSword",
-                fNormalAttackStaminaCostBase_Sword);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseAxe",
-                fNormalAttackStaminaCostBase_Axe);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseMace",
-                fNormalAttackStaminaCostBase_Mace);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseGreatSword",
-                fNormalAttackStaminaCostBase_GreatSword);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseGreatAxe",
-                fNormalAttackStaminaCostBase_GreatAxe);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseGreatMace",
-                fNormalAttackStaminaCostBase_GreatMace);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostBaseFist",
-                fNormalAttackStaminaCostBase_Fist);
     LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostPerMass",
                 fNormalAttackStaminaCostPerMass);
     LoadSetting(stamina, "Stamina", "PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult);
     LoadSetting(stamina, "Stamina", "PowerAttackStaminaCostPerMass",
                 fPowerAttackStaminaCostPerMass);
+    LoadWeaponFloatMap(stamina, "Stamina", "BaseStaminaCost", baseStaminaCostMap);
   }
 
   if (const auto it = root.find("Posture"); it != root.end() && it->is_object()) {
@@ -266,28 +307,11 @@ void LoadSettings()
     LoadSetting(posture, "Posture", "MaxPostureHealthMult", fMaxPostureHealthMult);
     LoadSetting(posture, "Posture", "PostureRegenDelay", uPostureRegenDelay);
     LoadSetting(posture, "Posture", "PostureRegenPercentPerSecond", fPostureRegenPercentPerSecond);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageUnarm",
-                fNormalAttackPostureDamage_Unarm);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageDagger",
-                fNormalAttackPostureDamage_Dagger);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageSword",
-                fNormalAttackPostureDamage_Sword);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageAxe", fNormalAttackPostureDamage_Axe);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageMace",
-                fNormalAttackPostureDamage_Mace);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageGreatSword",
-                fNormalAttackPostureDamage_GreatSword);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageGreatAxe",
-                fNormalAttackPostureDamage_GreatAxe);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageGreatMace",
-                fNormalAttackPostureDamage_GreatMace);
-    LoadSetting(posture, "Posture", "BashPostureDamageShield", fBashPostureDamage_Shield);
-    LoadSetting(posture, "Posture", "NormalAttackPostureDamageFist",
-                fNormalAttackPostureDamage_Fist);
     LoadSetting(posture, "Posture", "BashPostureDamageMult", fBashPostureDamageMult);
     LoadSetting(posture, "Posture", "PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult);
     LoadSetting(posture, "Posture", "PowerBashPostureDamageMult", fPowerBashPostureDamageMult);
     LoadSetting(posture, "Posture", "ArmorPostureDamageFactor", fArmorPostureDamageFactor);
+    LoadWeaponFloatMap(posture, "Posture", "BasePostureDamage", basePostureDamageMap);
   }
 
   if (const auto it = root.find("Exhausted"); it != root.end() && it->is_object()) {
@@ -315,19 +339,11 @@ void LoadSettings()
     LoadSetting(block, "Block", "TimedBlockEnabled", bTimedBlockEnabled);
     LoadSetting(block, "Block", "TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak);
     LoadSetting(block, "Block", "TimedBlockLimit", uTimedBlockLimit);
+    LoadSetting(block, "Block", "TimedBlockDuration", uTimedBlockDuration);
     LoadSetting(block, "Block", "BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent);
     LoadSetting(block, "Block", "BlockMinStaminaConsume", fBlockMinStaminaConsume);
-    LoadSetting(block, "Block", "BlockStrengthUnarm", fBlockStrength_Unarm);
-    LoadSetting(block, "Block", "BlockStrengthDagger", fBlockStrength_Dagger);
-    LoadSetting(block, "Block", "BlockStrengthSword", fBlockStrength_Sword);
-    LoadSetting(block, "Block", "BlockStrengthAxe", fBlockStrength_Axe);
-    LoadSetting(block, "Block", "BlockStrengthMace", fBlockStrength_Mace);
-    LoadSetting(block, "Block", "BlockStrengthGreatSword", fBlockStrength_GreatSword);
-    LoadSetting(block, "Block", "BlockStrengthGreatAxe", fBlockStrength_GreatAxe);
-    LoadSetting(block, "Block", "BlockStrengthGreatMace", fBlockStrength_GreatMace);
-    LoadSetting(block, "Block", "BlockStrengthShield", fBlockStrength_Shield);
-    LoadSetting(block, "Block", "BlockStrengthFist", fBlockStrength_Fist);
     LoadSetting(block, "Block", "TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult);
+    LoadWeaponFloatMap(block, "Block", "BlockStrength", blockStrengthMap);
   }
 
   if (const auto it = root.find("WeaponArt"); it != root.end() && it->is_object()) {
@@ -344,6 +360,9 @@ void LoadSettings()
     LoadSetting(execution, "Execution", "UseExecutionSystem", bUseExecutionSystem);
     LoadSetting(execution, "Execution", "ExitExecutionOnHit", bExitExecutionOnHit);
     LoadSetting(execution, "Execution", "ExecutableDuration", uExecutableDuration);
+    LoadSetting(execution, "Execution", "OnHitDamageMultWhenExecutable",
+                fOnHitDamageMultWhenExecutable);
+    LoadWeaponFloatMap(execution, "Execution", "ExecutionDamageMult", executionDamageMultMap);
   }
 }
 
@@ -351,5 +370,17 @@ void SaveSettings()
 {
   UpdateGameSettings();
   WriteSettingsFile();
+}
+
+void ResetSettings()
+{
+  if (!EnsureSettingsDir())
+    return;
+
+  if (!OverwriteSettingsFromDefault())
+    return;
+
+  LoadSettings();
+  UpdateGameSettings();
 }
 }  // namespace Settings

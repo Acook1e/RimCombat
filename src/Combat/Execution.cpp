@@ -478,9 +478,11 @@ void Execution::ApplyExecutionDamage(RE::Actor* victim, std::string payload)
     return;
   }
 
-  float baseDamage = aggressor->CalcUnarmedDamage();
-  if (auto right = aggressor->GetEquippedObject(false); right && right->IsWeapon())
+  float baseDamage = aggressor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kUnarmedDamage);
+  if (auto right = aggressor->GetEquippedObject(false); right && right->IsWeapon()) {
     baseDamage = right->As<RE::TESObjectWEAP>()->GetAttackDamage();
+    baseDamage += aggressor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMeleeDamage);
+  }
 
   float baseDamageMult = Weapon::GetBaseExecutionMultiplier(aggressor);
   float totalDamage    = baseDamage * baseDamageMult * damageMult;

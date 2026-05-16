@@ -57,15 +57,15 @@ AvailableWeapon WeaponTypeMapping(Weapon::Type type)
     return AvailableWeapon::LightWeapon | AvailableWeapon::Sword;
   case Weapon::Type::Sword:
     return AvailableWeapon::NormalWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Sword;
-  case Weapon::Type::Axe:
+  case Weapon::Type::WarAxe:
     return AvailableWeapon::NormalWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Axe;
   case Weapon::Type::Mace:
     return AvailableWeapon::NormalWeapon | AvailableWeapon::StrikeWeapon | AvailableWeapon::Hammer;
   case Weapon::Type::GreatSword:
     return AvailableWeapon::HeavyWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Sword;
-  case Weapon::Type::GreatAxe:
+  case Weapon::Type::BattleAxe:
     return AvailableWeapon::HeavyWeapon | AvailableWeapon::SlashWeapon | AvailableWeapon::Axe;
-  case Weapon::Type::GreatMace:
+  case Weapon::Type::WarHammer:
     return AvailableWeapon::HeavyWeapon | AvailableWeapon::StrikeWeapon | AvailableWeapon::Hammer;
   case Weapon::Type::Bow:
   case Weapon::Type::Crossbow:

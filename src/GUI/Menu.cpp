@@ -93,7 +93,26 @@ void Combo(std::uint32_t hash, std::vector<std::reference_wrapper<Localization::
 }
 }  // namespace ImGui
 
-void Menu::Debug()
+void General()
+{
+  ImGui::Button("LoadSettings"_h, []() {
+    Settings::LoadSettings();
+    Settings::UpdateGameSettings();
+  });
+
+  ImGui::Button("ResetSettings"_h, []() {
+    Settings::ResetSettings();
+    Settings::UpdateGameSettings();
+  });
+}
+
+void Stamina() {}
+void Posture() {}
+void Block() {}
+void WeaponArt() {}
+void Execution() {}
+
+void Debug()
 {
   auto cross        = RE::CrosshairPickData::GetSingleton();
   RE::Actor* target = nullptr;
@@ -116,6 +135,7 @@ Menu::Menu()
 
   ImGui::SetSection("RimCombat"_h);
 
+  ImGui::AddSectionItem("General"_h, General);
   ImGui::AddSectionItem("Debug"_h, Debug);
 
   auto callback = [](SKSEMenuFramework::Model::EventType eventType) {
@@ -123,6 +143,7 @@ Menu::Menu()
     case SKSEMenuFramework::Model::EventType::kOpenMenu:
       break;
     case SKSEMenuFramework::Model::EventType::kCloseMenu:
+      // 关闭菜单自动保存设置
       Settings::SaveSettings();
       break;
     }

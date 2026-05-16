@@ -3,6 +3,18 @@
         "label": "RimCombat",
         "description": ""
     },
+    "General": {
+        "label": "General",
+        "description": ""
+    },
+    "LoadSettings": {
+        "label": "Load Settings",
+        "description": "Reload settings from file. This will overwrite any unsaved changes in the current session."
+    },
+    "ResetSettings": {
+        "label": "Reset Settings",
+        "description": "Reset all settings to their default values. This will overwrite any unsaved changes in the current session."
+    },
     "Debug": {
         "label": "Debug",
         "description": ""

@@ -1,9 +1,14 @@
 #pragma once
 
+#include "Core/Settings.h"
+
 #include "magic_enum/magic_enum.hpp"
 
 namespace Localization
 {
+
+const inline std::string LocalizationFile = Settings::SettingsDir + "Localization.json";
+
 struct Entry
 {
   std::string label;

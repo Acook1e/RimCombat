@@ -11,17 +11,14 @@ static std::unordered_map<std::uint32_t, Entry> entryMaps;
 
 void Initialize()
 {
-  static std::string LocalizationPath =
-      std::string(Settings::SettingsDir) + "Localization.json";
-
   nlohmann::json j;
   try {
-    std::ifstream ifs(LocalizationPath);
+    std::ifstream ifs(LocalizationFile);
     j = nlohmann::json::parse(ifs);
   } catch (const std::exception& e) {
     logger::error("Localization::Initialize: Failed to load localization file: "
                   "{}. Error: {}",
-                  LocalizationPath, e.what());
+                  LocalizationFile, e.what());
     return;
   }
 

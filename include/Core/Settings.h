@@ -2,8 +2,11 @@
 
 namespace Settings
 {
-constexpr inline std::string_view SettingsFile = "Data/SKSE/Plugins/RimCombat/Settings.json";
-constexpr inline std::string_view SettingsDir  = "Data/SKSE/Plugins/RimCombat/";
+const inline std::string SettingsDir         = "Data/SKSE/Plugins/RimCombat/";
+const inline std::string SettingsFile        = SettingsDir + "Settings.json";
+const inline std::string SettingsDefaultFile = SettingsDir + "SettingsDefault.json";
+
+using WeaponEnumType = std::uint8_t;
 
 #pragma region Stamina
 // 是否启用攻击耐力系统
@@ -31,24 +34,8 @@ inline float fStaminaRegenMultCombat = 1.0f;
 // 格挡时耐力再生倍率
 inline float fStaminaRegenMultBlock = 0.5f;
 
-// 空手基础耐力消耗
-inline float fNormalAttackStaminaCostBase_Unarm = 5.0f;
-// 匕首基础耐力消耗
-inline float fNormalAttackStaminaCostBase_Dagger = 6.0f;
-// 单手剑基础耐力消耗
-inline float fNormalAttackStaminaCostBase_Sword = 8.0f;
-// 单手斧基础耐力消耗
-inline float fNormalAttackStaminaCostBase_Axe = 8.0f;
-// 单手锤基础耐力消耗
-inline float fNormalAttackStaminaCostBase_Mace = 8.0f;
-// 双手剑基础耐力消耗
-inline float fNormalAttackStaminaCostBase_GreatSword = 15.0f;
-// 双手斧基础耐力消耗
-inline float fNormalAttackStaminaCostBase_GreatAxe = 15.0f;
-// 双手锤基础耐力消耗
-inline float fNormalAttackStaminaCostBase_GreatMace = 15.0f;
-// 拳套基础耐力消耗
-inline float fNormalAttackStaminaCostBase_Fist = 5.0f;
+// 基础耐力消耗，乘以武器类型和其他相关倍率后得到最终耐力消耗
+inline std::unordered_map<WeaponEnumType, float> baseStaminaCostMap{};
 // 每单位质量的额外耐力消耗，适用于所有武器类型
 inline float fNormalAttackStaminaCostPerMass = 0.2f;
 // 重击耐力消耗倍率，乘以基础耐力消耗
@@ -72,26 +59,8 @@ inline std::uint64_t uPostureRegenDelay = 2000;
 // 每秒恢复的架势值百分比
 inline float fPostureRegenPercentPerSecond = 5.0f;
 
-// 空手基础架势伤害
-inline float fNormalAttackPostureDamage_Unarm = 6.0f;
-// 匕首基础架势伤害
-inline float fNormalAttackPostureDamage_Dagger = 8.0f;
-// 单手剑基础架势伤害
-inline float fNormalAttackPostureDamage_Sword = 10.0f;
-// 单手斧基础架势伤害
-inline float fNormalAttackPostureDamage_Axe = 12.0f;
-// 单手锤基础架势伤害
-inline float fNormalAttackPostureDamage_Mace = 14.0f;
-// 双手剑基础架势伤害
-inline float fNormalAttackPostureDamage_GreatSword = 24.0f;
-// 双手斧基础架势伤害
-inline float fNormalAttackPostureDamage_GreatAxe = 28.0f;
-// 双手锤基础架势伤害
-inline float fNormalAttackPostureDamage_GreatMace = 32.0f;
-// 盾牌基础架势伤害
-inline float fBashPostureDamage_Shield = 32.0f;
-// 拳套基础架势伤害
-inline float fNormalAttackPostureDamage_Fist = 6.0f;
+// 基础架势伤害，乘以攻击伤害类型和其他相关倍率后得到最终架势伤害
+inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
 
 // 格挡攻击架势伤害倍率，乘以基础架势伤害
 inline float fBashPostureDamageMult = 2.0f;
@@ -149,29 +118,9 @@ inline float fBlockMinStaminaConsume = 10.0f;
 // 格挡时的最大伤害减免
 // 格挡时的架势伤害乘数
 // 格挡时返还的架势伤害乘数
-
-// 空手格挡强度
-inline float fBlockStrength_Unarm = 8.0f;
-// 匕首格挡强度
-inline float fBlockStrength_Dagger = 16.0f;
-// 单手剑格挡强度
-inline float fBlockStrength_Sword = 22.0f;
-// 单手斧格挡强度
-inline float fBlockStrength_Axe = 24.0f;
-// 单手锤格挡强度
-inline float fBlockStrength_Mace = 26.0f;
-// 双手剑格挡强度
-inline float fBlockStrength_GreatSword = 36.0f;
-// 双手斧格挡强度
-inline float fBlockStrength_GreatAxe = 38.0f;
-// 双手锤格挡强度
-inline float fBlockStrength_GreatMace = 42.0f;
-// 盾牌格挡强度
-inline float fBlockStrength_Shield = 48.0f;
-// 拳套格挡强度
-inline float fBlockStrength_Fist = 10.0f;
+inline std::unordered_map<WeaponEnumType, float> blockStrengthMap{};
 // 限时格挡的额外格挡强度乘数
-inline float fTimedBlockBlockStrengthMult = 6.0f;
+inline float fTimedBlockBlockStrengthMult = 4.0f;
 #pragma endregion
 
 #pragma region WeaponArt
@@ -200,28 +149,11 @@ inline float fOnHitDamageMultWhenExecutable = 1.8f;
 // 处决伤害倍率，由右手类型决定倍率
 // 由右手基础伤害作为基础伤害
 // 设定要高于重击，且为真实伤害，因此至少为2.0倍
-
-// 空手处决伤害倍率
-inline float fExecutionDamageMult_Unarm = 3.0f;
-// 匕首处决伤害倍率
-inline float fExecutionDamageMult_Dagger = 8.0f;
-// 单手剑处决伤害倍率
-inline float fExecutionDamageMult_Sword = 3.0f;
-// 单手斧处决伤害倍率
-inline float fExecutionDamageMult_Axe = 3.2f;
-// 单手锤处决伤害倍率
-inline float fExecutionDamageMult_Mace = 3.5f;
-// 双手剑处决伤害倍率
-inline float fExecutionDamageMult_GreatSword = 2.0f;
-// 双手斧处决伤害倍率
-inline float fExecutionDamageMult_GreatAxe = 2.2f;
-// 双手锤处决伤害倍率
-inline float fExecutionDamageMult_GreatMace = 2.3f;
-// 拳套处决伤害倍率
-inline float fExecutionDamageMult_Fist = 3.0f;
+inline std::unordered_map<WeaponEnumType, float> executionDamageMultMap{};
 #pragma endregion
 
 void UpdateGameSettings();
 void LoadSettings();
+void ResetSettings();
 void SaveSettings();
 }  // namespace Settings

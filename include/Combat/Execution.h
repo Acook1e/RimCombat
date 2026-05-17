@@ -107,7 +107,7 @@ private:
   constexpr static inline std::string_view EXECUTION_FLAG = "RimCombat_ExecutionFlag";
   // 行为事件
   // 其payload表示处决相关的的事件
-  // damage_xxx表示进行一次真实伤害结算，xxx为一个数字，表示伤害的倍率
+  // damage|xxx表示进行一次真实伤害结算，xxx为一个数字，表示伤害的倍率
   // end表示处决结束
   constexpr static inline std::string_view EXECUTION_END = "RimExecution";
 

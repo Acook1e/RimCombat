@@ -8,13 +8,10 @@
             "Heavy",
             "Slash"
         ],
-        "damageType": "Slash",
-        "damageMult": 1.2,
-        "baseDamage": 0.0,
-        "postureDamageMult": 1.0,
         "consumePoint": 1,
         "unlockLevel": 0,
-        "needPrepare": false
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "2"
     },
     "Unshethe": {
         "name": "居合",
@@ -24,13 +21,10 @@
             "Normal",
             "Katana"
         ],
-        "damageType": "None",
-        "damageMult": 1.5,
-        "baseDamage": 0.0,
-        "postureDamageMult": 1.0,
         "consumePoint": 1,
         "unlockLevel": 0,
-        "needPrepare": true
+        "needPrepare": true,
+        "Elden Rim - Weapon Arts ID": "4/5"
     },
     "DoubleSlash": {
         "name": "二连斩",
@@ -42,12 +36,48 @@
             "Heavy",
             "Slash"
         ],
-        "damageType": "Slash",
-        "damageMult": 1.0,
-        "baseDamage": 0.0,
-        "postureDamageMult": 1.0,
         "consumePoint": 1,
         "unlockLevel": 0,
-        "needPrepare": false
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "6"
+    },
+    "Gaint Hunting": {
+        "name": "狩猎巨人",
+        "description": "向前方突袭，对路径上的敌人造成伤害",
+        "weapons": [],
+        "availableWeapon": [
+            "Heavy",
+            "Thrust"
+        ],
+        "consumePoint": 2,
+        "unlockLevel": 0,
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "67"
+    },
+    "Impaling Thrust": {
+        "name": "贯穿",
+        "description": "快速向前突刺，对路径上的敌人造成伤害",
+        "weapons": [],
+        "availableWeapon": [
+            "Thrust"
+        ],
+        "consumePoint": 2,
+        "unlockLevel": 0,
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "70"
+    },
+    "Vacuum Slash": {
+        "name": "真空斩",
+        "description": "向前方斩击，对路径上的敌人造成伤害",
+        "weapons": [],
+        "availableWeapon": [
+            "Normal",
+            "Heavy",
+            "Slash"
+        ],
+        "consumePoint": 2,
+        "unlockLevel": 0,
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "49"
     }
 }

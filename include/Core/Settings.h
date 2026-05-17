@@ -129,11 +129,13 @@ inline bool bUseWeaponArtSystem = true;
 // 是否启用战技HUD
 inline bool bUseWeaponArtHUD = true;
 // 战技HUD横向位置，单位为屏幕百分比
-inline float fWeaponArtHUDPosX = 10.0f;
+inline float fWeaponArtHUDPosX = 6.0f;
 // 战技HUD纵向位置，单位为屏幕百分比
 inline float fWeaponArtHUDPosY = 70.0f;
 // 战技HUD整体缩放
 inline float fWeaponArtHUDScale = 1.0f;
+// 战技菜单起始横向位置，单位为屏幕百分比
+inline float fWeaponArtMenuStartPercent = 50.0f;
 #pragma endregion
 
 #pragma region Execution

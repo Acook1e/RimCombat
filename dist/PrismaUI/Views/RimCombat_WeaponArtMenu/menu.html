@@ -9,16 +9,16 @@
 </head>
 
 <body>
-    <div class="bg-orbit orbit-a"></div>
-    <div class="bg-orbit orbit-b"></div>
     <main class="shell">
+        <div class="bg-orbit orbit-a"></div>
+        <div class="bg-orbit orbit-b"></div>
         <header class="topbar panel-cut">
             <div>
                 <p class="eyebrow">Rim Combat</p>
                 <h1>Weapon Arts</h1>
                 <p class="subtitle">
-                    Opened from the inventory menu. Browse arts, unlock them, and bind
-                    the selected art to the current weapon.
+                    Opened alongside the inventory. Browse arts on the right and bind
+                    them to the currently selected inventory entry.
                 </p>
             </div>
             <div class="topbar-actions">
@@ -39,34 +39,35 @@
         </header>
 
         <section class="layout">
-            <aside class="list-panel panel-cut">
-                <div class="section-heading">
-                    <div>
-                        <p class="eyebrow">Catalog</p>
-                        <h2>All Weapon Arts</h2>
-                    </div>
-                    <span id="art-count" class="counter-pill">0 Arts</span>
-                </div>
-
-                <label class="filter-box" aria-label="Filter weapon arts">
-                    <span>Filter</span>
-                    <input id="filter-input" type="text" placeholder="Reserved for a later update" disabled />
-                </label>
-                <p class="filter-note">Filter UI is reserved. List rendering and unlock flow are active.</p>
-
-                <div id="art-list" class="art-list"></div>
-            </aside>
-
-            <section class="detail-column">
-                <article class="weapon-panel panel-cut" id="weapon-panel"></article>
+            <section class="art-column">
                 <article class="detail-panel panel-cut" id="detail-panel"></article>
+                <aside class="list-panel panel-cut">
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">Catalog</p>
+                            <h2>All Weapon Arts</h2>
+                        </div>
+                        <span id="art-count" class="counter-pill">0 Arts</span>
+                    </div>
+
+                    <label class="filter-box" aria-label="Filter weapon arts">
+                        <span>Filter</span>
+                        <input id="filter-input" type="text" placeholder="Reserved for a later update" disabled />
+                    </label>
+                    <p class="filter-note">Filter UI is reserved. List rendering and unlock flow are active.</p>
+
+                    <div id="art-list" class="art-list"></div>
+                </aside>
             </section>
+
+            <article class="weapon-panel panel-cut" id="weapon-panel"></article>
         </section>
 
         <footer class="footer-hint panel-cut">
             <span>Tip</span>
             <p>
-                Press the same hotkey again or use Close to return to the inventory.
+                Keep the inventory open and move the cursor across entries. The panel refreshes the selected item
+                automatically.
             </p>
         </footer>
     </main>

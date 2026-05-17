@@ -78,12 +78,6 @@ void Block::ProcessBlock(RE::Actor* actor)
   if (!actor || !Settings::bUseBlockSystem || !Settings::bTimedBlockEnabled)
     return;
 
-  {
-    std::shared_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-    if (timedBlockDurationStartTimes.contains(actor))
-      return;
-  }
-
   std::uint64_t startTime = 0;
   {
     std::scoped_lock lock(mtx_blockStart);
@@ -99,6 +93,8 @@ void Block::ProcessBlock(RE::Actor* actor)
   auto now = Utils::GetTime<std::chrono::milliseconds>();
   if (now - startTime < Settings::uTimedBlockLimit) {
     {
+      // 直接覆写或插入限时格挡计时记录，无需检查是否存在
+      // ProcessBlock每次被调用都视为一次新的限时格挡触发，因此直接重置计时
       std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
       timedBlockDurationStartTimes[actor] = now;
     }

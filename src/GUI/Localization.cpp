@@ -47,6 +47,11 @@ Entry& GetLocalization(std::uint32_t hash)
   return (it != entryMaps.end()) ? it->second : unknown;
 }
 
+Entry& GetLocalization(std::string key)
+{
+  return GetLocalization(Utils::hash(key));
+}
+
 bool AddLocalization(std::string key, std::string label, std::string desc)
 {
   auto hashValue = Utils::hash(key);

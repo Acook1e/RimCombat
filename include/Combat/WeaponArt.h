@@ -17,48 +17,52 @@ enum class Rarity : std::uint8_t
 class WeaponArtInfo
 {
 public:
-  enum class AvailableWeapon : std::uint16_t
+  // 战技的伤害，架势伤害均有payload指定，插件不再区分战技伤害类型
+
+  using AvailableWeaponType = std::uint32_t;
+  enum class AvailableWeapon : AvailableWeaponType
   {
-    Unique = 0,  // 仅特定武器（通过战技信息映射指定）
+    None = 0,  // 作为初始化默认值
 
     // 武器重量划分
-    LightWeapon  = 1 << 0,  // 轻型武器（如匕首、短剑）
-    NormalWeapon = 1 << 1,  // 常规武器（如单手剑、斧、锤）
-    HeavyWeapon  = 1 << 2,  // 重型武器（如双手剑、斧、锤）
 
-    // 武器伤害划分
-    SlashWeapon  = 1 << 3,  // 斩击武器（如剑、刀）
-    ThrustWeapon = 1 << 4,  // 刺击武器（如长枪、长矛）
-    StrikeWeapon = 1 << 5,  // 打击武器（如锤、钝器）
-    RangeWeapon  = 1 << 6,  // 远程武器（如弓、弩）
+    Light  = 1U << 0,  // 轻型武器，OCF小型分类下的武器
+    Normal = 1U << 1,  // 常规武器，OCF单手分类下的武器
+    Heavy  = 1U << 2,  // 重型武器，OCF双手分类下的武器
 
-    // 武器类型划分
-    Fist    = 1 << 7,   // 拳类武器（如拳套、爪）
-    Sword   = 1 << 8,   // 剑类武器（如单手剑、双手剑）
-    Machete = 1 << 9,   // 刀类武器（如弯刀、砍刀）
-    Axe     = 1 << 10,  // 斧类武器（如单手斧、双手斧）
-    Hammer  = 1 << 11,  // 锤类武器（如单手锤、双手锤）
-    Spear   = 1 << 12,  // 枪类武器（如长矛、戟）
-    Stick   = 1 << 13,  // 棍类武器（如长棍、法杖）
-    Bow     = 1 << 14,  // 弓类武器（如弓、弩）
-  };
+    // 武器攻击划分
 
-  enum class DamageType : std::uint8_t
-  {
-    None,    // 无类型伤害
-    Slash,   // 斩击
-    Thrust,  // 穿刺
-    Strike,  // 打击
-    Magic,   // 魔法
-    Fire,    // 火焰
-    Frost,   // 冰霜
-    Shock,   // 电击
+    Slash   = 1U << 3,  // 拥有刃面，可以斩击
+    Thrust  = 1U << 4,  // 拥有尖端，可以刺击
+    Blunt   = 1U << 5,  // 拥有钝面，可以钝击
+    Polearm = 1U << 6,  // 拥有长柄，可以进行长柄攻击
+    Range   = 1U << 7,  // 可以远程攻击
+
+    // 武器家族 / 子类型划分
+
+    // 原版三类型
+    Sword  = 1U << 8,   // 剑类武器
+    Axe    = 1U << 9,   // 斧类武器
+    Hammer = 1U << 10,  // 锤类武器
+
+    // 模组类型
+    Fist   = 1U << 11,  // 拳类武器
+    Katana = 1U << 12,  // 武士刀类武器
+    Spear  = 1U << 13,  // 枪类武器
+    Stick  = 1U << 14,  // 棍类武器
+    Whip   = 1U << 15,  // 鞭类武器
+
+    // 远程类型
+    Bow      = 1U << 16,  // 弓类武器
+    Crossbow = 1U << 17,  // 弩类武器
+
+    // 独特类型
+    Unique = 1U << 31,  // 仅特定武器（通过 weapons 列表指定）
   };
 
   WeaponArtInfo() = default;
   WeaponArtInfo(std::int32_t id, const std::string& name, const std::string& description,
                 AvailableWeapon availableWeapon, const std::vector<RE::FormID>& weapons,
-                DamageType damageType, float damageMult, float baseDamage, float postureDamageMult,
                 std::uint8_t consumePoint, std::uint8_t unlockLevel, bool useIntroAnim = false);
 
   const std::string& GetName() const { return name; }
@@ -68,10 +72,6 @@ public:
   std::uint8_t GetConsumePoint() const { return consumePoint; }
   std::uint8_t GetUnlockLevel() const { return unlockLevel; }
   bool NeedPrepare() const { return needPrepare; }
-  DamageType GetDamageType() const { return damageType; }
-  float GetDamageMult() const { return damageMult; }
-  float GetBaseDamage() const { return baseDamage; }
-  float GetPostureDamageMult() const { return postureDamageMult; }
 
   bool IsWeaponAllowed(RE::TESObjectWEAP* weapon) const;
 
@@ -80,23 +80,14 @@ private:
   std::string name = "";
   // 战技描述
   std::string description = "";
-  // 可使用该战技的武器列表，仅当availableWeapon包含Unique标志时使用
+  // 可使用该战技的武器列表，仅当 availableWeapon 为 Unique 时使用
   std::vector<RE::FormID> weapons{};
 
   // 战技ID，用于OAR切换战技动画
   std::int32_t id = 0;
 
   // 战技可用的武器类型
-  AvailableWeapon availableWeapon = AvailableWeapon::Unique;
-  // 战技伤害类型
-  DamageType damageType = DamageType::None;
-
-  // 对于无类型伤害，直接乘以伤害倍率
-  float damageMult = 1.0f;
-  // 对于有类型伤害，应用伤害类型
-  float baseDamage = 100.0f;
-  // 战技的架势伤害倍率，乘以基础架势伤害
-  float postureDamageMult = 1.0f;
+  AvailableWeapon availableWeapon = AvailableWeapon::None;
 
   // 解锁该战技所需的战技点数
   std::uint8_t consumePoint = 0;
@@ -138,6 +129,33 @@ private:
 class Manager
 {
 public:
+  // 单变量动画变量ID，值为当前武器的战技ID，类型为int
+  // 保留0作为非法ID
+  constexpr static inline std::string_view ID = "RimCombat_WeaponArtID";
+  // 用于标志播放引入动画的变量，类型为bool
+  // 在动画开始声明
+  // PIE.@SGVI|MCO_nextattack|1
+  // PIE.@SGVI|MCO_nextpowerattack|1
+  // 记得在动画结束的前加入以下事件
+  // RimWeaponArt|PrepareEnd
+  constexpr static inline std::string_view PREPARED = "RimCombat_WeaponArtPrepared";
+  // bool图变量
+  // 表示当前的战技系统状态
+  constexpr static inline std::string_view ENABLED = "RimCombat_WeaponArtEnabled";
+  // bool图变量
+  // 战技进行中
+  constexpr static inline std::string_view PERFORMING = "RimCombat_WeaponArtPerforming";
+  // 战技系统事件
+  // payload用于传递信息
+  // Start标志战技动作开始，设置PERFORMING为true
+  // End标志战技动作结束，设置PERFORMING为false
+  // PrepareEnd标志战技准备动画结束，设置ENABLED为true
+  // ToPrepare标志进入战技准备状态，设置ENABLED为false，PREPARED为true
+  // Stamina|xxx|yyy用于同时表示消耗基础耐力和耐力消耗倍率
+  // Posture|xxx|yyy用于同时表示基础架势伤害和架势伤害倍率
+  // xxx为0时表示使用默认基础耐力消耗，yyy为0时表示不消耗耐力
+  constexpr static inline std::string_view RIMWEAPONART = "RimWeaponArt";
+
   static Manager& GetSingleton()
   {
     static Manager singleton;
@@ -159,26 +177,16 @@ public:
   static void UpdateWeaponArt(RE::Actor* actor);
 
   static bool IsEnabled(RE::Actor* actor);
-
   static bool IsPrepared(RE::Actor* actor);
+  static bool IsPerforming(RE::Actor* actor);
 
-  static void EnableWeaponArt(RE::Actor* actor, bool enable);
+  static void SetPrepare(RE::Actor* actor, bool prepare);
+  static void SetEnabled(RE::Actor* actor, bool enable);
+
+  static void SwitchWeaponArt(RE::Actor* actor, bool enable);
 
 private:
   Manager();
-
-  // 单变量动画变量ID，值为当前武器的战技ID，类型为int
-  // 保留0作为非法ID
-  const static inline std::string_view ID = "RimCombat_WeaponArtID";
-  // 用于标志播放引入动画的变量，类型为bool
-  // 在动画开始声明
-  // PIE.@SGVI|MCO_nextattack|1
-  // PIE.@SGVI|MCO_nextpowerattack|1
-  // 记得在动画结束的前0.1s加入以下事件
-  // PIE.@SGVB|RimCombat_WeaponArtPrepared|1
-  const static inline std::string_view PREPARED = "RimCombat_WeaponArtPrepared";
-  // 战技系统开关 bool
-  const static inline std::string_view ENABLED = "RimCombat_WeaponArtEnabled";
 
   // 战技ID映射，无需序列化，根据配置信息初始化
   static inline std::unordered_map<std::int32_t, WeaponArtInfo> artMap;

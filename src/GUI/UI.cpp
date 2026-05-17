@@ -1,5 +1,7 @@
 #include "GUI/UI.h"
 
+#include "GUI/Localization.h"
+
 #include "Combat/Posture.h"
 #include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
@@ -21,6 +23,55 @@ static TRUEHUD_API::IVTrueHUD4* truehud   = nullptr;
 
 namespace
 {
+  constexpr std::uint64_t kWeaponArtMenuRefreshInterval = 200;
+
+  std::string ResolveLabel(std::string_view key, std::string_view fallback = "")
+  {
+    if (key.empty())
+      return std::string(fallback);
+
+    auto& entry = Localization::GetLocalization(Utils::hash(std::string(key)));
+    if (!entry.label.empty() && entry.label != "null")
+      return entry.label;
+
+    return fallback.empty() ? std::string(key) : std::string(fallback);
+  }
+
+  template <class Enum>
+  std::string ResolveEnumLabel(Enum value, std::string_view fallback = "")
+  {
+    auto key = magic_enum::enum_name(value);
+    if (key.empty())
+      return std::string(fallback);
+
+    return ResolveLabel(key, key);
+  }
+
+  std::string ResolveWeaponArtStateLabel(UI::WeaponArtHUD::State state)
+  {
+    switch (state) {
+    case UI::WeaponArtHUD::State::Disable:
+      return ResolveLabel("WeaponArtHUDStateDisable", "Disabled");
+    case UI::WeaponArtHUD::State::Prepare:
+      return ResolveLabel("WeaponArtHUDStatePrepare", "Preparing");
+    case UI::WeaponArtHUD::State::Enable:
+      return ResolveLabel("WeaponArtHUDStateEnable", "Enabled");
+    default:
+      return ResolveLabel("WeaponArtHUDStateDisable", "Disabled");
+    }
+  }
+
+  std::string ResolveWeaponArtName(std::int32_t artID)
+  {
+    if (artID == 0)
+      return ResolveLabel("WeaponArtUnassigned", "Unassigned");
+
+    if (auto* art = WeaponArt::Manager::GetWeaponArtInfo(artID))
+      return art->GetName();
+
+    return ResolveLabel("WeaponArtUnknown", "Unknown Weapon Art");
+  }
+
   std::optional<std::int32_t> ParseArtID(const char* arg)
   {
     if (!arg || !*arg)
@@ -156,6 +207,15 @@ WeaponArtMenu::~WeaponArtMenu()
   view = 0;
 }
 
+RE::FormID WeaponArtMenu::GetSelectedObjectFormID()
+{
+  auto* itemEntry = Utils::GetSelectedItemEntry();
+  if (!itemEntry || !itemEntry->object)
+    return 0;
+
+  return itemEntry->object->GetFormID();
+}
+
 RE::TESObjectWEAP* WeaponArtMenu::GetSelectedWeapon()
 {
   auto* itemEntry = Utils::GetSelectedItemEntry();
@@ -176,8 +236,21 @@ void WeaponArtMenu::OnViewReady(PrismaView readyView)
   if (!isShow && prisma && prisma->IsValid(readyView))
     prisma->Hide(readyView);
 
+  SyncViewConfig();
+
   if (isShow)
     SyncViewData();
+}
+
+void WeaponArtMenu::SyncViewConfig()
+{
+  if (!prisma || !prisma->IsValid(view) || !domReady)
+    return;
+
+  json payload = {{"startPercent", Settings::fWeaponArtMenuStartPercent}};
+
+  auto data = payload.dump();
+  prisma->InteropCall(view, "setMenuConfig", data.c_str());
 }
 
 void WeaponArtMenu::SyncViewData()
@@ -193,17 +266,15 @@ void WeaponArtMenu::SyncViewData()
   auto* selectedWeapon      = GetSelectedWeapon();
   std::int32_t currentArtID = 0;
   if (selectedWeapon) {
-    currentArtID         = WeaponArt::Manager::GetWeaponArtID(selectedWeapon);
-    auto* currentArtInfo = WeaponArt::Manager::GetWeaponArtInfo(currentArtID);
-    auto* weaponName     = selectedWeapon->GetName();
+    currentArtID     = WeaponArt::Manager::GetWeaponArtID(selectedWeapon);
+    auto* weaponName = selectedWeapon->GetName();
 
-    // TODO 以后使用本地化键来获取名称，暂时直接显示英文名
     payload["selectedWeapon"] = {
         {"name", weaponName ? weaponName : ""},
-        {"formId", std::format("{:08X}", selectedWeapon->GetFormID())},
-        {"type", magic_enum::enum_name(Weapon::GetWeaponType(selectedWeapon))},
+        {"type", ResolveEnumLabel(Weapon::GetWeaponType(selectedWeapon),
+                                  ResolveLabel("UnknownWeaponType", "Unknown"))},
         {"currentArtId", currentArtID},
-        {"currentArtName", currentArtInfo ? currentArtInfo->GetName() : "Unassigned"}};
+        {"currentArtName", ResolveWeaponArtName(currentArtID)}};
   } else {
     payload["selectedWeapon"] = nullptr;
   }
@@ -218,10 +289,7 @@ void WeaponArtMenu::SyncViewData()
                     {"description", art->GetDescription()},
                     {"consumePoint", art->GetConsumePoint()},
                     {"unlockLevel", art->GetUnlockLevel()},
-                    {"damageType", magic_enum::enum_name(art->GetDamageType())},
-                    {"damageMult", art->GetDamageMult()},
-                    {"baseDamage", art->GetBaseDamage()},
-                    {"postureDamageMult", art->GetPostureDamageMult()},
+                    {"needPrepare", art->NeedPrepare()},
                     {"unlocked", unlocked},
                     {"weaponAllowed", weaponAllowed},
                     {"isAssigned", selectedWeapon && currentArtID == art->GetID()}});
@@ -231,6 +299,25 @@ void WeaponArtMenu::SyncViewData()
 
   auto data = payload.dump();
   prisma->InteropCall(view, "setMenuState", data.c_str());
+}
+
+void WeaponArtMenu::Update()
+{
+  if (!prisma || !prisma->IsValid(view) || !domReady || !isShow || !inventoryMenuShow)
+    return;
+
+  const auto now = Utils::GetTime<std::chrono::milliseconds>();
+  if (now - lastSyncTime < kWeaponArtMenuRefreshInterval)
+    return;
+
+  lastSyncTime = now;
+
+  const auto selectedObjectFormID = GetSelectedObjectFormID();
+  if (selectedObjectFormID == lastSelectedObjectFormID)
+    return;
+
+  lastSelectedObjectFormID = selectedObjectFormID;
+  SyncViewData();
 }
 
 void WeaponArtMenu::Toggle()
@@ -246,9 +333,12 @@ void WeaponArtMenu::Show()
   if (!prisma || !prisma->IsValid(view) || !inventoryMenuShow)
     return;
 
-  isShow = true;
+  isShow                   = true;
+  lastSyncTime             = 0;
+  lastSelectedObjectFormID = static_cast<RE::FormID>(-1);
   prisma->Show(view);
   prisma->Focus(view);
+  SyncViewConfig();
   if (domReady)
     SyncViewData();
 }
@@ -258,7 +348,9 @@ void WeaponArtMenu::Hide()
   if (!prisma || !prisma->IsValid(view))
     return;
 
-  isShow = false;
+  isShow                   = false;
+  lastSyncTime             = 0;
+  lastSelectedObjectFormID = 0;
   prisma->Unfocus(view);
   prisma->Hide(view);
 }
@@ -340,7 +432,14 @@ void WeaponArtHUD::Show()
   SyncViewConfig();
 
   UpdateName(WeaponArt::Manager::GetActorWeaponArtID(RE::PlayerCharacter::GetSingleton()));
-  UpdateState(WeaponArt::Manager::IsEnabled(RE::PlayerCharacter::GetSingleton()));
+  auto state   = State::Disable;
+  auto prepare = WeaponArt::Manager::IsPrepared(RE::PlayerCharacter::GetSingleton());
+  auto enable  = WeaponArt::Manager::IsEnabled(RE::PlayerCharacter::GetSingleton());
+  if (enable)
+    state = State::Enable;
+  else if (prepare)
+    state = State::Prepare;
+  UpdateState(state);
 }
 
 void WeaponArtHUD::Hide()
@@ -352,12 +451,13 @@ void WeaponArtHUD::Hide()
   prisma->Hide(view);
 }
 
-void WeaponArtHUD::UpdateState(bool enable)
+void WeaponArtHUD::UpdateState(State state)
 {
   if (!prisma || !prisma->IsValid(view) || !domReady || !isShow)
     return;
 
-  json payload = {{"enabled", enable}};
+  json payload = {{"state", static_cast<std::uint8_t>(state)},
+                  {"text", ResolveWeaponArtStateLabel(state)}};
 
   auto data = payload.dump();
   prisma->InteropCall(view, "setHudState", data.c_str());
@@ -381,21 +481,11 @@ void WeaponArtHUD::SyncViewConfig()
 
   json payload = {{"x", Settings::fWeaponArtHUDPosX},
                   {"y", Settings::fWeaponArtHUDPosY},
-                  {"scale", Settings::fWeaponArtHUDScale}};
+                  {"scale", Settings::fWeaponArtHUDScale},
+                  {"label", ResolveLabel("WeaponArtHUDLabel", "Weapon Art")},
+                  {"defaultName", ResolveLabel("WeaponArtUnassigned", "Unassigned")}};
 
   auto data = payload.dump();
   prisma->InteropCall(view, "setHudConfig", data.c_str());
 }
-
-std::string WeaponArtHUD::ResolveWeaponArtName(std::int32_t artID)
-{
-  if (artID == 0)
-    return "No Weapon Art";
-
-  if (auto* art = WeaponArt::Manager::GetWeaponArtInfo(artID))
-    return art->GetName();
-
-  return "Unknown Weapon Art";
-}
-
 }  // namespace UI

@@ -1,7 +1,7 @@
 {
-  "name": "Unshethe - Prepare",
+  "name": "Impaling Thrust",
   "description": "None",
-  "priority": 2064141004,
+  "priority": 2064141070,
   "conditions": [
     {
       "condition": "AND",
@@ -16,14 +16,14 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": -865029576
+            "value": 852715535
           }
         },
         {
           "condition": "CompareValues",
           "requiredVersion": "1.0.0.0",
           "Value A": {
-            "graphVariable": "RimCombat_WeaponArtPrepared",
+            "graphVariable": "RimCombat_WeaponArtEnabled",
             "graphVariableType": "Bool"
           },
           "Comparison": "==",

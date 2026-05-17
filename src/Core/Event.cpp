@@ -52,6 +52,18 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "blockstop"_h:
     Block::EndBlock(actor);
     break;
+  case "rimweaponart"_h: {
+    if (payload == "start")
+      actor->SetGraphVariableBool(WeaponArt::Manager::PERFORMING, true);
+    else if (payload == "end")
+      actor->SetGraphVariableBool(WeaponArt::Manager::PERFORMING, false);
+    else if (payload == "prepareend")
+      WeaponArt::Manager::SetEnabled(actor, true);
+    else if (payload == "toprepare")
+      WeaponArt::Manager::SetPrepare(actor, true);
+    else if (payload.starts_with("stamina|"))
+      Stamina::WeaponArtStaminaConsume(actor, payload.substr(8));
+  } break;
   case "killactor"_h:
     // 如果进入处决状态，忽略KillMove的处决事件
     if (Execution::IsExecutingVictim(actor))
@@ -60,8 +72,8 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "rimexecution"_h: {
     if (payload == "end")
       Execution::ExecutionEnd(actor);
-    else if (payload.starts_with("damage_"))
-      Execution::ApplyExecutionDamage(actor, payload);
+    else if (payload.starts_with("damage|"))
+      Execution::ApplyExecutionDamage(actor, payload.substr(7));
     // 等待拓展
   } break;
   case "staggerstart"_h:
@@ -102,6 +114,10 @@ RE::BSEventNotifyControl
 MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
                         RE::BSTEventSource<RE::MenuOpenCloseEvent>* eventSource)
 {
+  auto ui = RE::UI::GetSingleton();
+  if (!ui)
+    return RE::BSEventNotifyControl::kContinue;
+
   // 监听物品栏菜单的开关来同步战技菜单的显示状态
   if (event->menuName == RE::InventoryMenu::MENU_NAME) {
     if (event->opening)
@@ -110,13 +126,23 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
       UI::WeaponArtMenu::SetInventoryMenuOpen(false);
   }
 
+  bool showHUD = false;
+
   // 跟随HUD菜单的开关来显示/隐藏战技HUD
-  if (event->menuName == RE::HUDMenu::MENU_NAME || event->menuName == "TrueHUD") {
-    if (event->opening)
-      UI::WeaponArtHUD::Show();
-    else
-      UI::WeaponArtHUD::Hide();
-  }
+  if (ui->IsMenuOpen(RE::HUDMenu::MENU_NAME) || ui->IsMenuOpen("TrueHUD"))
+    showHUD = true;
+
+  if (ui->IsMenuOpen(RE::MainMenu::MENU_NAME) || ui->IsMenuOpen(RE::LoadingMenu::MENU_NAME) ||
+      ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME) || ui->IsMenuOpen(RE::MagicMenu::MENU_NAME) ||
+      ui->IsMenuOpen(RE::BarterMenu::MENU_NAME) || ui->IsMenuOpen(RE::CraftingMenu::MENU_NAME) ||
+      ui->IsMenuOpen(RE::Console::MENU_NAME) || ui->IsMenuOpen(RE::JournalMenu::MENU_NAME))
+    showHUD = false;
+
+  if (showHUD)
+    UI::WeaponArtHUD::Show();
+  else
+    UI::WeaponArtHUD::Hide();
+
   return RE::BSEventNotifyControl::kContinue;
 }
 
@@ -135,8 +161,11 @@ void InputEvent::ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
           UI::WeaponArtMenu::Toggle();
         // Left Alt key code
         else if (auto player = RE::PlayerCharacter::GetSingleton();
-                 buttonEvent->GetIDCode() == 56 && player)
-          WeaponArt::Manager::EnableWeaponArt(player, !WeaponArt::Manager::IsEnabled(player));
+                 buttonEvent->GetIDCode() == 56 && player) {
+          auto enabled  = WeaponArt::Manager::IsEnabled(player);
+          auto prepared = WeaponArt::Manager::IsPrepared(player);
+          WeaponArt::Manager::SwitchWeaponArt(player, !(enabled || prepared));
+        }
       }
     }
   }

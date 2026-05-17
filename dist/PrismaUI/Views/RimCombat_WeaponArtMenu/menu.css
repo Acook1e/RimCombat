@@ -1,4 +1,5 @@
 :root {
+    --menu-start: 50%;
     --bg: #08131b;
     --bg-soft: rgba(10, 21, 31, 0.86);
     --panel: rgba(12, 24, 35, 0.86);
@@ -22,19 +23,17 @@
 html,
 body {
     margin: 0;
-    min-height: 100%;
+    width: 100%;
+    height: 100%;
     font-family: "Bahnschrift", "Trebuchet MS", "Segoe UI", sans-serif;
     color: var(--text);
-    background:
-        radial-gradient(circle at top left, rgba(255, 216, 128, 0.08), transparent 28%),
-        radial-gradient(circle at right 18%, rgba(88, 148, 173, 0.15), transparent 24%),
-        linear-gradient(135deg, #04080d 0%, #0a1822 48%, #09131b 100%);
+    background: transparent;
     overflow: hidden;
 }
 
 body {
     position: relative;
-    padding: 32px;
+    pointer-events: none;
 }
 
 button,
@@ -69,14 +68,18 @@ input {
 }
 
 .shell {
-    position: relative;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--menu-start);
     z-index: 1;
     display: grid;
     grid-template-rows: auto 1fr auto;
-    gap: 20px;
-    width: min(1380px, 100%);
-    height: calc(100vh - 64px);
-    margin: 0 auto;
+    gap: 16px;
+    padding: 16px;
+    min-width: 420px;
+    pointer-events: auto;
     animation: shell-in 240ms ease-out;
 }
 
@@ -113,7 +116,7 @@ input {
     display: flex;
     justify-content: space-between;
     gap: 24px;
-    padding: 24px 28px;
+    padding: 20px 22px;
 }
 
 .topbar-actions {
@@ -220,13 +223,21 @@ h2 {
 
 .layout {
     display: grid;
-    grid-template-columns: minmax(360px, 0.92fr) minmax(420px, 1.08fr);
-    gap: 20px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 16px;
     min-height: 0;
 }
 
 .list-panel,
-.detail-column {
+.art-column,
+.detail-panel {
+    min-height: 0;
+}
+
+.art-column {
+    display: grid;
+    grid-template-rows: minmax(220px, 0.95fr) minmax(0, 1.05fr);
+    gap: 16px;
     min-height: 0;
 }
 
@@ -314,12 +325,12 @@ h2 {
 }
 
 .art-list::-webkit-scrollbar,
-.detail-column::-webkit-scrollbar {
+.detail-panel::-webkit-scrollbar {
     width: 10px;
 }
 
 .art-list::-webkit-scrollbar-thumb,
-.detail-column::-webkit-scrollbar-thumb {
+.detail-panel::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: rgba(255, 223, 147, 0.24);
 }
@@ -384,13 +395,6 @@ h2 {
     -webkit-line-clamp: 2;
 }
 
-.detail-column {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    gap: 20px;
-    min-height: 0;
-}
-
 .weapon-panel,
 .detail-panel,
 .footer-hint {
@@ -398,7 +402,7 @@ h2 {
 }
 
 .weapon-panel {
-    min-height: 220px;
+    min-height: 180px;
 }
 
 .detail-panel {
@@ -510,13 +514,12 @@ h2 {
 
 @media (max-width: 1080px) {
     body {
-        padding: 16px;
-        overflow: auto;
+        overflow: hidden;
     }
 
     .shell {
-        height: auto;
-        min-height: calc(100vh - 32px);
+        left: max(20%, var(--menu-start));
+        min-width: 0;
     }
 
     .topbar,

@@ -6,14 +6,28 @@ const elements = {
     status: document.getElementById("hud-status"),
 };
 
+const hudText = {
+    label: "Weapon Art",
+    defaultName: "Unassigned",
+    disabled: "Disabled",
+    preparing: "Preparing",
+    enabled: "Enabled",
+};
+
 function setHudState(payload) {
     try {
         const data = JSON.parse(payload);
-        const enabled = Boolean(data.enabled);
+        const state = Number(data.state ?? 0);
 
-        elements.status.textContent = enabled ? "Enabled" : "Disabled";
-        elements.shell.classList.toggle("is-enabled", enabled);
-        elements.shell.classList.toggle("is-disabled", !enabled);
+        const isDisabled = state === 0;
+        const isPrepare = state === 1;
+        const isEnabled = state === 2;
+
+        elements.status.textContent =
+            data.text || (isEnabled ? hudText.enabled : isPrepare ? hudText.preparing : hudText.disabled);
+        elements.shell.classList.toggle("is-enabled", isEnabled);
+        elements.shell.classList.toggle("is-prepare", isPrepare);
+        elements.shell.classList.toggle("is-disabled", isDisabled);
     } catch (error) {
         console.error("WeaponArtHUD: failed to parse state", error, payload);
     }
@@ -22,7 +36,7 @@ function setHudState(payload) {
 function setHudName(payload) {
     try {
         const data = JSON.parse(payload);
-        elements.name.textContent = data.name || "Unknown Weapon Art";
+        elements.name.textContent = data.name || hudText.defaultName;
     } catch (error) {
         console.error("WeaponArtHUD: failed to parse name", error, payload);
     }
@@ -40,6 +54,16 @@ function setHudConfig(payload) {
         }
         if (typeof data.scale === "number") {
             document.documentElement.style.setProperty("--hud-scale", String(data.scale));
+        }
+        if (typeof data.label === "string" && data.label) {
+            hudText.label = data.label;
+            elements.label.textContent = data.label;
+        }
+        if (typeof data.defaultName === "string" && data.defaultName) {
+            hudText.defaultName = data.defaultName;
+            if (!elements.name.textContent) {
+                elements.name.textContent = data.defaultName;
+            }
         }
     } catch (error) {
         console.error("WeaponArtHUD: failed to parse config", error, payload);

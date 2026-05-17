@@ -184,7 +184,8 @@ namespace
                          {"UseWeaponArtHUD", bUseWeaponArtHUD},
                          {"WeaponArtHUDPosX", fWeaponArtHUDPosX},
                          {"WeaponArtHUDPosY", fWeaponArtHUDPosY},
-                         {"WeaponArtHUDScale", fWeaponArtHUDScale}};
+                         {"WeaponArtHUDScale", fWeaponArtHUDScale},
+                         {"WeaponArtMenuStartPercent", fWeaponArtMenuStartPercent}};
 
     json execution = {{"UseExecutionSystem", bUseExecutionSystem},
                       {"ExitExecutionOnHit", bExitExecutionOnHit},
@@ -353,6 +354,7 @@ void LoadSettings()
     LoadSetting(weaponArt, "WeaponArt", "WeaponArtHUDPosX", fWeaponArtHUDPosX);
     LoadSetting(weaponArt, "WeaponArt", "WeaponArtHUDPosY", fWeaponArtHUDPosY);
     LoadSetting(weaponArt, "WeaponArt", "WeaponArtHUDScale", fWeaponArtHUDScale);
+    LoadSetting(weaponArt, "WeaponArt", "WeaponArtMenuStartPercent", fWeaponArtMenuStartPercent);
   }
 
   if (const auto it = root.find("Execution"); it != root.end() && it->is_object()) {

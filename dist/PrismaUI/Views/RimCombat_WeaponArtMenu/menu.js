@@ -27,10 +27,6 @@ function callPrismaListener(name, payload = "") {
     }
 }
 
-function formatId(id) {
-    return typeof id === "number" ? id.toString() : "0";
-}
-
 function badge(label, tone = "warn") {
     return `<span class="badge ${tone}">${label}</span>`;
 }
@@ -106,6 +102,7 @@ function renderList() {
                 art.unlocked ? badge("Unlocked", "ok") : badge("Locked", "bad"),
                 badge(`Lv ${art.unlockLevel}`, "warn"),
                 badge(`Cost ${art.consumePoint}`, "warn"),
+                badge(art.needPrepare ? "Prepare" : "Instant", "warn"),
             ];
 
             if (state.selectedWeapon) {
@@ -128,8 +125,7 @@ function renderList() {
 					style="animation-delay:${index * 28}ms"
 				>
 					<div class="art-item-title">
-						<strong>${art.name}</strong>
-						<span class="art-item-id">${formatId(art.id)}</span>
+                        <strong>${art.name}</strong>
 					</div>
 					<div class="art-item-meta">${tags.join("")}</div>
 					<p class="art-item-copy">${art.description}</p>
@@ -174,8 +170,7 @@ function renderWeaponPanel() {
 			${badge(state.selectedWeapon.currentArtName || "Unassigned", state.selectedWeapon.currentArtId ? "ok" : "warn")}
 		</div>
 		<div class="weapon-meta">
-			${badge(state.selectedWeapon.type || "Unknown", "warn")}
-			${badge(`Form ${state.selectedWeapon.formId}`, "warn")}
+            ${badge(state.selectedWeapon.type || "Unknown", "warn")}
 		</div>
 		<p class="weapon-description">The highlighted weapon art can be bound to this weapon if it is unlocked and compatible.</p>`;
 }
@@ -211,7 +206,7 @@ function renderDetail() {
         badge(art.unlocked ? "Unlocked" : "Locked", art.unlocked ? "ok" : "bad"),
         badge(`Lv ${art.unlockLevel}`, "warn"),
         badge(`Cost ${art.consumePoint}`, "warn"),
-        badge(art.damageType || "None", "warn"),
+        badge(art.needPrepare ? "Prepare" : "Instant", "warn"),
     ];
 
     if (state.selectedWeapon) {
@@ -230,15 +225,14 @@ function renderDetail() {
 				<p class="eyebrow">Selected Art</p>
 				<h2 class="detail-name">${art.name}</h2>
 			</div>
-			<span class="counter-pill">${formatId(art.id)}</span>
 		</div>
 		<div class="tag-row">${statusBadges.join("")}</div>
 		<p class="detail-description">${art.description}</p>
 		<div class="detail-grid">
-			${metricCard("Damage Type", art.damageType || "None")}
-			${metricCard("Damage Mult", Number(art.damageMult ?? 0).toFixed(2))}
-			${metricCard("Base Damage", Number(art.baseDamage ?? 0).toFixed(1))}
-			${metricCard("Posture Mult", Number(art.postureDamageMult ?? 0).toFixed(2))}
+            ${metricCard("Unlock Level", String(art.unlockLevel))}
+            ${metricCard("Point Cost", String(art.consumePoint))}
+            ${metricCard("Activation", art.needPrepare ? "Prepare" : "Instant")}
+            ${metricCard("Assignment", art.isAssigned ? "Assigned" : "Available")}
 		</div>
 		<div class="action-row">
 			<button class="action-button primary" id="unlock-button" type="button" ${art.unlocked || unlockBlocked ? "disabled" : ""}>
@@ -302,6 +296,17 @@ function renderAll() {
     renderDetail();
     renderList();
 }
+
+window.setMenuConfig = function setMenuConfig(payload) {
+    try {
+        const data = JSON.parse(payload);
+        if (typeof data.startPercent === "number") {
+            document.documentElement.style.setProperty("--menu-start", `${data.startPercent}%`);
+        }
+    } catch (error) {
+        console.error("Failed to apply weapon art menu config", error, payload);
+    }
+};
 
 window.setMenuState = function setMenuState(payload) {
     try {

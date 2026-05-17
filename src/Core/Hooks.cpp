@@ -5,6 +5,7 @@
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
 #include "Combat/WeaponArt.h"
+#include "GUI/UI.h"
 #include "Utils.h"
 
 #include "detours.h"
@@ -18,11 +19,6 @@ namespace
   {
 
     if (!actor)
-      return false;
-
-    auto right = actor->GetEquippedObject(false);
-    // 右手装备不是武器不禁用攻击
-    if (right && !right->IsWeapon())
       return false;
 
     if (actor->IsPlayerRef()) {
@@ -60,6 +56,9 @@ void Hook_OnMainUpdate::MainUpdate()
   // 更新Utils提供的主线程接口
   Utils::MainUpdate();
 
+  // 更新战技菜单选中物品同步
+  UI::WeaponArtMenu::Update();
+
   // 更新格挡系统
   Block::Update();
 
@@ -87,26 +86,41 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   if (!victim || !aggressor || victim->IsDead())
     return _ProcessHit(victim, hitData);
 
+  // 第一部分：根据状态修正数值
+
+  // 处决状态增伤
+  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
+    hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
+
+  // 力竭状态增伤
+  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
+    hitData.totalDamage *= Settings::fOnHitDamageMultWhenExhausted;
+
+  // 第二部分：处理各个模块的攻击处理
+
   if (hitData.flags.any(RE::HitData::Flag::kBlocked)) {
     Block::ProcessBlock(victim);
     Block::ProcessDamage(victim, hitData);
   }
 
-  // 处决状态受击
-
-  // 如果设置处决状态被击打时退出，则在此处退出
-  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim)) {
-    hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
-    Execution::ExitExecutable(victim);
-  }
-
   Posture::ProcessMeleeHit(aggressor, victim, hitData);
 
+  // 战技经验应该是根据最终伤害来计算的，所以放在最后处理
+  if (aggressor->IsPlayerRef() && WeaponArt::Manager::IsPerforming(aggressor))
+    WeaponArt::PlayerStat::AddExp(hitData.totalDamage);
+
+  // 第三部分：根据设置退出状态
+  // 因为非即时的退出，可能导致更新带来的状态变更
+  // 但因为在同一个函数且逻辑不重
+  // 1ms的延迟应该不会带来明显的问题，同时也能保证状态变更的正确性
+
+  // 如果设置处决状态被击打时退出，则在此处退出
+  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
+    Execution::ExitExecutable(victim);
+
   // 如果设置了被击打时退出力竭状态，则在此处退出
-  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim)) {
-    hitData.totalDamage *= Settings::fOnHitDamageMultWhenExhausted;
+  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
     Exhausted::ExitExhausted(victim);
-  }
 
   _ProcessHit(victim, hitData);
 }

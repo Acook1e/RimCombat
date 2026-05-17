@@ -41,6 +41,7 @@ public:
   static bool IsInventoryMenuShow() { return inventoryMenuShow; }
 
   static void Toggle();
+  static void Update();
   static void Show();
   static void Hide();
   static void SetInventoryMenuOpen(bool open);
@@ -52,18 +53,29 @@ private:
   ~WeaponArtMenu();
 
   static void OnViewReady(PrismaView readyView);
+  static void SyncViewConfig();
   static void SyncViewData();
+  static RE::FormID GetSelectedObjectFormID();
   static RE::TESObjectWEAP* GetSelectedWeapon();
 
   static inline PrismaView view{0};
   static inline bool isShow{false};
   static inline bool domReady{false};
   static inline bool inventoryMenuShow{false};
+  static inline std::uint64_t lastSyncTime{0};
+  static inline RE::FormID lastSelectedObjectFormID{0};
 };
 
 class WeaponArtHUD
 {
 public:
+  enum class State : std::uint8_t
+  {
+    Disable,
+    Prepare,
+    Enable
+  };
+
   static WeaponArtHUD& GetSingleton()
   {
     static WeaponArtHUD singleton;
@@ -74,7 +86,7 @@ public:
   static void Show();
   static void Hide();
 
-  static void UpdateState(bool enable);
+  static void UpdateState(State state);
   static void UpdateName(std::int32_t artID);
 
 private:
@@ -83,7 +95,6 @@ private:
 
   static void OnViewReady(PrismaView readyView);
   static void SyncViewConfig();
-  static std::string ResolveWeaponArtName(std::int32_t artID);
 
   static inline PrismaView view{0};
   static inline bool isShow{false};

@@ -149,6 +149,31 @@ body {
     animation: glow-pulse 2.4s ease-in-out infinite;
 }
 
+.hud-shell.is-prepare {
+    opacity: 0.94;
+    filter: saturate(0.9) brightness(0.96);
+    border-color: rgba(142, 198, 190, 0.34);
+    box-shadow:
+        0 16px 36px rgba(0, 0, 0, 0.32),
+        0 0 24px rgba(142, 198, 190, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.hud-shell.is-prepare .glyph-core {
+    background: linear-gradient(135deg, rgba(142, 198, 190, 0.9), rgba(201, 245, 236, 0.44));
+    box-shadow: 0 0 22px rgba(142, 198, 190, 0.24);
+}
+
+.hud-shell.is-prepare .glyph-ring {
+    border-color: rgba(142, 198, 190, 0.52);
+    box-shadow: 0 0 20px rgba(142, 198, 190, 0.14);
+}
+
+.hud-shell.is-prepare .hud-status {
+    color: #0e1b19;
+    background: linear-gradient(135deg, rgba(142, 198, 190, 0.92), rgba(201, 245, 236, 0.84));
+}
+
 .hud-shell.is-disabled {
     opacity: 0.78;
     filter: saturate(0.48) brightness(0.72);

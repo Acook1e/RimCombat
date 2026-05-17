@@ -18,5 +18,141 @@
     "Debug": {
         "label": "Debug",
         "description": ""
+    },
+    "UnknownWeaponType": {
+        "label": "Unknown",
+        "description": ""
+    },
+    "WeaponArtUnassigned": {
+        "label": "Unassigned",
+        "description": ""
+    },
+    "WeaponArtUnknown": {
+        "label": "Unknown Weapon Art",
+        "description": ""
+    },
+    "WeaponArtHUDLabel": {
+        "label": "Weapon Art",
+        "description": ""
+    },
+    "WeaponArtHUDStateDisable": {
+        "label": "Disabled",
+        "description": ""
+    },
+    "WeaponArtHUDStatePrepare": {
+        "label": "Preparing",
+        "description": ""
+    },
+    "WeaponArtHUDStateEnable": {
+        "label": "Enabled",
+        "description": ""
+    },
+    "Unarm": {
+        "label": "Unarmed",
+        "description": ""
+    },
+    "Werewolf": {
+        "label": "Werewolf",
+        "description": ""
+    },
+    "Werebear": {
+        "label": "Werebear",
+        "description": ""
+    },
+    "VampireLord": {
+        "label": "Vampire Lord",
+        "description": ""
+    },
+    "Dagger": {
+        "label": "Dagger",
+        "description": ""
+    },
+    "Claw": {
+        "label": "Claw",
+        "description": ""
+    },
+    "Sword": {
+        "label": "Sword",
+        "description": ""
+    },
+    "Rapier": {
+        "label": "Rapier",
+        "description": ""
+    },
+    "Katana": {
+        "label": "Katana",
+        "description": ""
+    },
+    "WarAxe": {
+        "label": "War Axe",
+        "description": ""
+    },
+    "Mace": {
+        "label": "Mace",
+        "description": ""
+    },
+    "Cestus": {
+        "label": "Cestus",
+        "description": ""
+    },
+    "Whip": {
+        "label": "Whip",
+        "description": ""
+    },
+    "ShortSpear": {
+        "label": "Short Spear",
+        "description": ""
+    },
+    "GreatSword": {
+        "label": "Great Sword",
+        "description": ""
+    },
+    "GreatKatana": {
+        "label": "Great Katana",
+        "description": ""
+    },
+    "BattleAxe": {
+        "label": "Battle Axe",
+        "description": ""
+    },
+    "WarHammer": {
+        "label": "War Hammer",
+        "description": ""
+    },
+    "Quarterstaff": {
+        "label": "Quarterstaff",
+        "description": ""
+    },
+    "Glaive": {
+        "label": "Glaive",
+        "description": ""
+    },
+    "Pike": {
+        "label": "Pike",
+        "description": ""
+    },
+    "Halberd": {
+        "label": "Halberd",
+        "description": ""
+    },
+    "Bow": {
+        "label": "Bow",
+        "description": ""
+    },
+    "Crossbow": {
+        "label": "Crossbow",
+        "description": ""
+    },
+    "Staff": {
+        "label": "Staff",
+        "description": ""
+    },
+    "Shield": {
+        "label": "Shield",
+        "description": ""
+    },
+    "Torch": {
+        "label": "Torch",
+        "description": ""
     }
 }

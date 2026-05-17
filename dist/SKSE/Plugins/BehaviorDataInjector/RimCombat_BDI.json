@@ -20,6 +20,17 @@
     {
         "projectPath": "Actors",
         "type": "kBool",
+        "name": "RimCombat_WeaponArtPerforming",
+        "value": false
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kEvent",
+        "name": "RimWeaponArt"
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kBool",
         "name": "RimCombat_Executable",
         "value": false
     },

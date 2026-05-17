@@ -465,18 +465,17 @@ void Execution::ApplyExecutionDamage(RE::Actor* victim, std::string payload)
   if (!aggressor)
     return;
 
-  // payload格式：damage_xxx，xxx为伤害倍率
-  if (!payload.starts_with("damage_"))
-    return;
-
   float damageMult = 1.0f;
   try {
-    damageMult = std::stof(payload.substr(7));
+    damageMult = std::stof(payload);
   } catch (const std::exception& e) {
     logger::error("Execution::ApplyExecutionDamage: Invalid damage multiplier in payload: {}",
                   payload);
     return;
   }
+
+  if (damageMult <= 0.0f)
+    return;
 
   float baseDamage = aggressor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kUnarmedDamage);
   if (auto right = aggressor->GetEquippedObject(false); right && right->IsWeapon()) {

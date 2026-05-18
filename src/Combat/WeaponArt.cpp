@@ -1,5 +1,6 @@
 #include "Combat/WeaponArt.h"
 
+#include "Combat/Stamina.h"
 #include "GUI/UI.h"
 
 #include "magic_enum/magic_enum_flags.hpp"
@@ -591,5 +592,17 @@ void Manager::SwitchWeaponArt(RE::Actor* actor, bool enable)
   } else {
     SetEnabled(actor, false);
   }
+}
+
+void Manager::PayloadParse(RE::Actor* actor, const std::string& payload)
+{
+  if (payload == "start")
+    actor->SetGraphVariableBool(PERFORMING, true);
+  else if (payload == "end")
+    actor->SetGraphVariableBool(PERFORMING, false);
+  else if (payload == "prepareend")
+    WeaponArt::Manager::SetEnabled(actor, true);
+  else if (payload == "toprepare")
+    WeaponArt::Manager::SetPrepare(actor, true);
 }
 }  // namespace WeaponArt

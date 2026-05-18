@@ -119,7 +119,7 @@ void Block::ProcessDamage(RE::Actor* victim, RE::HitData& hitData)
   float maxStamina   = Utils::GetCurrentMaxActorValue(victim, RE::ActorValue::kStamina);
   auto type          = Weapon::GetBlockType(victim);
   auto blockStrength = Weapon::GetBlockStrength(type);
-  bool timedBlock    = IsTimedBlock(victim);
+  bool timedBlock    = IsTimedBlocking(victim);
 
   if (timedBlock)
     blockStrength *= Settings::fTimedBlockBlockStrengthMult;
@@ -162,7 +162,7 @@ void Block::ProcessPostureDamage(RE::Actor* aggressor, RE::Actor* victim, float 
 
   auto type          = Weapon::GetBlockType(victim);
   auto blockStrength = Weapon::GetBlockStrength(type);
-  bool timedBlock    = IsTimedBlock(victim);
+  bool timedBlock    = IsTimedBlocking(victim);
 
   if (timedBlock)
     blockStrength *= Settings::fTimedBlockBlockStrengthMult;
@@ -180,7 +180,26 @@ void Block::ProcessPostureDamage(RE::Actor* aggressor, RE::Actor* victim, float 
                               timedBlock && Settings::bTimedBlockNeverPostureBreak);
 }
 
-bool Block::IsTimedBlock(RE::Actor* actor)
+bool Block::IsBlocking(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseBlockSystem)
+    return false;
+
+  auto block = false;
+  {
+    std::lock_guard lock(mtx_blockStart);
+    block = blockStartTimes.contains(actor);
+  }
+
+  auto timedBlock = false;
+  {
+    std::shared_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
+    timedBlock = timedBlockDurationStartTimes.contains(actor);
+  }
+  return block || timedBlock || actor->IsBlocking();
+}
+
+bool Block::IsTimedBlocking(RE::Actor* actor)
 {
   if (!actor || !Settings::bUseBlockSystem || !Settings::bTimedBlockEnabled)
     return false;

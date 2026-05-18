@@ -2,6 +2,7 @@
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
+#include "Combat/Stagger.h"
 #include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Event.h"
@@ -22,6 +23,7 @@ void onPostLoad()
   WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
   Block::GetSingleton();
   Posture::GetSingleton();
+  Stagger::GetSingleton();
   Exhausted::GetSingleton();
   Execution::GetSingleton();
 }
@@ -43,10 +45,10 @@ void onPostPostLoad()
 // 依赖游戏数据的初始化必须在DataLoaded之后进行
 void onDataLoaded()
 {
-  Settings::UpdateGameSettings();
   Hooks::Install();
   Events::Install();
   Weapon::Initialize();
+  Settings::UpdateGameSettings();
 }
 
 void MessageHandler(SKSE::MessagingInterface::Message* msg)

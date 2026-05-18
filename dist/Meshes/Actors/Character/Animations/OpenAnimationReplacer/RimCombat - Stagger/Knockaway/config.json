@@ -1,0 +1,19 @@
+{
+  "name": "Knockaway",
+  "description": "None",
+  "priority": 2064144007,
+  "conditions": [
+    {
+      "condition": "CompareValues",
+      "requiredVersion": "1.0.0.0",
+      "Value A": {
+        "graphVariable": "RimCombat_StaggerLevel",
+        "graphVariableType": "Int"
+      },
+      "Comparison": "==",
+      "Value B": {
+        "value": 7
+      }
+    }
+  ]
+}

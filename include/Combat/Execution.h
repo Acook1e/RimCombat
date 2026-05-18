@@ -86,12 +86,14 @@ public:
 
   static RE::Actor* GetExecutingAggressor(RE::Actor* victim);
   static bool IsExecutingVictim(RE::Actor* victim);
-  static void ApplyExecutionDamage(RE::Actor* victim, std::string payload);
   static void ExecutionEnd(RE::Actor* aggressor);
 
   using ExecutionStartCallback =
       std::function<void(RE::Actor* aggressor, RE::Actor* victim, bool back)>;
   static void AddExecutionStartListener(ExecutionStartCallback callback);
+
+  static void PayloadParse(RE::Actor* actor, const std::string& payload);
+  static void ApplyExecutionDamage(RE::Actor* victim, const std::string& payload);
 
 private:
   Execution();

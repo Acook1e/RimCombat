@@ -36,7 +36,7 @@
 
 constexpr inline std::string_view PLUGIN_NAME = "RimCombat";
 constexpr inline std::uint32_t MOD            = 'RCBT';
-constexpr inline std::uint32_t nexusID        = 12345;  // Replace after upload
+constexpr inline std::uint32_t nexusID        = 180357;
 
 inline REL::Version RUNTIME = SKSE::RUNTIME_SSE_1_6_1170;
 

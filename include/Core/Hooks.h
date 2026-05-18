@@ -89,6 +89,16 @@ private:
   // 140626400       14064BAB0
 };
 
+class Hook_OnTryStagger
+{
+public:
+  static void Install();
+
+private:
+  static void TryStagger(RE::Actor* target, float staggerMult, RE::Actor* aggressor);
+  static inline void (*_TryStagger)(RE::Actor*, float, RE::Actor*) = nullptr;
+};
+
 class Hook_OnPlayIdle
 {
 public:

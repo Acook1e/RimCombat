@@ -151,9 +151,6 @@ public:
   // End标志战技动作结束，设置PERFORMING为false
   // PrepareEnd标志战技准备动画结束，设置ENABLED为true
   // ToPrepare标志进入战技准备状态，设置ENABLED为false，PREPARED为true
-  // Stamina|xxx|yyy用于同时表示消耗基础耐力和耐力消耗倍率
-  // Posture|xxx|yyy用于同时表示基础架势伤害和架势伤害倍率
-  // xxx为0时表示使用默认基础耐力消耗，yyy为0时表示不消耗耐力
   constexpr static inline std::string_view RIMWEAPONART = "RimWeaponArt";
 
   static Manager& GetSingleton()
@@ -184,6 +181,8 @@ public:
   static void SetEnabled(RE::Actor* actor, bool enable);
 
   static void SwitchWeaponArt(RE::Actor* actor, bool enable);
+
+  static void PayloadParse(RE::Actor* actor, const std::string& payload);
 
 private:
   Manager();

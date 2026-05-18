@@ -2,6 +2,8 @@
 
 #include "Combat/Block.h"
 #include "Combat/Execution.h"
+#include "Combat/Posture.h"
+#include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
@@ -52,30 +54,26 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "blockstop"_h:
     Block::EndBlock(actor);
     break;
-  case "rimweaponart"_h: {
-    if (payload == "start")
-      actor->SetGraphVariableBool(WeaponArt::Manager::PERFORMING, true);
-    else if (payload == "end")
-      actor->SetGraphVariableBool(WeaponArt::Manager::PERFORMING, false);
-    else if (payload == "prepareend")
-      WeaponArt::Manager::SetEnabled(actor, true);
-    else if (payload == "toprepare")
-      WeaponArt::Manager::SetPrepare(actor, true);
-    else if (payload.starts_with("stamina|"))
-      Stamina::WeaponArtStaminaConsume(actor, payload.substr(8));
-  } break;
   case "killactor"_h:
     // 如果进入处决状态，忽略KillMove的处决事件
     if (Execution::IsExecutingVictim(actor))
       return true;
     break;
-  case "rimexecution"_h: {
-    if (payload == "end")
-      Execution::ExecutionEnd(actor);
-    else if (payload.starts_with("damage|"))
-      Execution::ApplyExecutionDamage(actor, payload.substr(7));
-    // 等待拓展
-  } break;
+  case "rimstamina"_h:
+    Stamina::PayloadParse(actor, payload);
+    break;
+  case "rimposture"_h:
+    Posture::PayloadParse(actor, payload);
+    break;
+  case "rimweaponart"_h:
+    WeaponArt::Manager::PayloadParse(actor, payload);
+    break;
+  case "rimexecution"_h:
+    Execution::PayloadParse(actor, payload);
+    break;
+  case "rimstagger"_h:
+    Stagger::PayloadParse(actor, payload);
+    break;
   case "staggerstart"_h:
     break;
   case "prehitframe"_h:

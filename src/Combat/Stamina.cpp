@@ -42,7 +42,7 @@ void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }
 
-void Stamina::WeaponArtStaminaConsume(RE::Actor* actor, std::string payload)
+void Stamina::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
   if (!Settings::bUseWeaponArtSystem)
     return;
@@ -52,36 +52,48 @@ void Stamina::WeaponArtStaminaConsume(RE::Actor* actor, std::string payload)
     return;
 
   auto split = Utils::split(payload, '|');
-  if (split.size() != 2) {
-    logger::error("Stamina::WeaponArtStaminaConsume: Invalid payload format: {}", payload);
+  if (split.size() != 3) {
+    logger::error("Stamina::PayloadParse: Invalid payload format: {}", payload);
     return;
   }
 
-  float baseStaminaCost = 1.0f;
-  float staminaCostMult = 1.0f;
+  std::string attackType = split[0];
+  std::string side       = split[1];
+  float staminaCostMult  = 1.0f;
   try {
-    baseStaminaCost = std::stof(split[0]);
-    staminaCostMult = std::stof(split[1]);
+    staminaCostMult = std::stof(split[2]);
   } catch (const std::exception& e) {
-    logger::error("Stamina::WeaponArtStaminaConsume: Invalid stamina values in payload: {}",
-                  payload);
+    logger::error("Stamina::PayloadParse: Invalid stamina cost multiplier in payload: {}", payload);
     return;
   }
 
-  if (baseStaminaCost < 0.0f || staminaCostMult < 0.0f)
+  if (staminaCostMult <= 0.0f)
     return;
 
-  // 不消耗耐力
-  if (staminaCostMult == 0.0f)
+  auto type = Weapon::Type::None;
+  if (side == "left")
+    type = Weapon::GetActorEquipmentType(actor, true);
+  else if (side == "right")
+    type = Weapon::GetActorEquipmentType(actor, false);
+  else if (side == "auto") {
+    // 自动检测攻击类型，优先右手
+    auto attacking = actor->GetAttackingWeapon();
+    auto obj       = attacking ? attacking->object : nullptr;
+    if (obj && obj->IsWeapon())
+      type = Weapon::GetWeaponType(obj->As<RE::TESObjectWEAP>());
+    else
+      type = Weapon::GetActorEquipmentType(actor, false);
+  } else {
+    logger::error("Stamina::PayloadParse: Invalid side in payload: {}", payload);
     return;
-
-  // 使用默认耐力消耗
-  if (baseStaminaCost == 0.0f) {
-    // 固定使用右手武器的类型来判断战技耐力消耗，因为战技必定由右手武器触发
-    auto type       = Weapon::GetActorEquipmentType(actor, false);
-    baseStaminaCost = Weapon::GetBaseStaminaConsumption(type);
   }
 
-  float totalStaminaCost = baseStaminaCost * staminaCostMult;
+  if (type == Weapon::Type::None)
+    return;
+
+  float totalStaminaCost = Weapon::GetBaseStaminaConsumption(type) * staminaCostMult;
+  if (attackType == "powerattack")
+    totalStaminaCost *= Settings::fPowerAttackStaminaCostMult;
+
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, totalStaminaCost);
 }

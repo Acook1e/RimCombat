@@ -4,6 +4,7 @@
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Weapon.h"
+#include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
 #include "Utils.h"
@@ -33,7 +34,7 @@ Posture::Posture()
   });
 
   Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
-    std::lock_guard<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx_postureData);
     postureMap.clear();
     runtimePostureMap.clear();
 
@@ -54,15 +55,21 @@ Posture::Posture()
   });
 
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
-    std::lock_guard<std::mutex> lock(mtx);
-    postureMap.clear();
-    runtimePostureMap.clear();
+    {
+      std::scoped_lock lock(mtx_postureData);
+      postureMap.clear();
+      runtimePostureMap.clear();
+    }
+    {
+      std::scoped_lock lock(mtx_damageCache);
+      damageCache.clear();
+    }
   });
 }
 
 void Posture::Update(std::uint64_t deltaTime)
 {
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_postureData);
   auto now = Utils::GetTime<std::chrono::milliseconds>();
 
   const auto update = [&](RE::Actor* actor, PostureData& data) {
@@ -116,7 +123,7 @@ void Posture::ReCalculateMaxPosture(RE::Actor* actor)
   if (!actor || !Settings::bUsePostureSystem)
     return;
 
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_postureData);
   float maxPosture = CalculateMaxPosture(actor);
   auto& data       = GetPostureDataRef(actor);
   data.max         = maxPosture;
@@ -136,7 +143,7 @@ float Posture::GetMaxPosture(RE::Actor* actor)
 
 Posture::PostureData Posture::GetPostureData(RE::Actor* actor)
 {
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_postureData);
   if (actor->GetActorBase()->IsUnique()) {
     if (postureMap.contains(actor->GetFormID()))
       return postureMap[actor->GetFormID()];
@@ -202,6 +209,13 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
     }
   }
 
+  // 处理基于图事件的架势伤害调整
+  {
+    std::scoped_lock lock(mtx_damageCache);
+    if (auto iter = damageCache.find(aggressor); iter != damageCache.end())
+      postureDamage *= iter->second;
+  }
+
   // Process Block
   if (hitFlags.any(RE::HitData::Flag::kBlocked)) {
     Block::ProcessPostureDamage(aggressor, victim, postureDamage);
@@ -223,7 +237,7 @@ void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak
   if (Execution::IsExecutable(actor))
     return;
 
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_postureData);
   // 在锁中获取引用以避免同一个引用被多次获取导致的线程安全问题
   auto& postureData = GetPostureDataRef(actor);
 
@@ -241,12 +255,53 @@ void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak
 
   // 如果此次免疫破防则不进行破防处理，即使架势值降到0也不会触发破防
   // 而是保留在0.1的微弱架势值以避免重复触发
-  if (ignoreBreak && postureData.current <= 0.0f)
+  auto breakable = true;
+  if (!actor->GetGraphVariableBool(BREAKABLE, breakable))
+    breakable = true;
+
+  // 如果不可破防或者忽略破防且架势值降到0或以下，则保留在0.1
+  if ((!breakable || ignoreBreak) && postureData.current <= 0.0f)
     postureData.current = 0.1f;
 
   // 破防处理
   if (postureData.current <= 0.0f) {
     Execution::EnterExecutable(actor);
     postureData.current = 0.5f * postureData.max;  // 进入处决状态后默认恢复到一半的最大值
+  }
+}
+
+void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
+{
+  if (!Settings::bUsePostureSystem)
+    return;
+  if (!actor)
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  const auto toFloat = [](const std::string& str) {
+    try {
+      float value = std::stof(str);
+      return value;
+    } catch (const std::exception& e) {
+      logger::warn("Posture::PayloadParse: Failed to parse float from payload: {}. Error: {}", str,
+                   e.what());
+      return 0.0f;
+    }
+  };
+
+  if (payload.starts_with("breakable|")) {
+    std::string valueStr = payload.substr(10);
+    bool breakable       = (valueStr == "true");
+    actor->SetGraphVariableBool(BREAKABLE, breakable);
+  } else if (payload.starts_with("damage|")) {
+    float damageMult = toFloat(payload.substr(7));
+    if (damageMult <= 0.0f)
+      return;
+    std::lock_guard<std::mutex> lock(mtx_damageCache);
+    damageCache[actor] = damageMult;
+  } else if (payload == "end") {
+    std::lock_guard<std::mutex> lock(mtx_damageCache);
+    damageCache.erase(actor);
   }
 }

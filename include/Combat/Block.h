@@ -18,7 +18,8 @@ public:
   static void ProcessDamage(RE::Actor* victim, RE::HitData& hitData);
   static void ProcessPostureDamage(RE::Actor* aggressor, RE::Actor* victim, float postureDamage);
 
-  static bool IsTimedBlock(RE::Actor* actor);
+  static bool IsBlocking(RE::Actor* actor);
+  static bool IsTimedBlocking(RE::Actor* actor);
 
   static void AddTimedBlockListener(std::function<void(RE::Actor*)> callback);
 

@@ -456,7 +456,41 @@ bool Execution::IsExecutingVictim(RE::Actor* victim)
   return executingActors.contains(victim);
 }
 
-void Execution::ApplyExecutionDamage(RE::Actor* victim, std::string payload)
+void Execution::ExecutionEnd(RE::Actor* victim)
+{
+  if (!victim || !Settings::bUseExecutionSystem)
+    return;
+
+  // 处决结束，重置状态
+  auto aggressor = GetExecutingAggressor(victim);
+  if (aggressor)
+    aggressor->SetGraphVariableInt(EXECUTION_FLAG, 0);
+
+  victim->SetGraphVariableInt(EXECUTION_FLAG, 0);
+
+  UnlockActor(victim);
+
+  std::lock_guard<std::mutex> lock(mtx_executing);
+  if (executingActors.contains(victim))
+    executingActors.erase(victim);
+}
+
+void Execution::AddExecutionStartListener(ExecutionStartCallback callback)
+{
+  std::lock_guard<std::mutex> lock(mtx_startListeners);
+  executionStartListeners.push_back(callback);
+}
+
+void Execution::PayloadParse(RE::Actor* actor, const std::string& payload)
+{
+  if (payload == "end")
+    Execution::ExecutionEnd(actor);
+  else if (payload.starts_with("damage|"))
+    Execution::ApplyExecutionDamage(actor, payload.substr(7));
+  // 等待拓展
+}
+
+void Execution::ApplyExecutionDamage(RE::Actor* victim, const std::string& payload)
 {
   if (!victim || !Settings::bUseExecutionSystem)
     return;
@@ -491,29 +525,4 @@ void Execution::ApplyExecutionDamage(RE::Actor* victim, std::string payload)
 
   // 处决伤害结算，直接对目标造成真实伤害
   victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);
-}
-
-void Execution::ExecutionEnd(RE::Actor* victim)
-{
-  if (!victim || !Settings::bUseExecutionSystem)
-    return;
-
-  // 处决结束，重置状态
-  auto aggressor = GetExecutingAggressor(victim);
-  if (aggressor)
-    aggressor->SetGraphVariableInt(EXECUTION_FLAG, 0);
-
-  victim->SetGraphVariableInt(EXECUTION_FLAG, 0);
-
-  UnlockActor(victim);
-
-  std::lock_guard<std::mutex> lock(mtx_executing);
-  if (executingActors.contains(victim))
-    executingActors.erase(victim);
-}
-
-void Execution::AddExecutionStartListener(ExecutionStartCallback callback)
-{
-  std::lock_guard<std::mutex> lock(mtx_startListeners);
-  executionStartListeners.push_back(callback);
 }

@@ -1,14 +1,19 @@
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmicrosoft-cast"
+
 #include "Core/Hooks.h"
 
 #include "Combat/Block.h"
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
+#include "Combat/Stagger.h"
 #include "Combat/WeaponArt.h"
 #include "GUI/UI.h"
 #include "Utils.h"
 
 #include "detours.h"
+#include "magic_enum/magic_enum.hpp"
 
 namespace Hooks
 {
@@ -105,9 +110,16 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   Posture::ProcessMeleeHit(aggressor, victim, hitData);
 
+  // 韧性相关的模组都会在处理攻击之中调用TryStagger
+  // 不能保证对硬直等级的修改时序在他们修改之前，TryStagger之后
+  // 因此直接Detour TryStagger
+
   // 战技经验应该是根据最终伤害来计算的，所以放在最后处理
   if (aggressor->IsPlayerRef() && WeaponArt::Manager::IsPerforming(aggressor))
     WeaponArt::PlayerStat::AddExp(hitData.totalDamage);
+
+  // 第二阶段的末尾，在所有处理完成后再调用原版的ProcessHit，确保所有状态和数值都已经更新完毕
+  _ProcessHit(victim, hitData);
 
   // 第三部分：根据设置退出状态
   // 因为非即时的退出，可能导致更新带来的状态变更
@@ -121,9 +133,35 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   // 如果设置了被击打时退出力竭状态，则在此处退出
   if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
     Exhausted::ExitExhausted(victim);
-
-  _ProcessHit(victim, hitData);
 }
+
+void Hook_OnTryStagger::Install()
+{
+  std::uintptr_t addr = REL::VariantID(36700, 37710, 0).address();
+  _TryStagger         = reinterpret_cast<decltype(_TryStagger)>(addr);
+
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(reinterpret_cast<PVOID*>(&_TryStagger), TryStagger);
+  if (DetourTransactionCommit() != NO_ERROR) {
+    logger::error("Failed to install Hook_OnTryStagger.");
+    return;
+  }
+  logger::info("Hook: OnTryStagger installed.");
+}
+void Hook_OnTryStagger::TryStagger(RE::Actor* target, float staggerMult, RE::Actor* aggressor)
+{
+  // 使用Detour的hook模式取得最低的调用优先级，确保在其他模组修改硬直等级之后再进行计算和处理
+  // TryStagger的第二个参数会被原版用于回写staggerMagnitude
+  // 因此需要在这里统一修正传给原版的最终数值，而不只是修改图变量
+  auto res = Stagger::ProcessStagger(aggressor, target);
+
+  if (res)
+    _TryStagger(target, Stagger::GetStaggerMagnitude(target), aggressor);
+  else
+    _TryStagger(target, staggerMult, aggressor);
+}
+
 void Hook_OnPlayIdle::Install()
 {
   std::uintptr_t addr = REL::VariantID(38290, 39256, 0).address();
@@ -221,13 +259,29 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
     // case 0x2E2F7:  // ActionDualPowerAttack
 
   case 0x13AF5:  // ActionRecoil
-  case 0x13EC8:  // ActionRecoilLarge
-  case 0x138D2:  // ActionStaggerStart
-    // 不清楚ActionRecoilLarge和ActionRecoil的区别，暂时都当做被击退动作来处理
-    if (Block::IsTimedBlock(sourceActor))
+    if (Block::IsBlocking(sourceActor))
       return false;
     break;
+  case 0x13EC8:  // ActionRecoilLarge
+    if (Block::IsTimedBlocking(sourceActor))
+      return false;
+    break;
+  case 0x138D2:  // ActionStaggerStart
+  {
+    // 如果硬直等级不足或者硬直免疫
+    // 把RimCombat的硬直系统的硬直等级重置为0
+    // 避免因为没有进入硬直动作导致的RimCombat的硬直系统被意外触发
+    auto staggerLevel = Stagger::GetStaggerLevel(sourceActor);
+    if (staggerLevel < Stagger::Level::Largest)
+      sourceActor->SetGraphVariableInt(Stagger::STAGGER_LEVEL, 0);
 
+    if (Block::IsTimedBlocking(sourceActor) || Stagger::IsStaggerImmune(sourceActor)) {
+      sourceActor->SetGraphVariableInt(Stagger::STAGGER_LEVEL, 0);
+      return false;
+    }
+
+    break;
+  }
   case 0x13002:  // ActionIdle
     // 对于idle，转交给PlayIdle的hook来处理
     break;
@@ -352,6 +406,7 @@ void Install()
   Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnMeleeHit::Install();
+  Hook_OnTryStagger::Install();
   Hook_OnPlayIdle::Install();
   Hook_OnPerformAction::Install();
   Hook_OnModActorValue::Install();

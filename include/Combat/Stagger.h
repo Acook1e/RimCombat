@@ -28,10 +28,10 @@ public:
   constexpr static std::string_view STAGGER_IMMUNE = "RimCombat_StaggerImmune";
   // 图事件，padload用于传递信息
   // End表示退出RimCombat的硬直系统，恢复原版的硬直处理
-  // Immune|xxx用于设置当前的硬直免疫等级为xxx，xxx为Level对应的数值
+  // Immune|level用于设置当前的硬直免疫等级为level，level为Level对应的数值
   // ImmuneEnd用于清除当前的硬直免疫，在霸体状态结束时触发
-  // TargetSet|xxx用于设置击中目标的硬直等级为xxx，xxx为Level对应的数值
-  // TargetModify|xxx用于修改击中目标的硬直等级，xxx为要修改的等级值，正数表示增加等级，负数表示降低等级
+  // TargetSet|level用于设置击中目标的硬直等级为level，level为Level对应的数值
+  // TargetModify|level用于修改击中目标的硬直等级，level为要修改的等级值，正数表示增加等级，负数表示降低等级
   // 如果Set和Modify同时存在，则只会Set目标的硬直等级，Modify会被忽略
   // TargetEnd用于结束对目标的硬直等级设置和修改，通常在此次攻击命中帧结束时触发
   constexpr static std::string_view RIMSTAGGER = "RimStagger";

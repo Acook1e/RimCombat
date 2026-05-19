@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Combat/Weapon.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
@@ -122,7 +124,7 @@ private:
   constexpr static inline std::uint32_t serialType = 'WAPS';
   static inline float exp                          = 0.0f;  // 当前战技经验
   static inline std::uint8_t level                 = 1;     // 当前战技等级
-  static inline std::uint8_t point                 = 0;     // 当前战技点数
+  static inline std::uint8_t point                 = 3;     // 当前战技点数
   static inline std::unordered_set<std::int32_t> unlockedArts{};
 };
 
@@ -134,24 +136,37 @@ public:
   constexpr static inline std::string_view ID = "RimCombat_WeaponArtID";
   // 用于标志播放引入动画的变量，类型为bool
   // 在动画开始声明
-  // PIE.@SGVI|MCO_nextattack|1
-  // PIE.@SGVI|MCO_nextpowerattack|1
-  // 记得在动画结束的前加入以下事件
-  // RimWeaponArt|PrepareEnd
-  constexpr static inline std::string_view PREPARED = "RimCombat_WeaponArtPrepared";
-  // bool图变量
+  // Int图变量
+  // 0表示未启用战技系统，1准备中，2表示启用
   // 表示当前的战技系统状态
-  constexpr static inline std::string_view ENABLED = "RimCombat_WeaponArtEnabled";
-  // bool图变量
-  // 战技进行中
-  constexpr static inline std::string_view PERFORMING = "RimCombat_WeaponArtPerforming";
+  constexpr static inline std::string_view STATE = "RimCombat_WeaponArtState";
   // 战技系统事件
   // payload用于传递信息
-  // Start标志战技动作开始，设置PERFORMING为true
-  // End标志战技动作结束，设置PERFORMING为false
-  // PrepareEnd标志战技准备动画结束，设置ENABLED为true
-  // ToPrepare标志进入战技准备状态，设置ENABLED为false，PREPARED为true
+  // Start|ManaCost|MinMana表示开始使用战技，且需要消耗ManaCost点魔力，至少要MinMana点魔力才能使用
+  // 注意Start不要在第0帧调用，MCO/BFCO框架会对第0帧的事件重复触发两次
+  // Start的同时会启用RimCombat的耐力系统
+  // End标志战技动作结束，设置PERFORMING为0
+  // End的同时会结束RimCombat的耐力系统，伤害系统和架势系统的战技相关处理
+  // PrepareEnd标志战技准备动画结束，设置STATE为2
+  // ToPrepare标志进入战技准备状态，设置STATE为1
+  // Cast|ModName|FormID|Self|Effectiveness|Magnitude释放战技的特效，一般为法术
+  // ModName和FormID用于标识特效，Self为true表示作用于自身，false表示作用于目标，Effectiveness为效果强度，Magnitude为数值强度
   constexpr static inline std::string_view RIMWEAPONART = "RimWeaponArt";
+
+  // 战技的三种状态：未启用、准备中、已启用
+  enum class State : std::uint8_t
+  {
+    Disable = 0,
+    Prepare = 1,
+    Enable  = 2,
+  };
+
+  enum class Perform : std::int8_t
+  {
+    None        = 0,  // 没有战技动作
+    Eligible    = 1,  // 在战技动画中且满足条件
+    Subordinate = 2,  // 在战技动画中但不满足条件
+  };
 
   static Manager& GetSingleton()
   {
@@ -173,16 +188,19 @@ public:
 
   static void UpdateWeaponArt(RE::Actor* actor);
 
-  static bool IsEnabled(RE::Actor* actor);
-  static bool IsPrepared(RE::Actor* actor);
-  static bool IsPerforming(RE::Actor* actor);
+  static Perform GetPerform(RE::Actor* actor);
 
-  static void SetPrepare(RE::Actor* actor, bool prepare);
-  static void SetEnabled(RE::Actor* actor, bool enable);
+  static State GetState(RE::Actor* actor);
+  static void SetState(RE::Actor* actor, State state);
 
   static void SwitchWeaponArt(RE::Actor* actor, bool enable);
 
+  static void Start(RE::Actor* actor, const std::string& payload);
+  static void End(RE::Actor* actor);
+  static void Cast(RE::Actor* actor, const std::string& payload);
+
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
+  static void Interrupt(RE::Actor* actor);
 
 private:
   Manager();
@@ -192,9 +210,14 @@ private:
 
   // RimCombat Weapon Art Info
   constexpr static inline std::uint32_t serialType = 'RWAI';
-  static inline std::mutex mtx;
+  static inline std::mutex mtx_infoMap;
   // 武器与战技信息的映射，键为武器FormID，值为对应的战技ID
   // 需要进行序列化，以便保存和加载游戏时保持武器与战技的对应关系
   static inline std::unordered_map<RE::FormID, std::int32_t> infoMap;
+
+  // 缓存当前正在执行战技动作的角色及其状态
+  // true表示满足条件，false表示不满足条件
+  static inline std::mutex mtx_performCache;
+  static inline std::unordered_map<RE::Actor*, bool> actorEligibleCache;
 };
 }  // namespace WeaponArt

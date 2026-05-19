@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Combat/WeaponArt.h"
+
 namespace UI
 {
 using PrismaView = std::uint64_t;
@@ -69,13 +71,6 @@ private:
 class WeaponArtHUD
 {
 public:
-  enum class State : std::uint8_t
-  {
-    Disable,
-    Prepare,
-    Enable
-  };
-
   static WeaponArtHUD& GetSingleton()
   {
     static WeaponArtHUD singleton;
@@ -86,7 +81,7 @@ public:
   static void Show();
   static void Hide();
 
-  static void UpdateState(State state);
+  static void UpdateState(WeaponArt::Manager::State state);
   static void UpdateName(std::int32_t artID);
 
 private:

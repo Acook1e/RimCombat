@@ -1,5 +1,7 @@
 #include "Combat/WeaponArt.h"
 
+#include "Combat/Damage.h"
+#include "Combat/Posture.h"
 #include "Combat/Stamina.h"
 #include "GUI/UI.h"
 
@@ -205,7 +207,7 @@ PlayerStat::PlayerStat()
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     exp   = 0.0f;
     level = 1;
-    point = 0;
+    point = 3;
     unlockedArts.clear();
   });
 }
@@ -225,7 +227,7 @@ void PlayerStat::AddExp(float value)
     level++;
     point += 1;  // 每升一级获得1点战技点数
     requiredExp = 100.0f * level;
-
+    RE::DebugMessageBox(std::format("WeaponArt Level Up, Current Level: {}!", level).data());
     // 抵达上限后等级不会增加，但仍然可以获得经验和战技点数
     if (level >= 100)
       level = 100;
@@ -319,8 +321,6 @@ Manager::Manager()
           std::uint8_t unlockLevel  = value.at("unlockLevel").get<std::uint8_t>();
           bool needPrepare          = value.at("needPrepare").get<bool>();
 
-          consumePoint = 0;  // 测试阶段先跳过战技点数消耗
-
           // 如果想要查看ID，可以在对应的战技定义中添加"verbose": true字段
           bool verbose = value.value("verbose", false);
           if (verbose)
@@ -344,7 +344,7 @@ Manager::Manager()
   Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
     std::unordered_map<std::uint64_t, std::int32_t> persistMap;
     {
-      std::lock_guard<std::mutex> lock(mtx);
+      std::lock_guard<std::mutex> lock(mtx_infoMap);
       for (const auto& [formID, artID] : infoMap) {
         auto persist = Serialization::ToPersistForm(formID);
         if (persist && artMap.contains(artID))
@@ -378,7 +378,7 @@ Manager::Manager()
     }
 
     {
-      std::lock_guard<std::mutex> lock(mtx);
+      std::lock_guard<std::mutex> lock(mtx_infoMap);
       infoMap.clear();
       for (const auto& [formID, artID] : tempMap) {
         if (artMap.contains(artID))
@@ -389,7 +389,7 @@ Manager::Manager()
 
   // 反转时直接清空数据
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
-    std::lock_guard<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx_infoMap);
     infoMap.clear();
   });
 }
@@ -399,7 +399,7 @@ bool Manager::IsValidWeaponArtID(std::int32_t artID)
   if (!Settings::bUseWeaponArtSystem)
     return false;
 
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_infoMap);
   return artMap.find(artID) != artMap.end();
 }
 
@@ -424,7 +424,7 @@ std::vector<const WeaponArtInfo*> Manager::GetAllWeaponArts()
 
 const WeaponArtInfo* Manager::GetWeaponArtInfo(std::int32_t artID)
 {
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_infoMap);
   if (auto it = artMap.find(artID); it != artMap.end())
     return &it->second;
   return nullptr;
@@ -440,7 +440,7 @@ void Manager::SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
     return;
 
   {
-    std::lock_guard<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx_infoMap);
     infoMap[weapon->GetFormID()] = artID;
   }
 
@@ -453,7 +453,7 @@ std::int32_t Manager::GetWeaponArtID(const RE::TESObjectWEAP* weapon)
   if (!weapon)
     return 0;
 
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx_infoMap);
   if (auto it = infoMap.find(weapon->GetFormID()); it != infoMap.end())
     return it->second;
   return 0;
@@ -504,40 +504,30 @@ void Manager::UpdateWeaponArt(RE::Actor* actor)
     UI::WeaponArtHUD::UpdateName(artID);
 }
 
-bool Manager::IsEnabled(RE::Actor* actor)
+Manager::Perform Manager::GetPerform(RE::Actor* actor)
 {
   if (!actor || !Settings::bUseWeaponArtSystem)
-    return false;
+    return Perform::None;
 
-  bool res = false;
-  if (actor->GetGraphVariableBool(ENABLED, res))
-    return res;
-  return false;
+  std::lock_guard<std::mutex> lock(mtx_performCache);
+  if (auto it = actorEligibleCache.find(actor); it != actorEligibleCache.end())
+    return it->second ? Perform::Eligible : Perform::Subordinate;
+
+  return Perform::None;
 }
 
-bool Manager::IsPrepared(RE::Actor* actor)
+Manager::State Manager::GetState(RE::Actor* actor)
 {
   if (!actor || !Settings::bUseWeaponArtSystem)
-    return false;
+    return State::Disable;
 
-  bool res = false;
-  if (actor->GetGraphVariableBool(PREPARED, res))
-    return res;
-  return false;
+  std::int32_t res = 0;
+  if (actor->GetGraphVariableInt(STATE, res))
+    return static_cast<State>(res);
+  return State::Disable;
 }
 
-bool Manager::IsPerforming(RE::Actor* actor)
-{
-  if (!actor || !Settings::bUseWeaponArtSystem)
-    return false;
-
-  bool res = false;
-  if (actor->GetGraphVariableBool(PERFORMING, res))
-    return res;
-  return false;
-}
-
-void Manager::SetPrepare(RE::Actor* actor, bool prepare)
+void Manager::SetState(RE::Actor* actor, State state)
 {
   if (!actor || !Settings::bUseWeaponArtSystem)
     return;
@@ -547,31 +537,10 @@ void Manager::SetPrepare(RE::Actor* actor, bool prepare)
   actor->SetGraphVariableInt("MCO_nextattack", 1);
   actor->SetGraphVariableInt("MCO_nextpowerattack", 1);
 
-  actor->SetGraphVariableBool(ENABLED, false);
-  actor->SetGraphVariableBool(PREPARED, prepare);
+  actor->SetGraphVariableInt(STATE, static_cast<std::int32_t>(state));
 
-  using State = UI::WeaponArtHUD::State;
   if (actor->IsPlayerRef())
-    UI::WeaponArtHUD::UpdateState(prepare ? State::Prepare : State::Disable);
-}
-
-void Manager::SetEnabled(RE::Actor* actor, bool enable)
-
-{
-  if (!actor || !Settings::bUseWeaponArtSystem)
-    return;
-
-  UpdateWeaponArt(actor);
-  // 开关时重置连招状态
-  actor->SetGraphVariableInt("MCO_nextattack", 1);
-  actor->SetGraphVariableInt("MCO_nextpowerattack", 1);
-
-  actor->SetGraphVariableBool(PREPARED, false);
-  actor->SetGraphVariableBool(ENABLED, enable);
-
-  using State = UI::WeaponArtHUD::State;
-  if (actor->IsPlayerRef())
-    UI::WeaponArtHUD::UpdateState(enable ? State::Enable : State::Disable);
+    UI::WeaponArtHUD::UpdateState(state);
 }
 
 void Manager::SwitchWeaponArt(RE::Actor* actor, bool enable)
@@ -586,23 +555,102 @@ void Manager::SwitchWeaponArt(RE::Actor* actor, bool enable)
 
   if (enable) {
     if (art->NeedPrepare())
-      SetPrepare(actor, true);
+      SetState(actor, State::Prepare);
     else
-      SetEnabled(actor, true);
+      SetState(actor, State::Enable);
   } else {
-    SetEnabled(actor, false);
+    SetState(actor, State::Disable);
   }
+}
+
+void Manager::Start(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUseWeaponArtSystem)
+    return;
+
+  auto manaCostStr = payload.substr(6);
+  auto split       = Utils::split(manaCostStr, '|');
+  if (split.size() != 2)
+    return;
+  float manaCost = Utils::toFloat(split[0]);
+  float minMana  = Utils::toFloat(split[1]);
+  if (manaCost < 0.0f || minMana < 0.0f)
+    return;
+  auto currentMana = actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMagicka);
+  {
+    std::scoped_lock lock(mtx_performCache);
+    actorEligibleCache[actor] = currentMana >= minMana;
+  }
+
+  if (currentMana >= minMana)
+    actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kMagicka, manaCost);
+
+  // Payload优化
+  Stamina::Start(actor);
+}
+
+void Manager::End(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseWeaponArtSystem)
+    return;
+
+  std::scoped_lock lock(mtx_performCache);
+  actorEligibleCache.erase(actor);
+
+  // Payload优化
+  Stamina::End(actor);
+  Damage::End(actor);
+  Posture::End(actor);
+}
+
+void Manager::Cast(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUseWeaponArtSystem)
+    return;
+
+  if (GetPerform(actor) != Perform::Eligible)
+    return;
+  auto paramsStr = payload.substr(5);
+  auto split     = Utils::split(paramsStr, '|');
+  if (split.size() != 5)
+    return;
+
+  std::string modName = split[0];
+  RE::FormID formID   = Utils::toInt(split[1]);
+
+  auto dataHandle      = RE::TESDataHandler::GetSingleton();
+  RE::SpellItem* spell = dataHandle->LookupForm<RE::SpellItem>(formID, modName);
+  RE::Actor* target    = split[2] == "true" ? actor : nullptr;
+  float effectiveness  = Utils::toFloat(split[3]);
+  float magnitude      = Utils::toFloat(split[4]);
+  if (!spell || effectiveness < 0.0f || magnitude < 0.0f)
+    return;
+
+  auto caster = actor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
+  // 法术，是否不显示特效，作用对象，？，是否造成敌意，施法强度，责任对象
+  caster->CastSpellImmediate(spell, false, target, effectiveness, true, magnitude, actor);
 }
 
 void Manager::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
-  if (payload == "start")
-    actor->SetGraphVariableBool(PERFORMING, true);
+  if (payload.starts_with("start|"))
+    Start(actor, payload);
   else if (payload == "end")
-    actor->SetGraphVariableBool(PERFORMING, false);
+    End(actor);
   else if (payload == "prepareend")
-    WeaponArt::Manager::SetEnabled(actor, true);
+    WeaponArt::Manager::SetState(actor, WeaponArt::Manager::State::Enable);
   else if (payload == "toprepare")
-    WeaponArt::Manager::SetPrepare(actor, true);
+    WeaponArt::Manager::SetState(actor, WeaponArt::Manager::State::Prepare);
+  else if (payload.starts_with("cast|"))
+    Cast(actor, payload);
+}
+
+void Manager::Interrupt(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseWeaponArtSystem)
+    return;
+
+  std::lock_guard lock(mtx_performCache);
+  actorEligibleCache.erase(actor);
 }
 }  // namespace WeaponArt

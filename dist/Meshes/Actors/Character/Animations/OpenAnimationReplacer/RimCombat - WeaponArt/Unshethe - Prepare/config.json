@@ -23,8 +23,8 @@
           "condition": "CompareValues",
           "requiredVersion": "1.0.0.0",
           "Value A": {
-            "graphVariable": "RimCombat_WeaponArtPrepared",
-            "graphVariableType": "Bool"
+            "graphVariable": "RimCombat_WeaponArtState",
+            "graphVariableType": "Int"
           },
           "Comparison": "==",
           "Value B": {

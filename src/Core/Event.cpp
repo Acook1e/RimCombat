@@ -1,6 +1,7 @@
 #include "Core/Event.h"
 
 #include "Combat/Block.h"
+#include "Combat/Damage.h"
 #include "Combat/Execution.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
@@ -29,16 +30,16 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
 
   switch (Utils::hash(animEvent)) {
   case "weaponswing"_h:
-    Stamina::AttackStaminaConsume(actor, false);
+    Stamina::SwingStaminaConsume(actor, false);
     break;
   case "weaponleftswing"_h:
-    Stamina::AttackStaminaConsume(actor, true);
+    Stamina::SwingStaminaConsume(actor, true);
     break;
   // 对于空手攻击，swing事件无法保证一定触发
   // 因此使用且仅使用weaponplay.wpnunarmedswing事件来检测空手攻击
   // 以确保在任何情况下都能正确消耗耐力
   case "soundplay.wpnunarmedswing"_h:
-    Stamina::AttackStaminaConsume(actor, false, true);
+    Stamina::SwingStaminaConsume(actor, false, true);
     break;
   // 原版和MCO/BFCO框架下的攻击触发
   case "attackstart"_h:
@@ -59,6 +60,15 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     if (Execution::IsExecutingVictim(actor))
       return true;
     break;
+  case "rimdamage"_h:
+    Damage::PayloadParse(actor, payload);
+    break;
+  case "rimexecution"_h:
+    Execution::PayloadParse(actor, payload);
+    break;
+  case "rimstagger"_h:
+    Stagger::PayloadParse(actor, payload);
+    break;
   case "rimstamina"_h:
     Stamina::PayloadParse(actor, payload);
     break;
@@ -68,17 +78,16 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "rimweaponart"_h:
     WeaponArt::Manager::PayloadParse(actor, payload);
     break;
-  case "rimexecution"_h:
-    Execution::PayloadParse(actor, payload);
-    break;
-  case "rimstagger"_h:
-    Stagger::PayloadParse(actor, payload);
-    break;
   case "staggerstart"_h:
     break;
   case "prehitframe"_h:
     break;
+  case "interruptcast"_h:
   case "attackstop"_h:
+    Damage::End(actor);
+    Stamina::End(actor);
+    Posture::End(actor);
+    WeaponArt::Manager::Interrupt(actor);
     break;
   case "tkdr_iframeend"_h:
     break;
@@ -160,9 +169,8 @@ void InputEvent::ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
         // Left Alt key code
         else if (auto player = RE::PlayerCharacter::GetSingleton();
                  buttonEvent->GetIDCode() == 56 && player) {
-          auto enabled  = WeaponArt::Manager::IsEnabled(player);
-          auto prepared = WeaponArt::Manager::IsPrepared(player);
-          WeaponArt::Manager::SwitchWeaponArt(player, !(enabled || prepared));
+          auto state = WeaponArt::Manager::GetState(player);
+          WeaponArt::Manager::SwitchWeaponArt(player, state == WeaponArt::Manager::State::Disable);
         }
       }
     }

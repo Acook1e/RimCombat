@@ -16,6 +16,26 @@ std::vector<std::string> split(const std::string& str, char delimiter)
          std::ranges::to<std::vector>();
 }
 
+float toFloat(const std::string& str)
+{
+  try {
+    return std::stof(str);
+  } catch (const std::exception& e) {
+    logger::error("Failed to parse float from string '{}': {}", str, e.what());
+    return 0.0f;
+  }
+}
+
+std::int32_t toInt(const std::string& str)
+{
+  try {
+    return std::stoi(str);
+  } catch (const std::exception& e) {
+    logger::error("Failed to parse int from string '{}': {}", str, e.what());
+    return 0;
+  }
+}
+
 // 游戏相关工具
 float GetCurrentMaxActorValue(RE::Actor* actor, RE::ActorValue av)
 {

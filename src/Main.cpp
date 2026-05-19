@@ -1,8 +1,10 @@
 #include "Combat/Block.h"
+#include "Combat/Damage.h"
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
+#include "Combat/Stamina.h"
 #include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Event.h"
@@ -16,16 +18,21 @@
 // 内部数据初始化与序列化注册
 void onPostLoad()
 {
+  // 读取配置
   Settings::LoadSettings();
   Serialization::Initialize();
   Localization::Initialize();
-  WeaponArt::Manager::GetSingleton();
-  WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
+
+  // 读取配置+序列化
   Block::GetSingleton();
   Posture::GetSingleton();
+  Damage::GetSingleton();
   Stagger::GetSingleton();
+  Stamina::GetSingleton();
   Exhausted::GetSingleton();
   Execution::GetSingleton();
+  WeaponArt::Manager::GetSingleton();
+  WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
 }
 
 // 依赖外部API的初始化必须在PostLoad之后进行
@@ -47,8 +54,10 @@ void onDataLoaded()
 {
   Hooks::Install();
   Events::Install();
-  Weapon::Initialize();
   Settings::UpdateGameSettings();
+
+  // 依赖OCF
+  Weapon::Initialize();
 }
 
 void MessageHandler(SKSE::MessagingInterface::Message* msg)

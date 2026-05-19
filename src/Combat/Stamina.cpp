@@ -2,21 +2,32 @@
 
 #include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
+#include "Core/Serialization.h"
 #include "Core/Settings.h"
 
 #include "magic_enum/magic_enum.hpp"
 
-void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
+Stamina::Stamina()
 {
-  if (!Settings::bUseAttackStaminaSystem)
-    return;
-  if (!actor)
+  // 使用序列化重置缓存
+  Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface* serial) {
+    std::lock_guard<std::mutex> lock(mtx);
+    useRimStaminaActors.clear();
+  });
+}
+
+void Stamina::SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
     return;
   if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
-  // 战技动作本身的耐力消耗由自定义事件单独驱动，避免和普通攻击重复扣除。
-  if (WeaponArt::Manager::IsPerforming(actor))
-    return;
+  {
+    // 使用RimCombat耐力系统的角色不处理Swing的攻击耐力消耗
+    std::scoped_lock lock(mtx);
+    if (useRimStaminaActors.contains(actor))
+      return;
+  }
 
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
@@ -42,32 +53,55 @@ void Stamina::AttackStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }
 
-void Stamina::PayloadParse(RE::Actor* actor, const std::string& payload)
+void Stamina::Start(RE::Actor* actor)
 {
-  if (!Settings::bUseWeaponArtSystem)
+  if (!actor || !Settings::bUseAttackStaminaSystem)
     return;
-  if (!actor)
+
+  std::lock_guard lock(mtx);
+  useRimStaminaActors.insert(actor);
+}
+
+void Stamina::End(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+
+  std::lock_guard lock(mtx);
+  useRimStaminaActors.erase(actor);
+}
+
+void Stamina::Consume(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
   auto split = Utils::split(payload, '|');
-  if (split.size() != 3) {
+  if (split.size() != 3 && split.size() != 4) {
     logger::error("Stamina::PayloadParse: Invalid payload format: {}", payload);
     return;
   }
 
-  std::string attackType = split[0];
-  std::string side       = split[1];
-  float staminaCostMult  = 1.0f;
-  try {
-    staminaCostMult = std::stof(split[2]);
-  } catch (const std::exception& e) {
-    logger::error("Stamina::PayloadParse: Invalid stamina cost multiplier in payload: {}", payload);
-    return;
-  }
+  auto attackType = split[0];
+  auto side       = split[1];
 
-  if (staminaCostMult <= 0.0f)
+  float multiplier         = 1.0f;
+  float fallbackMultiplier = 1.0f;
+
+  bool subordinate =
+      WeaponArt::Manager::GetPerform(actor) == WeaponArt::Manager::Perform::Subordinate;
+
+  multiplier = Utils::toFloat(split[2]);
+  // 只有在Subordinate中才处理FallbackMultiplier
+  if (subordinate && split.size() == 4)
+    fallbackMultiplier = Utils::toFloat(split[3]);
+
+  if (multiplier < 0.0f || fallbackMultiplier < 0.0f)
     return;
 
   auto type = Weapon::Type::None;
@@ -91,9 +125,27 @@ void Stamina::PayloadParse(RE::Actor* actor, const std::string& payload)
   if (type == Weapon::Type::None)
     return;
 
-  float totalStaminaCost = Weapon::GetBaseStaminaConsumption(type) * staminaCostMult;
-  if (attackType == "powerattack")
-    totalStaminaCost *= Settings::fPowerAttackStaminaCostMult;
+  float baseCost = Weapon::GetBaseStaminaConsumption(type);
+  if (attackType == "power")
+    baseCost *= Settings::fPowerAttackStaminaCostMult;
 
-  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, totalStaminaCost);
+  if (subordinate)
+    baseCost *= fallbackMultiplier;
+  else
+    baseCost *= multiplier;
+
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
+}
+
+void Stamina::PayloadParse(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+
+  if (payload == "start")
+    Start(actor);
+  else if (payload == "end")
+    End(actor);
+  else if (payload.starts_with("consume|"))
+    Consume(actor, payload.substr(8));
 }

@@ -270,6 +270,31 @@ void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak
   }
 }
 
+void Posture::Damage(RE::Actor* actor, const std::string& payload)
+{
+  auto split = Utils::split(payload, '|');
+  if (split.size() != 1 && split.size() != 2)
+    return;
+  float damageMult   = Utils::toFloat(split[0]);
+  float fallbackMult = split.size() == 2 ? Utils::toFloat(split[1]) : damageMult;
+  if (damageMult < 0.0f || fallbackMult < 0.0f)
+    return;
+  auto subordinate =
+      WeaponArt::Manager::GetPerform(actor) == WeaponArt::Manager::Perform::Subordinate;
+
+  std::lock_guard<std::mutex> lock(mtx_damageCache);
+  damageCache[actor] = subordinate ? fallbackMult : damageMult;
+}
+
+void Posture::End(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUsePostureSystem)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx_damageCache);
+  damageCache.erase(actor);
+}
+
 void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
   if (!Settings::bUsePostureSystem)
@@ -279,29 +304,14 @@ void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
-  const auto toFloat = [](const std::string& str) {
-    try {
-      float value = std::stof(str);
-      return value;
-    } catch (const std::exception& e) {
-      logger::warn("Posture::PayloadParse: Failed to parse float from payload: {}. Error: {}", str,
-                   e.what());
-      return 0.0f;
-    }
-  };
-
   if (payload.starts_with("breakable|")) {
     std::string valueStr = payload.substr(10);
-    bool breakable       = (valueStr == "true");
+    // 收窄判断条件
+    // 仅当False时才不可破防，其他任何值都视为可破防
+    bool breakable = (valueStr != "false");
     actor->SetGraphVariableBool(BREAKABLE, breakable);
-  } else if (payload.starts_with("damage|")) {
-    float damageMult = toFloat(payload.substr(7));
-    if (damageMult <= 0.0f)
-      return;
-    std::lock_guard<std::mutex> lock(mtx_damageCache);
-    damageCache[actor] = damageMult;
-  } else if (payload == "end") {
-    std::lock_guard<std::mutex> lock(mtx_damageCache);
-    damageCache.erase(actor);
-  }
+  } else if (payload.starts_with("damage|"))
+    Damage(actor, payload.substr(7));
+  else if (payload == "end")
+    End(actor);
 }

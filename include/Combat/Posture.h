@@ -8,9 +8,12 @@ public:
   constexpr static std::string_view BREAKABLE = "RimCombat_PostureBreakable";
 
   // 图事件，payload用于传递信息
-  // Breakable|xxx用于设置当前是否可以架势崩溃，xxx为bool值，true表示可以崩溃，false表示不可崩溃
-  // Damage|xxx用于设置架势伤害倍率，xxx是float值，不处理小于0的值
-  // End用于结束当前攻击的架势处理，清空缓存的Damage|xxx事件，通常在此次攻击的命中帧结束时触发
+  // Breakable|flag用于设置当前是否可以架势崩溃，flag为bool值，true表示可以崩溃，false表示不可崩溃
+  // Damage|multiplier|fallbackMultiplier用于设置架势伤害倍率
+  // multiplier和fallbackMultiplier是float值，不处理小于0的值
+  // 当满足战技条件时使用multiplier的倍率，不满足战技条件时使用fallbackMultiplier的倍率
+  // 在非战技中使用multiplier的倍率，可以不写fallbackMultiplier，因为根本不会处理
+  // End用于结束当前攻击的架势处理，清空缓存的Damage|multiplier事件，通常在此次攻击的命中帧结束时触发
   constexpr static std::string_view RIMPOSTURE = "RimPosture";
 
   struct PostureData
@@ -38,6 +41,9 @@ public:
 
   static void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
   static void DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak = false);
+
+  static void Damage(RE::Actor* actor, const std::string& payload);
+  static void End(RE::Actor* actor);
 
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
 

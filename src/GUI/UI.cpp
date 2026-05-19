@@ -4,7 +4,6 @@
 
 #include "Combat/Posture.h"
 #include "Combat/Weapon.h"
-#include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
 #include "Utils.h"
 
@@ -47,14 +46,14 @@ namespace
     return ResolveLabel(key, key);
   }
 
-  std::string ResolveWeaponArtStateLabel(UI::WeaponArtHUD::State state)
+  std::string ResolveWeaponArtStateLabel(WeaponArt::Manager::State state)
   {
     switch (state) {
-    case UI::WeaponArtHUD::State::Disable:
+    case WeaponArt::Manager::State::Disable:
       return ResolveLabel("WeaponArtHUDStateDisable", "Disabled");
-    case UI::WeaponArtHUD::State::Prepare:
+    case WeaponArt::Manager::State::Prepare:
       return ResolveLabel("WeaponArtHUDStatePrepare", "Preparing");
-    case UI::WeaponArtHUD::State::Enable:
+    case WeaponArt::Manager::State::Enable:
       return ResolveLabel("WeaponArtHUDStateEnable", "Enabled");
     default:
       return ResolveLabel("WeaponArtHUDStateDisable", "Disabled");
@@ -432,13 +431,7 @@ void WeaponArtHUD::Show()
   SyncViewConfig();
 
   UpdateName(WeaponArt::Manager::GetActorWeaponArtID(RE::PlayerCharacter::GetSingleton()));
-  auto state   = State::Disable;
-  auto prepare = WeaponArt::Manager::IsPrepared(RE::PlayerCharacter::GetSingleton());
-  auto enable  = WeaponArt::Manager::IsEnabled(RE::PlayerCharacter::GetSingleton());
-  if (enable)
-    state = State::Enable;
-  else if (prepare)
-    state = State::Prepare;
+  auto state = WeaponArt::Manager::GetState(RE::PlayerCharacter::GetSingleton());
   UpdateState(state);
 }
 
@@ -451,7 +444,7 @@ void WeaponArtHUD::Hide()
   prisma->Hide(view);
 }
 
-void WeaponArtHUD::UpdateState(State state)
+void WeaponArtHUD::UpdateState(WeaponArt::Manager::State state)
 {
   if (!prisma || !prisma->IsValid(view) || !domReady || !isShow)
     return;

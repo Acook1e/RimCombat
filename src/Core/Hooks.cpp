@@ -4,6 +4,7 @@
 #include "Core/Hooks.h"
 
 #include "Combat/Block.h"
+#include "Combat/Damage.h"
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
 #include "Combat/Posture.h"
@@ -93,46 +94,44 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   // 第一部分：根据状态修正数值
 
+  // Rim Combat 伤害系统的修正
+  Damage::ProcessMeleeHit(aggressor, victim, hitData);
+
   // 处决状态增伤
-  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
+  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim)) {
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
+    Execution::ExitExecutable(victim);
+  }
 
   // 力竭状态增伤
   if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExhausted;
 
-  // 第二部分：处理各个模块的攻击处理
+  // 第二部分：处理会直接修改HitData的状态和数值变更
 
   if (hitData.flags.any(RE::HitData::Flag::kBlocked)) {
     Block::ProcessBlock(victim);
     Block::ProcessDamage(victim, hitData);
   }
 
+  // 第三部分：处理会修改状态但不直接修改HitData的变更
+
   Posture::ProcessMeleeHit(aggressor, victim, hitData);
+
+  // 如果设置了被击打时退出力竭状态，则在此处退出
+  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
+    Exhausted::ExitExhausted(victim);
 
   // 韧性相关的模组都会在处理攻击之中调用TryStagger
   // 不能保证对硬直等级的修改时序在他们修改之前，TryStagger之后
   // 因此直接Detour TryStagger
 
   // 战技经验应该是根据最终伤害来计算的，所以放在最后处理
-  if (aggressor->IsPlayerRef() && WeaponArt::Manager::IsPerforming(aggressor))
+  if (aggressor->IsPlayerRef() &&
+      WeaponArt::Manager::GetPerform(aggressor) != WeaponArt::Manager::Perform::None)
     WeaponArt::PlayerStat::AddExp(hitData.totalDamage);
 
-  // 第二阶段的末尾，在所有处理完成后再调用原版的ProcessHit，确保所有状态和数值都已经更新完毕
   _ProcessHit(victim, hitData);
-
-  // 第三部分：根据设置退出状态
-  // 因为非即时的退出，可能导致更新带来的状态变更
-  // 但因为在同一个函数且逻辑不重
-  // 1ms的延迟应该不会带来明显的问题，同时也能保证状态变更的正确性
-
-  // 如果设置处决状态被击打时退出，则在此处退出
-  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim))
-    Execution::ExitExecutable(victim);
-
-  // 如果设置了被击打时退出力竭状态，则在此处退出
-  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
-    Exhausted::ExitExhausted(victim);
 }
 
 void Hook_OnTryStagger::Install()

@@ -56,28 +56,16 @@ Stagger::Stagger()
     // valueStr 转去除空格
     valueStr.erase(std::remove_if(valueStr.begin(), valueStr.end(), ::isspace), valueStr.end());
 
-    const auto toFloat = [&valueStr]() {
-      try {
-        float value = std::stof(valueStr);
-        return value;
-      } catch (const std::exception& e) {
-        logger::warn(
-            "Stagger: Failed to parse line in Modern Stagger Lock settings file: {}. Error: {}",
-            valueStr, e.what());
-        return 0.0f;
-      }
-    };
-
     // largest可能包含largest和large两个关键词
     // 因此判断LargeStagger和LargestStagger的关键词，确保正确匹配
     if (key.find("small") != std::string::npos) {
-      staggerMagnitudeMap[Level::Small] = toFloat();
+      staggerMagnitudeMap[Level::Small] = Utils::toFloat(valueStr);
     } else if (key.find("medium") != std::string::npos) {
-      staggerMagnitudeMap[Level::Medium] = toFloat();
+      staggerMagnitudeMap[Level::Medium] = Utils::toFloat(valueStr);
     } else if (key.find("largestagger") != std::string::npos) {
-      staggerMagnitudeMap[Level::Large] = toFloat();
+      staggerMagnitudeMap[Level::Large] = Utils::toFloat(valueStr);
     } else if (key.find("largeststagger") != std::string::npos) {
-      staggerMagnitudeMap[Level::Largest] = toFloat();
+      staggerMagnitudeMap[Level::Largest] = Utils::toFloat(valueStr);
     }
   }
 
@@ -234,33 +222,23 @@ bool Stagger::ProcessStagger(RE::Actor* aggressor, RE::Actor* victim)
 
 void Stagger::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
-  const auto toFloat = [](const std::string& str) {
-    try {
-      float value = std::stof(str);
-      return value;
-    } catch (const std::exception& e) {
-      logger::warn("Stagger: Failed to parse float from payload: {}. Error: {}", str, e.what());
-      return 0.0f;
-    }
-  };
-
   if (payload == "end") {
     actor->SetGraphVariableInt(STAGGER_LEVEL, 0);
   } else if (payload.starts_with("immune|")) {
     auto immuneLevelStr = payload.substr(7);
-    auto immuneLevel    = static_cast<Level>(toFloat(immuneLevelStr));
+    auto immuneLevel    = static_cast<Level>(Utils::toInt(immuneLevelStr));
     SetStaggerImmuneLevel(actor, immuneLevel);
   } else if (payload == "immuneend") {
     SetStaggerImmuneLevel(actor, Level::None);
   } else if (payload.starts_with("targetset|")) {
     auto levelStr = payload.substr(10);
-    auto level    = static_cast<Level>(toFloat(levelStr));
+    auto level    = static_cast<Level>(Utils::toInt(levelStr));
     std::lock_guard lock(mtx);
     if (level != Level::None)
       setTargetLevelMap[actor] = level;
   } else if (payload.starts_with("targetmodify|")) {
     auto levelStr = payload.substr(13);
-    auto level    = static_cast<std::int8_t>(toFloat(levelStr));
+    auto level    = static_cast<std::int8_t>(Utils::toInt(levelStr));
     std::lock_guard lock(mtx);
     modifyTargetLevelMap[actor] = level;
   } else if (payload == "targetend") {

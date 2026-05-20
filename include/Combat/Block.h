@@ -35,9 +35,9 @@ private:
   static inline std::unordered_map<RE::Actor*, std::uint64_t> blockStartTimes;
 
   // 高频调用，需要读写锁
-  // 限时格挡触发后进行的计时，在这个窗口
+  // 限时格挡生效窗口到期时间，单位为毫秒
   static inline std::shared_mutex mtx_timedBlockDuration;
-  static inline std::unordered_map<RE::Actor*, std::uint64_t> timedBlockDurationStartTimes;
+  static inline std::unordered_map<RE::Actor*, std::uint64_t> timedBlockEndTimes;
 
   // 需要锁
   // 限时格挡事件回调列表

@@ -2,6 +2,7 @@
 
 #include "Combat/Damage.h"
 #include "Combat/Posture.h"
+#include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
 #include "GUI/UI.h"
 
@@ -13,6 +14,9 @@ namespace WeaponArt
 
 using AvailableWeaponType = WeaponArtInfo::AvailableWeaponType;
 using AvailableWeapon     = WeaponArtInfo::AvailableWeapon;
+
+using Skill     = WeaponArtInfo::Skill;
+using SpellInfo = WeaponArtInfo::SpellInfo;
 
 constexpr inline AvailableWeapon operator|(AvailableWeapon lhs, AvailableWeapon rhs)
 {
@@ -47,6 +51,85 @@ constexpr AvailableWeapon familyMask = AvailableWeapon::Sword | AvailableWeapon:
                                        AvailableWeapon::Katana | AvailableWeapon::Spear |
                                        AvailableWeapon::Stick | AvailableWeapon::Whip |
                                        AvailableWeapon::Bow | AvailableWeapon::Crossbow;
+
+// 技能等级
+const static std::unordered_map<Skill, RE::ActorValue> skillMap{
+    {Skill::OneHanded, RE::ActorValue::kOneHanded},
+    {Skill::TwoHanded, RE::ActorValue::kTwoHanded},
+    {Skill::Archery, RE::ActorValue::kArchery},
+    {Skill::Block, RE::ActorValue::kBlock},
+    {Skill::Smithing, RE::ActorValue::kSmithing},
+    {Skill::HeavyArmor, RE::ActorValue::kHeavyArmor},
+    {Skill::LightArmor, RE::ActorValue::kLightArmor},
+    {Skill::Pickpocket, RE::ActorValue::kPickpocket},
+    {Skill::Lockpicking, RE::ActorValue::kLockpicking},
+    {Skill::Sneak, RE::ActorValue::kSneak},
+    {Skill::Alchemy, RE::ActorValue::kAlchemy},
+    {Skill::Speech, RE::ActorValue::kSpeech},
+    {Skill::Alteration, RE::ActorValue::kAlteration},
+    {Skill::Conjuration, RE::ActorValue::kConjuration},
+    {Skill::Destruction, RE::ActorValue::kDestruction},
+    {Skill::Illusion, RE::ActorValue::kIllusion},
+    {Skill::Restoration, RE::ActorValue::kRestoration},
+    {Skill::Enchanting, RE::ActorValue::kEnchanting}};
+
+// 常驻技能百分比变化，数值x，表示x%
+const static std::unordered_map<Skill, RE::ActorValue> skillModMap{
+    {Skill::OneHanded, RE::ActorValue::kOneHandedModifier},
+    {Skill::TwoHanded, RE::ActorValue::kTwoHandedModifier},
+    {Skill::Archery, RE::ActorValue::kMarksmanModifier},
+    {Skill::Block, RE::ActorValue::kBlockModifier},
+    {Skill::Smithing, RE::ActorValue::kSmithingModifier},
+    {Skill::HeavyArmor, RE::ActorValue::kHeavyArmorModifier},
+    {Skill::LightArmor, RE::ActorValue::kLightArmorModifier},
+    {Skill::Pickpocket, RE::ActorValue::kPickpocketModifier},
+    {Skill::Lockpicking, RE::ActorValue::kLockpickingModifier},
+    {Skill::Sneak, RE::ActorValue::kSneakingModifier},
+    {Skill::Alchemy, RE::ActorValue::kAlchemyModifier},
+    {Skill::Speech, RE::ActorValue::kSpeechcraftModifier},
+    {Skill::Alteration, RE::ActorValue::kAlterationModifier},
+    {Skill::Conjuration, RE::ActorValue::kConjurationModifier},
+    {Skill::Destruction, RE::ActorValue::kDestructionModifier},
+    {Skill::Illusion, RE::ActorValue::kIllusionModifier},
+    {Skill::Restoration, RE::ActorValue::kRestorationModifier},
+    {Skill::Enchanting, RE::ActorValue::kEnchantingModifier}};
+
+// 临时技能百分比变化，数值x，表示x%
+const static std::unordered_map<Skill, RE::ActorValue> skillPowerMap{
+    {Skill::OneHanded, RE::ActorValue::kOneHandedPowerModifier},
+    {Skill::TwoHanded, RE::ActorValue::kTwoHandedPowerModifier},
+    {Skill::Archery, RE::ActorValue::kMarksmanPowerModifier},
+    {Skill::Block, RE::ActorValue::kBlockPowerModifier},
+    {Skill::Smithing, RE::ActorValue::kSmithingPowerModifier},
+    {Skill::HeavyArmor, RE::ActorValue::kHeavyArmorPowerModifier},
+    {Skill::LightArmor, RE::ActorValue::kLightArmorPowerModifier},
+    {Skill::Pickpocket, RE::ActorValue::kPickpocketPowerModifier},
+    {Skill::Lockpicking, RE::ActorValue::kLockpickingPowerModifier},
+    {Skill::Sneak, RE::ActorValue::kSneakingPowerModifier},
+    {Skill::Alchemy, RE::ActorValue::kAlchemyPowerModifier},
+    {Skill::Speech, RE::ActorValue::kSpeechcraftPowerModifier},
+    {Skill::Alteration, RE::ActorValue::kAlterationPowerModifier},
+    {Skill::Conjuration, RE::ActorValue::kConjurationPowerModifier},
+    {Skill::Destruction, RE::ActorValue::kDestructionPowerModifier},
+    {Skill::Illusion, RE::ActorValue::kIllusionPowerModifier},
+    {Skill::Restoration, RE::ActorValue::kRestorationPowerModifier},
+    {Skill::Enchanting, RE::ActorValue::kEnchantingPowerModifier}};
+
+// 获取技能等级和总倍率
+std::tuple<float, float> GetSkillData(RE::Actor* actor, Skill skill)
+{
+  float skillLevel         = 0.0f;
+  float SkillModifier      = 0.0f;
+  float skillPowerModifier = 0.0f;
+
+  if (auto it = skillMap.find(skill); it != skillMap.end())
+    skillLevel = actor->AsActorValueOwner()->GetActorValue(it->second);
+  if (auto it = skillModMap.find(skill); it != skillModMap.end())
+    SkillModifier = actor->AsActorValueOwner()->GetActorValue(it->second);
+  if (auto it = skillPowerMap.find(skill); it != skillPowerMap.end())
+    skillPowerModifier = actor->AsActorValueOwner()->GetActorValue(it->second);
+  return {skillLevel, 1 + (SkillModifier + skillPowerModifier) / 100.0f};
+};
 
 AvailableWeapon WeaponTypeMapping(Weapon::Type type)
 {
@@ -131,14 +214,16 @@ AvailableWeapon WeaponTypeMapping(Weapon::Type type)
 
 WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
                              const std::string& description, AvailableWeapon availableWeapon,
-                             const std::vector<RE::FormID>& weapons, std::uint8_t consumePoint,
-                             std::uint8_t unlockLevel, bool needPrepare)
+                             const std::vector<RE::FormID>& weapons,
+                             const std::unordered_map<std::uint32_t, SpellInfo>& spells,
+                             std::uint8_t consumePoint, std::uint8_t unlockLevel, bool needPrepare)
 {
   this->id              = id;
   this->name            = std::move(name);
   this->description     = std::move(description);
   this->availableWeapon = availableWeapon;
   this->weapons         = std::move(weapons);
+  this->spells          = std::move(spells);
   this->consumePoint    = consumePoint;
   this->unlockLevel     = unlockLevel;
   this->needPrepare     = needPrepare;
@@ -168,9 +253,11 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
          weaponAttack >= aviailableAttack;
 }
 
-bool PlayerStat::IsUnlocked(std::int32_t artID)
+std::optional<WeaponArtInfo::SpellInfo> WeaponArtInfo::GetSpellInfo(std::uint32_t hash) const
 {
-  return unlockedArts.find(artID) != unlockedArts.end();
+  if (auto it = spells.find(hash); it != spells.end())
+    return it->second;
+  return std::nullopt;
 }
 
 PlayerStat::PlayerStat()
@@ -212,6 +299,11 @@ PlayerStat::PlayerStat()
   });
 }
 
+bool PlayerStat::IsUnlocked(std::int32_t artID)
+{
+  return unlockedArts.find(artID) != unlockedArts.end();
+}
+
 void PlayerStat::AddExp(float value)
 {
   if (value <= 0.0f)
@@ -227,7 +319,8 @@ void PlayerStat::AddExp(float value)
     level++;
     point += 1;  // 每升一级获得1点战技点数
     requiredExp = 100.0f * level;
-    RE::DebugMessageBox(std::format("WeaponArt Level Up, Current Level: {}!", level).data());
+    RE::SendHUDMessage::ShowHUDMessage(
+        std::format("WeaponArt Level Up, Current Level: {}!", level).data());
     // 抵达上限后等级不会增加，但仍然可以获得经验和战技点数
     if (level >= 100)
       level = 100;
@@ -253,6 +346,13 @@ bool PlayerStat::UnlockArt(std::int32_t artID)
 
 Manager::Manager()
 {
+
+  auto dataHandle = RE::TESDataHandler::GetSingleton();
+  if (!dataHandle) {
+    logger::error("Failed to get TESDataHandler singleton.");
+    return;
+  }
+
   // 从JSON文件加载战技信息
   const std::string weaponArtDir = std::string(Settings::SettingsDir) + "WeaponArt/";
   for (const auto& entry : std::filesystem::directory_iterator(weaponArtDir)) {
@@ -276,15 +376,27 @@ Manager::Manager()
                          entry.path().string());
             continue;
           }
-          std::string name        = value.at("name").get<std::string>();
-          std::string description = value.at("description").get<std::string>();
 
-          std::vector<std::string> weaponStrs = value.at("weapons").get<std::vector<std::string>>();
+          // 名字必须存在
+          std::string name = value.value("name", "");
+          if (name.empty()) {
+            logger::warn("Missing name for Weapon Art {} in file {}. Skipping.", key,
+                         entry.path().string());
+            continue;
+          }
+
+          // 描述可以不存在，默认为空字符串
+          std::string description = value.value("description", "");
+
+          // 武器可以不存在，默认为空列表
+          std::vector<std::string> weaponStrs = value.value("weapons", std::vector<std::string>{});
+
+          // 可用武器类型可以不存在，默认为None
           std::vector<std::string> availableWeaponStrs =
-              value.at("availableWeapon").get<std::vector<std::string>>();
+              value.value("availableWeapon", std::vector<std::string>{});
 
+          // 不必对weaponStrs判空
           std::vector<RE::FormID> weapons{};
-          auto dataHandle = RE::TESDataHandler::GetSingleton();
           for (const auto& w : weaponStrs) {
             auto split = Utils::split(w, '|');
             if (split.size() != 2) {
@@ -307,6 +419,8 @@ Manager::Manager()
                            awStr, key, entry.path().string());
             }
           }
+
+          // 不必判断None，会默认通配所有类型
           // 如果不是Unique类型，则需要后处理保证匹配
           if (availableWeapon != AvailableWeapon::Unique) {
             // 如果没有指定重量要求，则视为通配
@@ -317,9 +431,64 @@ Manager::Manager()
               availableWeapon = availableWeapon | familyMask;
           }
 
-          std::uint8_t consumePoint = value.at("consumePoint").get<std::uint8_t>();
-          std::uint8_t unlockLevel  = value.at("unlockLevel").get<std::uint8_t>();
-          bool needPrepare          = value.at("needPrepare").get<bool>();
+          // 法术特效可以不存在，默认为空对象
+          auto spellsJson = value.value("spells", nlohmann::json::object());
+          std::unordered_map<std::uint32_t, SpellInfo> spells{};
+          if (spellsJson.is_object()) {
+            for (const auto& [spellKey, spellValue] : spellsJson.items()) {
+              // 因为event处理中会把所以字符转为小写，所以这里也统一转为小写来hash
+              std::string lower = spellKey;
+              std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+              std::uint32_t spellHash = Utils::hash(lower);
+
+              std::string modName   = spellValue.value("mod", "");
+              std::string formIDStr = spellValue.value("formID", "");
+              auto formID           = Utils::toInt(formIDStr, 16);
+              auto spellFormID      = dataHandle->LookupFormID(formID, modName);
+              if (!spellFormID) {
+                logger::warn("Invalid spell reference '{}' for Weapon Art {} in file {}. Skipping.",
+                             spellKey, key, entry.path().string());
+                continue;
+              }
+              auto* spell = RE::TESForm::LookupByID<RE::SpellItem>(spellFormID);
+              if (!spell || spell->formType != RE::FormType::Spell) {
+                logger::warn("Form ID '{}' does not correspond to a valid spell for Weapon Art {} "
+                             "in file {}. Skipping.",
+                             formID, key, entry.path().string());
+                continue;
+              }
+
+              bool selfCast        = spellValue.value("selfCast", false);
+              float effectiveness  = spellValue.value("effectiveness", 1.0f);
+              float stdMagnitude   = spellValue.value("stdMagnitude", 0.0f);
+              std::string skillStr = spellValue.value("skill", "None");
+              Skill skill          = magic_enum::enum_cast<Skill>(skillStr).value_or(Skill::None);
+              if (skill == Skill::None) {
+                logger::warn(
+                    "Invalid skill '{}' for spell '{}' in Weapon Art {} in file {}. Skipping.",
+                    skillStr, spellKey, key, entry.path().string());
+                continue;
+              }
+
+              float factor = spellValue.value("factor", 1.0f);
+              if (factor < 0.0f) {
+                logger::warn(
+                    "Invalid factor {} for spell '{}' in Weapon Art {} in file {}. Skipping.",
+                    factor, spellKey, key, entry.path().string());
+                continue;
+              }
+
+              spells[spellHash] =
+                  SpellInfo{spell, effectiveness, stdMagnitude, factor, skill, selfCast};
+            }
+          }
+
+          // 消耗的战技点数和解锁所需等级，默认为0和1
+          std::uint8_t consumePoint = value.value("consumePoint", 0);
+          std::uint8_t unlockLevel  = value.value("unlockLevel", 1);
+
+          // 是否准备动画，不要求一定存在，默认为false
+          bool needPrepare = value.value("needPrepare", false);
 
           // 如果想要查看ID，可以在对应的战技定义中添加"verbose": true字段
           bool verbose = value.value("verbose", false);
@@ -327,8 +496,8 @@ Manager::Manager()
             logger::info("Loaded Weapon Art {} (ID: {}) from file {}.", name, id,
                          entry.path().string());
 
-          WeaponArtInfo art(id, name, description, availableWeapon, weapons, consumePoint,
-                            unlockLevel, needPrepare);
+          WeaponArtInfo art(id, name, description, availableWeapon, std::move(weapons),
+                            std::move(spells), consumePoint, unlockLevel, needPrepare);
           artMap[id] = std::move(art);
         }
       } catch (const std::exception& e) {
@@ -434,6 +603,17 @@ void Manager::SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID)
 {
   if (!weapon)
     return;
+
+  if (artID == 0) {
+    {
+      std::lock_guard<std::mutex> lock(mtx_infoMap);
+      infoMap.erase(weapon->GetFormID());
+    }
+
+    if (auto* player = RE::PlayerCharacter::GetSingleton(); player)
+      UpdateWeaponArt(player);
+    return;
+  }
 
   auto* art = GetWeaponArtInfo(artID);
   if (!art || !art->IsWeaponAllowed(weapon))
@@ -598,8 +778,9 @@ void Manager::End(RE::Actor* actor)
   actorEligibleCache.erase(actor);
 
   // Payload优化
-  Stamina::End(actor);
   Damage::End(actor);
+  Stagger::TargetEnd(actor);
+  Stamina::End(actor);
   Posture::End(actor);
 }
 
@@ -610,29 +791,45 @@ void Manager::Cast(RE::Actor* actor, const std::string& payload)
 
   if (GetPerform(actor) != Perform::Eligible)
     return;
-  auto paramsStr = payload.substr(5);
-  auto split     = Utils::split(paramsStr, '|');
-  if (split.size() != 5)
+  auto spellHash = Utils::hash(payload);
+  auto artId     = GetActorWeaponArtID(actor);
+  auto art       = GetWeaponArtInfo(artId);
+
+  auto spellInfo = art ? art->GetSpellInfo(spellHash) : std::nullopt;
+  if (!spellInfo) {
+    logger::warn("Spell name {} not found for Weapon Art {}.", payload,
+                 art ? art->GetName() : "Unknown");
     return;
+  }
 
-  std::string modName = split[0];
-  RE::FormID formID   = Utils::toInt(split[1]);
+  auto [skillLevel, skillMult] = GetSkillData(actor, spellInfo->skill);
 
-  auto dataHandle      = RE::TESDataHandler::GetSingleton();
-  RE::SpellItem* spell = dataHandle->LookupForm<RE::SpellItem>(formID, modName);
-  RE::Actor* target    = split[2] == "true" ? actor : nullptr;
-  float effectiveness  = Utils::toFloat(split[3]);
-  float magnitude      = Utils::toFloat(split[4]);
-  if (!spell || effectiveness < 0.0f || magnitude < 0.0f)
-    return;
+  // 防止技能等级为0导致的倍率异常
+  if (skillLevel == 0.0f)
+    skillLevel = 1.0f;
 
+  // 首先根据全局的技能百分比变化决定基础倍率，再根据技能等级调整伤害，最后乘以法术定义的倍率
+  float magnitude = spellInfo->stdMagnitude * skillMult;
+
+  // 标准强度25级为基准，在25级倍率刚好为1
+  // factor为0时，倍率恒为1；factor为正时，等级越高倍率越大
+  float exponent = spellInfo->factor / (spellInfo->factor + 10.0f);
+  float scale    = std::pow(skillLevel / 25.0f, exponent);
+
+  // 最小倍率为0.1，防止过于悬殊的伤害
+  if (scale < 0.1f)
+    scale = 0.1f;
+
+  // CastSpellImmediate不会在再计算一次skillMult
   auto caster = actor->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
   // 法术，是否不显示特效，作用对象，？，是否造成敌意，施法强度，责任对象
-  caster->CastSpellImmediate(spell, false, target, effectiveness, true, magnitude, actor);
+  caster->CastSpellImmediate(spellInfo->spell, false, spellInfo->selfCast ? actor : nullptr,
+                             spellInfo->effectiveness, true, magnitude * scale, actor);
 }
 
 void Manager::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
+
   if (payload.starts_with("start|"))
     Start(actor, payload);
   else if (payload == "end")
@@ -642,7 +839,7 @@ void Manager::PayloadParse(RE::Actor* actor, const std::string& payload)
   else if (payload == "toprepare")
     WeaponArt::Manager::SetState(actor, WeaponArt::Manager::State::Prepare);
   else if (payload.starts_with("cast|"))
-    Cast(actor, payload);
+    Cast(actor, payload.substr(5));
 }
 
 void Manager::Interrupt(RE::Actor* actor)

@@ -15,7 +15,7 @@ Block::Block()
     }
     {
       std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-      timedBlockDurationStartTimes.clear();
+      timedBlockEndTimes.clear();
     }
   });
 }
@@ -38,13 +38,12 @@ void Block::Update()
     }
   }
 
-  // 计时限时格挡的持续时间，超过持续时间的记录会被移除
+  // 计时限时格挡的截止时间，超过截止时间的记录会被移除
   {
     std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-    for (auto it = timedBlockDurationStartTimes.begin();
-         it != timedBlockDurationStartTimes.end();) {
-      if (now - it->second > Settings::uTimedBlockDuration)
-        it = timedBlockDurationStartTimes.erase(it);
+    for (auto it = timedBlockEndTimes.begin(); it != timedBlockEndTimes.end();) {
+      if (now > it->second)
+        it = timedBlockEndTimes.erase(it);
       else
         ++it;
     }
@@ -69,7 +68,7 @@ void Block::EndBlock(RE::Actor* actor)
   }
   {
     std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-    timedBlockDurationStartTimes.erase(actor);
+    timedBlockEndTimes.erase(actor);
   }
 }
 
@@ -96,7 +95,7 @@ void Block::ProcessBlock(RE::Actor* actor)
       // 直接覆写或插入限时格挡计时记录，无需检查是否存在
       // ProcessBlock每次被调用都视为一次新的限时格挡触发，因此直接重置计时
       std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-      timedBlockDurationStartTimes[actor] = now;
+      timedBlockEndTimes[actor] = now + Settings::uTimedBlockDuration;
     }
     std::vector<std::function<void(RE::Actor*)>> callbacks;
     {
@@ -194,7 +193,7 @@ bool Block::IsBlocking(RE::Actor* actor)
   auto timedBlock = false;
   {
     std::shared_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-    timedBlock = timedBlockDurationStartTimes.contains(actor);
+    timedBlock = timedBlockEndTimes.contains(actor);
   }
   return block || timedBlock || actor->IsBlocking();
 }
@@ -205,11 +204,11 @@ bool Block::IsTimedBlocking(RE::Actor* actor)
     return false;
 
   std::shared_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-  auto it = timedBlockDurationStartTimes.find(actor);
-  if (it == timedBlockDurationStartTimes.end())
+  auto it = timedBlockEndTimes.find(actor);
+  if (it == timedBlockEndTimes.end())
     return false;
   auto now = Utils::GetTime<std::chrono::milliseconds>();
-  return (now - it->second) <= Settings::uTimedBlockDuration;
+  return now < it->second;
 }
 
 void Block::AddTimedBlockListener(std::function<void(RE::Actor*)> callback)

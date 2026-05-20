@@ -26,10 +26,10 @@ float toFloat(const std::string& str)
   }
 }
 
-std::int32_t toInt(const std::string& str)
+std::int32_t toInt(const std::string& str, int base)
 {
   try {
-    return std::stoi(str);
+    return std::stoi(str, nullptr, base);
   } catch (const std::exception& e) {
     logger::error("Failed to parse int from string '{}': {}", str, e.what());
     return 0;

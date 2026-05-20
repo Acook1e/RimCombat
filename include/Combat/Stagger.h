@@ -28,8 +28,7 @@ public:
   constexpr static std::string_view STAGGER_IMMUNE = "RimCombat_StaggerImmune";
   // 图事件，padload用于传递信息
   // End表示退出RimCombat的硬直系统，恢复原版的硬直处理
-  // Immune|level用于设置当前的硬直免疫等级为level，level为Level对应的数值
-  // ImmuneEnd用于清除当前的硬直免疫，在霸体状态结束时触发
+  // Immune|level|Duration用于设置当前的硬直免疫等级为level，level为Level对应的数值，Duration为持续时间，单位为毫秒
   // TargetSet|level用于设置击中目标的硬直等级为level，level为Level对应的数值
   // TargetModify|level用于修改击中目标的硬直等级，level为要修改的等级值，正数表示增加等级，负数表示降低等级
   // 如果Set和Modify同时存在，则只会Set目标的硬直等级，Modify会被忽略
@@ -42,6 +41,8 @@ public:
     return singleton;
   }
 
+  static void Update();
+
   static float GetStaggerMagnitude(RE::Actor* actor);
   static void SetStaggerMagnitude(RE::Actor* actor, float magnitude);
 
@@ -52,14 +53,16 @@ public:
   static Level GetStaggerLevel(RE::Actor* actor);
   static void SetStaggerLevel(RE::Actor* actor, Level level);
 
-  // 对当前的硬直等级进行修改，modifiedLevel为正时增加硬直等级，为负时降低硬直等级
-  static void ModifyStaggerLevel(RE::Actor* actor, std::int8_t modifiedLevel);
-
-  static bool IsStaggerImmune(RE::Actor* actor);
-  static Level GetStaggerImmuneLevel(RE::Actor* actor);
-  static void SetStaggerImmuneLevel(RE::Actor* actor, Level level);
+  static bool IsImmune(RE::Actor* actor);
+  static Level GetImmuneLevel(RE::Actor* actor);
+  static void SetImmuneLevel(RE::Actor* actor, Level level);
 
   static bool ProcessStagger(RE::Actor* aggressor, RE::Actor* victim);
+
+  static void TargetSet(RE::Actor* actor, const std::string& payload);
+  static void TargetModify(RE::Actor* actor, const std::string& payload);
+  static void TargetEnd(RE::Actor* actor);
+  static void Immune(RE::Actor* actor, const std::string& payload);
 
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
 
@@ -81,7 +84,11 @@ private:
 
   // 由于动画事件的发送早于受击处理
   // 因此缓存在动画事件的数据，在受击处理时再处理
-  static inline std::mutex mtx;
+  static inline std::mutex mtx_targetCache;
   static inline std::unordered_map<RE::Actor*, Level> setTargetLevelMap;
   static inline std::unordered_map<RE::Actor*, std::int8_t> modifyTargetLevelMap;
+
+  // 缓存免疫硬直时间
+  static inline std::mutex mtx_immuneCache;
+  static inline std::unordered_map<RE::Actor*, std::uint64_t> immuneActors;
 };

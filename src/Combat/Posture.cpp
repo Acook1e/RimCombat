@@ -29,7 +29,6 @@ Posture::Posture()
       serial->WriteRecordData(&persist, sizeof(persist));
       serial->WriteRecordData(&data.current, sizeof(data.current));
       serial->WriteRecordData(&data.max, sizeof(data.max));
-      // 不保存lastDamageTime，因为这个值在游戏加载时会被重置为0，不需要持久化
     }
   });
 
@@ -64,6 +63,10 @@ Posture::Posture()
       std::scoped_lock lock(mtx_damageCache);
       damageCache.clear();
     }
+    {
+      std::scoped_lock lock(mtx_unbreakableCache);
+      unbreakableActors.clear();
+    }
   });
 }
 
@@ -80,7 +83,7 @@ void Posture::Update(std::uint64_t deltaTime)
         data.current +=
             (deltaTime / static_cast<float>(Settings::uExecutableDuration * 2)) * data.max;
         data.current = std::clamp(data.current, 0.0f, data.max);
-      } else if (now - data.lastDamageTime >= Settings::uPostureRegenDelay) {
+      } else if (now >= data.regenResumeTime) {
         data.current +=
             data.max * (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 1000.0f);
         data.current = std::clamp(data.current, 0.0f, data.max);
@@ -94,6 +97,17 @@ void Posture::Update(std::uint64_t deltaTime)
   for (auto& [formID, data] : postureMap) {
     if (auto actor = RE::TESForm::LookupByID(formID)->As<RE::Actor>(); actor)
       update(actor, data);
+  }
+
+  // 更新不可破防状态
+  {
+    std::scoped_lock lock(mtx_unbreakableCache);
+    for (auto it = unbreakableActors.begin(); it != unbreakableActors.end();) {
+      if (it->second <= now)
+        it = unbreakableActors.erase(it);
+      else
+        ++it;
+    }
   }
 }
 
@@ -251,16 +265,20 @@ void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak
     value *= Settings::fOnHitPostureDamageMultWhenExhausted;
 
   postureData.current -= value;
-  postureData.lastDamageTime = Utils::GetTime<std::chrono::milliseconds>();
+  postureData.regenResumeTime =
+      Utils::GetTime<std::chrono::milliseconds>() + Settings::uPostureRegenDelay;
 
   // 如果此次免疫破防则不进行破防处理，即使架势值降到0也不会触发破防
   // 而是保留在0.1的微弱架势值以避免重复触发
-  auto breakable = true;
-  if (!actor->GetGraphVariableBool(BREAKABLE, breakable))
-    breakable = true;
+  auto unbreakable = false;
+  {
+    std::scoped_lock lock(mtx_unbreakableCache);
+    if (unbreakableActors.contains(actor))
+      unbreakable = true;
+  }
 
   // 如果不可破防或者忽略破防且架势值降到0或以下，则保留在0.1
-  if ((!breakable || ignoreBreak) && postureData.current <= 0.0f)
+  if ((unbreakable || ignoreBreak) && postureData.current <= 0.0f)
     postureData.current = 0.1f;
 
   // 破防处理
@@ -270,8 +288,26 @@ void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak
   }
 }
 
+void Posture::Unbreakable(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor)
+    return;
+
+  auto duration = Utils::toInt(payload);
+  if (duration <= 0)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx_unbreakableCache);
+  unbreakableActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration;
+}
+
 void Posture::Damage(RE::Actor* actor, const std::string& payload)
 {
+  if (!actor || !Settings::bUsePostureSystem)
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
   auto split = Utils::split(payload, '|');
   if (split.size() != 1 && split.size() != 2)
     return;
@@ -301,16 +337,12 @@ void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
     return;
   if (!actor)
     return;
-  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
-    return;
 
-  if (payload.starts_with("breakable|")) {
-    std::string valueStr = payload.substr(10);
-    // 收窄判断条件
-    // 仅当False时才不可破防，其他任何值都视为可破防
-    bool breakable = (valueStr != "false");
-    actor->SetGraphVariableBool(BREAKABLE, breakable);
-  } else if (payload.starts_with("damage|"))
+  if (payload.starts_with("unbreakable|"))
+    Unbreakable(actor, payload.substr(12));
+  else if (payload.starts_with("breakable|"))
+    Unbreakable(actor, payload.substr(10));
+  else if (payload.starts_with("damage|"))
     Damage(actor, payload.substr(7));
   else if (payload == "end")
     End(actor);

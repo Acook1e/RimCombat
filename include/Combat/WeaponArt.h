@@ -62,10 +62,44 @@ public:
     Unique = 1U << 31,  // 仅特定武器（通过 weapons 列表指定）
   };
 
+  enum class Skill : std::uint8_t
+  {
+    None,
+    OneHanded,
+    TwoHanded,
+    Archery,
+    Block,
+    Smithing,
+    HeavyArmor,
+    LightArmor,
+    Pickpocket,
+    Lockpicking,
+    Sneak,
+    Alchemy,
+    Speech,
+    Alteration,
+    Conjuration,
+    Destruction,
+    Illusion,
+    Restoration,
+    Enchanting
+  };
+
+  struct SpellInfo
+  {
+    RE::SpellItem* spell;
+    float effectiveness;
+    float stdMagnitude;
+    float factor;
+    Skill skill;
+    bool selfCast;
+  };
+
   WeaponArtInfo() = default;
   WeaponArtInfo(std::int32_t id, const std::string& name, const std::string& description,
                 AvailableWeapon availableWeapon, const std::vector<RE::FormID>& weapons,
-                std::uint8_t consumePoint, std::uint8_t unlockLevel, bool useIntroAnim = false);
+                const std::unordered_map<std::uint32_t, SpellInfo>& spells,
+                std::uint8_t consumePoint, std::uint8_t unlockLevel, bool needPrepare);
 
   const std::string& GetName() const { return name; }
   const std::string& GetDescription() const { return description; }
@@ -77,6 +111,8 @@ public:
 
   bool IsWeaponAllowed(RE::TESObjectWEAP* weapon) const;
 
+  std::optional<SpellInfo> GetSpellInfo(std::uint32_t hash) const;
+
 private:
   // 战技名称
   std::string name = "";
@@ -84,6 +120,8 @@ private:
   std::string description = "";
   // 可使用该战技的武器列表，仅当 availableWeapon 为 Unique 时使用
   std::vector<RE::FormID> weapons{};
+  // 战技的法术特效名称的hash，映射到SpellInfo
+  std::unordered_map<std::uint32_t, SpellInfo> spells{};
 
   // 战技ID，用于OAR切换战技动画
   std::int32_t id = 0;
@@ -149,8 +187,9 @@ public:
   // End的同时会结束RimCombat的耐力系统，伤害系统和架势系统的战技相关处理
   // PrepareEnd标志战技准备动画结束，设置STATE为2
   // ToPrepare标志进入战技准备状态，设置STATE为1
-  // Cast|ModName|FormID|Self|Effectiveness|Magnitude释放战技的特效，一般为法术
-  // ModName和FormID用于标识特效，Self为true表示作用于自身，false表示作用于目标，Effectiveness为效果强度，Magnitude为数值强度
+  // Cast|SpellName 释放战技的特效，一般为法术，需保证SpellName在当前战技的spells配置中存在且有效
+  // SpellName会先转成小写并查表，表项包含effectiveness、stdMagnitude、factor、skill和selfCast
+  // stdMagnitude表示25级时的标准强度，最终强度会先乘常驻/临时百分比修正，再乘技能等级曲线
   constexpr static inline std::string_view RIMWEAPONART = "RimWeaponArt";
 
   // 战技的三种状态：未启用、准备中、已启用

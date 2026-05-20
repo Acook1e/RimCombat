@@ -1,0 +1,19 @@
+{
+  "name": "Human Posture Break Idle",
+  "description": "None",
+  "priority": 2064143000,
+  "conditions": [
+    {
+      "condition": "CompareValues",
+      "requiredVersion": "1.0.0.0",
+      "Value A": {
+        "graphVariable": "RimCombat_Executable",
+        "graphVariableType": "Bool"
+      },
+      "Comparison": "==",
+      "Value B": {
+        "value": 1.0
+      }
+    }
+  ]
+}

@@ -78,6 +78,26 @@
         "consumePoint": 2,
         "unlockLevel": 0,
         "needPrepare": false,
-        "Elden Rim - Weapon Arts ID": "49"
+        "Elden Rim - Weapon Arts ID": "49",
+        "spells": {
+            "VacuumChop": {
+                "mod": "EldenSkyrim_RimSkills.esp",
+                "formID": "0xBA21",
+                "effectiveness": 1.0,
+                "stdMagnitude": 25.0,
+                "factor": 10.0,
+                "skill": "OneHanded",
+                "selfCast": false
+            },
+            "VacuumSliceCharge": {
+                "mod": "EldenSkyrim_RimSkills.esp",
+                "formID": "0xB3C7",
+                "effectiveness": 1.0,
+                "stdMagnitude": 40.0,
+                "factor": 1.0,
+                "skill": "OneHanded",
+                "selfCast": false
+            }
+        }
     }
 }

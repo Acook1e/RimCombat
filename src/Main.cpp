@@ -31,8 +31,6 @@ void onPostLoad()
   Stamina::GetSingleton();
   Exhausted::GetSingleton();
   Execution::GetSingleton();
-  WeaponArt::Manager::GetSingleton();
-  WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
 }
 
 // 依赖外部API的初始化必须在PostLoad之后进行
@@ -58,6 +56,9 @@ void onDataLoaded()
 
   // 依赖OCF
   Weapon::Initialize();
+  // 依赖数据加载的系统
+  WeaponArt::Manager::GetSingleton();
+  WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
 }
 
 void MessageHandler(SKSE::MessagingInterface::Message* msg)

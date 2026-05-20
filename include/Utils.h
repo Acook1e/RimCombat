@@ -32,7 +32,7 @@ private:
 std::string join(std::vector<std::string>& vec, char delimiter);
 std::vector<std::string> split(const std::string& str, char delimiter);
 float toFloat(const std::string& str);
-std::int32_t toInt(const std::string& str);
+std::int32_t toInt(const std::string& str, int base = 10);
 
 // 哈希相关函数
 constexpr inline std::uint32_t hash(const char* data, size_t const size) noexcept

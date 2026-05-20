@@ -59,20 +59,23 @@ void Hook_OnMainUpdate::MainUpdate()
   deltaTime = Utils::GetTime<std::chrono::milliseconds>() - now;
   now       = Utils::GetTime<std::chrono::milliseconds>();
 
-  // 更新Utils提供的主线程接口
-  Utils::MainUpdate();
-
-  // 更新战技菜单选中物品同步
-  UI::WeaponArtMenu::Update();
-
   // 更新格挡系统
   Block::Update();
+
+  // 更新处决系统
+  Execution::Update();
+
+  // 更新硬直持续状态
+  Stagger::Update();
 
   // 更新架势系统
   Posture::Update(deltaTime);
 
-  // 更新处决系统
-  Execution::Update();
+  // 更新战技菜单选中物品同步
+  UI::WeaponArtMenu::Update();
+
+  // 更新Utils提供的主线程接口
+  Utils::MainUpdate();
 }
 
 float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
@@ -98,6 +101,7 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   Damage::ProcessMeleeHit(aggressor, victim, hitData);
 
   // 处决状态增伤
+  // 引入处决触发的入口在Posture，退出状态必须在Posture之前
   if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim)) {
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
     Execution::ExitExecutable(victim);
@@ -272,10 +276,10 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
     // 避免因为没有进入硬直动作导致的RimCombat的硬直系统被意外触发
     auto staggerLevel = Stagger::GetStaggerLevel(sourceActor);
     if (staggerLevel < Stagger::Level::Largest)
-      sourceActor->SetGraphVariableInt(Stagger::STAGGER_LEVEL, 0);
+      Stagger::SetStaggerLevel(sourceActor, Stagger::Level::None);
 
-    if (Block::IsTimedBlocking(sourceActor) || Stagger::IsStaggerImmune(sourceActor)) {
-      sourceActor->SetGraphVariableInt(Stagger::STAGGER_LEVEL, 0);
+    if (Block::IsTimedBlocking(sourceActor) || Stagger::IsImmune(sourceActor)) {
+      Stagger::SetStaggerLevel(sourceActor, Stagger::Level::None);
       return false;
     }
 

@@ -79,12 +79,17 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     WeaponArt::Manager::PayloadParse(actor, payload);
     break;
   case "staggerstart"_h:
+    // Rim Combat的硬直时间只会应用一次
+    // 不管这次是不是Rim Combat的硬直动画，只要是硬直动画
+    // 就结束Rim Combat的硬直状态，避免重复应用
+    actor->SetGraphVariableInt(Stagger::STAGGER_LEVEL, 0);
     break;
   case "prehitframe"_h:
     break;
   case "interruptcast"_h:
   case "attackstop"_h:
     Damage::End(actor);
+    Stagger::TargetEnd(actor);
     Stamina::End(actor);
     Posture::End(actor);
     WeaponArt::Manager::Interrupt(actor);

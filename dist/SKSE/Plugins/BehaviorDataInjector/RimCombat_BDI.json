@@ -6,6 +6,18 @@
     },
     {
         "projectPath": "Actors",
+        "type": "kInt",
+        "name": "RimCombat_StaggerLevel",
+        "value": 0
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kInt",
+        "name": "RimCombat_StaggerImmune",
+        "value": 0
+    },
+    {
+        "projectPath": "Actors",
         "type": "kEvent",
         "name": "RimStagger"
     },
@@ -13,12 +25,6 @@
         "projectPath": "Actors",
         "type": "kEvent",
         "name": "RimStamina"
-    },
-    {
-        "projectPath": "Actors",
-        "type": "kBool",
-        "name": "RimCombat_PostureBreakable",
-        "value": true
     },
     {
         "projectPath": "Actors",
@@ -58,17 +64,5 @@
         "projectPath": "Actors",
         "type": "kEvent",
         "name": "RimExecution"
-    },
-    {
-        "projectPath": "Actors",
-        "type": "kInt",
-        "name": "RimCombat_StaggerLevel",
-        "value": 0
-    },
-    {
-        "projectPath": "Actors",
-        "type": "kInt",
-        "name": "RimCombat_StaggerImmune",
-        "value": 0
     }
 ]

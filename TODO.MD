@@ -123,11 +123,17 @@ BehaviorDataInjector 当前注册了以下事件：
 - end
 - prepareend
 - toprepare
+- cast|spellname
 
 说明：
 
-- 这里只处理战技状态，不再直接处理耐力或架势数值。
-- 战技数值现在应该分别通过 RimStamina、RimPosture、RimExecution、RimStagger 驱动。
+- 这里负责战技状态切换，以及基于当前战技配置表触发预解析法术特效。
+- `cast|spellname` 会在当前战技的 `spells` 配置中查找对应法术。
+- spell key 在配置加载时和事件分发时都会统一转成小写后 hash。
+- 法术强度使用 `stdMagnitude` 作为 25 级标准强度，再乘常驻/临时技能百分比和技能等级曲线。
+- 当前技能倍率公式为：`stdMagnitude * (1 + (SkillMod + SkillPower) / 100) * pow(skillLevel / 25, factor / (factor + 10))`。
+- `factor` 当前要求非负。
+- `CastSpellImmediate` 实测不会再次应用同一套技能倍率，因此倍率需要在插件侧显式计算。
 
 #### RimExecution
 
@@ -153,11 +159,8 @@ BehaviorDataInjector 当前注册了以下事件：
 
 | 变量名 | 类型 | 用途 |
 | --- | --- | --- |
-| RimCombat_PostureBreakable | Bool | 当前是否允许破韧 |
 | RimCombat_WeaponArtID | Int | 当前武器对应战技 ID |
-| RimCombat_WeaponArtEnabled | Bool | 战技启用态 |
-| RimCombat_WeaponArtPrepared | Bool | 战技准备态 |
-| RimCombat_WeaponArtPerforming | Bool | 战技执行中 |
+| RimCombat_WeaponArtState | Int | 战技状态，0禁用 / 1准备中 / 2启用 |
 | RimCombat_Executable | Bool | 当前是否可处决 |
 | RimCombat_ExecutionFlag | Int | OAR 处决组合标志 |
 | RimCombat_StaggerLevel | Int | 额外硬直等级 |

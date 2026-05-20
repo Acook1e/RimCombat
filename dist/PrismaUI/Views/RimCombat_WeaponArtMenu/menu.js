@@ -161,6 +161,8 @@ function renderWeaponPanel() {
         return;
     }
 
+    const hasAssignedArt = Boolean(state.selectedWeapon.currentArtId);
+
     elements.weaponPanel.innerHTML = `
 		<div class="panel-title">
 			<div>
@@ -172,7 +174,22 @@ function renderWeaponPanel() {
 		<div class="weapon-meta">
             ${badge(state.selectedWeapon.type || "Unknown", "warn")}
 		</div>
-		<p class="weapon-description">The highlighted weapon art can be bound to this weapon if it is unlocked and compatible.</p>`;
+        <p class="weapon-description">The highlighted weapon art can be bound to this weapon if it is unlocked and compatible.</p>
+        <div class="action-row">
+            <button class="action-button secondary" id="unbind-button" type="button" ${hasAssignedArt ? "" : "disabled"}>
+                ${hasAssignedArt ? "Unbind Current Weapon Art" : "No Weapon Art Bound"}
+            </button>
+        </div>
+        <p class="action-hint">${hasAssignedArt ? "Clear the current weapon-art binding from this weapon without assigning a replacement." : "This weapon currently has no bound weapon art to clear."}</p>`;
+
+    const unbindButton = document.getElementById("unbind-button");
+    if (unbindButton) {
+        unbindButton.addEventListener("click", () => {
+            if (hasAssignedArt) {
+                callPrismaListener("setWeaponArt", "0");
+            }
+        });
+    }
 }
 
 function renderDetail() {

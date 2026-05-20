@@ -119,7 +119,7 @@ private:
   static inline std::unordered_map<std::uint16_t, float> availableExcutions;
 
   // 需要锁
-  // 当前处于可被处决状态的Actor列表
+  // 当前处于可被处决状态的Actor列表，值为处决状态到期时间
   // 不序列化保存状态
   static inline std::mutex mtx_executable;
   static inline std::unordered_map<RE::Actor*, std::uint64_t> executableActors;

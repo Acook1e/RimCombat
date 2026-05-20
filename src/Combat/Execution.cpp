@@ -123,12 +123,11 @@ void Execution::Update()
 
   auto now = Utils::GetTime<std::chrono::milliseconds>();
   for (auto it = executableActors.begin(); it != executableActors.end();) {
-    if (now - it->second > Settings::uExecutableDuration) {
+    if (now > it->second) {
       UnlockActor(it->first);
       it = executableActors.erase(it);
-    } else {
+    } else
       ++it;
-    }
   }
 }
 
@@ -248,7 +247,7 @@ void Execution::LockActor(RE::Actor* actor)
     RE::PlayerCharacter::GetSingleton()->SetAIDriven(true);
   } else {
     // 对于NPC禁用移动
-    actor->AsActorState()->actorState1.lifeState = RE::ACTOR_LIFE_STATE::kUnconcious;
+    actor->AsActorState()->actorState1.lifeState = RE::ACTOR_LIFE_STATE::kRestrained;
   }
 
   // 发送默认姿势事件，由OAR条件播放对应的动画
@@ -279,7 +278,9 @@ bool Execution::IsExecutable(RE::Actor* actor)
     return false;
 
   std::lock_guard<std::mutex> lock(mtx_executable);
-  return executableActors.contains(actor);
+  if (auto it = executableActors.find(actor); it != executableActors.end())
+    return it->second > Utils::GetTime<std::chrono::milliseconds>();
+  return false;
 }
 
 void Execution::EnterExecutable(RE::Actor* actor)
@@ -288,7 +289,8 @@ void Execution::EnterExecutable(RE::Actor* actor)
     return;
 
   std::lock_guard<std::mutex> lock(mtx_executable);
-  executableActors.emplace(actor, Utils::GetTime<std::chrono::milliseconds>());
+  executableActors[actor] =
+      Utils::GetTime<std::chrono::milliseconds>() + Settings::uExecutableDuration;
   LockActor(actor);
 }
 

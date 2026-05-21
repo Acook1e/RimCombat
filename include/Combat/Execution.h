@@ -3,69 +3,6 @@
 class Execution
 {
 public:
-  enum class Race : std::uint8_t
-  {
-    // 野猪，蓝客灵骑乘野猪 具有相同行为图
-    // 查鲁斯，查鲁斯收割者具有相同行为图
-    // 狗，狐狸，狼具有相同行为图
-    // 蜘蛛，巨型蜘蛛，大型蜘蛛具有相同行为图
-    // 熊人，狼人形态具有相同行为图
-
-    None             = 0,
-    Human            = 0x01,
-    AshHopper        = 0x02,
-    Bear             = 0x03,
-    Boar             = 0x04,
-    BoarMounted      = 0x05,
-    Chaurus          = 0x06,
-    ChaurusHunter    = 0x07,
-    ChaurusReaper    = 0x08,
-    Chicken          = 0x09,
-    Cow              = 0x0A,
-    Deer             = 0x0B,
-    Dog              = 0x0C,
-    Dragon           = 0x0D,
-    DragonPriest     = 0x0E,
-    Draugr           = 0x0F,
-    DwarvenBallista  = 0x10,
-    DwarvenCenturion = 0x11,
-    DwarvenSphere    = 0x12,
-    DwarvenSpider    = 0x13,
-    Falmer           = 0x14,
-    FlameAtronach    = 0x15,
-    Fox              = 0x16,
-    FrostAtronach    = 0x17,
-    Gargoyle         = 0x18,
-    Giant            = 0x19,
-    GiantSpider      = 0x1A,
-    Goat             = 0x1B,
-    Hagraven         = 0x1C,
-    Hare             = 0x1D,
-    Horker           = 0x1E,
-    Horse            = 0x1F,
-    IceWraith        = 0x20,
-    LargeSpider      = 0x21,
-    Lurker           = 0x22,
-    Mammoth          = 0x23,
-    Mudcrab          = 0x24,
-    Netch            = 0x25,
-    Riekling         = 0x26,
-    Sabrecat         = 0x27,
-    Seeker           = 0x28,
-    Skeever          = 0x29,
-    Slaughterfish    = 0x2A,
-    Spider           = 0x2B,
-    Spriggan         = 0x2C,
-    StormAtronach    = 0x2D,
-    Troll            = 0x2E,
-    VampireLord      = 0x2F,
-    Werebear         = 0x30,
-    Werewolf         = 0x31,
-    Wisp             = 0x32,
-    Wispmother       = 0x33,
-    Wolf             = 0x34,
-  };
-
   static Execution& GetSingleton()
   {
     static Execution singleton;
@@ -74,8 +11,6 @@ public:
 
   // 更新可处决Actor列表
   static void Update();
-
-  static Race GetRace(RE::Actor* actor);
 
   static bool IsExecutable(RE::Actor* actor);
   static void EnterExecutable(RE::Actor* actor);
@@ -92,25 +27,22 @@ public:
       std::function<void(RE::Actor* aggressor, RE::Actor* victim, bool back)>;
   static void AddExecutionStartListener(ExecutionStartCallback callback);
 
+  static void Damage(RE::Actor* victim, const std::string& payload);
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
-  static void ApplyExecutionDamage(RE::Actor* victim, const std::string& payload);
 
 private:
   Execution();
-  static void LockActor(RE::Actor* actor);
-  static void UnlockActor(RE::Actor* actor);
 
-  // book行为图变量
-  // 表示当前的Actor处于可被处决状态
-  constexpr static inline std::string_view EXECUTABLE = "RimCombat_Executable";
   // Int行为图变量
   // OAR根据这个变量来判断播放哪个处决动画
   // 为0表示无状态，否则表示当前武器+种族的处决组合ID
   constexpr static inline std::string_view EXECUTION_FLAG = "RimCombat_ExecutionFlag";
   // 行为事件
   // 其payload表示处决相关的的事件
-  // damage|xxx表示进行一次真实伤害结算，xxx为一个数字，表示伤害的倍率
-  // end表示处决结束
+  // VictimEnd表示受害者退出处决状态，一般在受害者的架势崩溃硬直结束的时候触发
+  // 可处决的时限现在仅和动画的时长和其中End注释有关
+  // Damage|Multiplier 表示进行一次真实伤害结算，Multiplier为一个数字，表示伤害的倍率
+  // End表示结束处决状态，触发受害者退出处决状态的逻辑
   constexpr static inline std::string_view EXECUTION_END = "RimExecution";
 
   // 无锁，处决组合只在初始化时设置一次，且之后不再修改
@@ -122,7 +54,7 @@ private:
   // 当前处于可被处决状态的Actor列表，值为处决状态到期时间
   // 不序列化保存状态
   static inline std::mutex mtx_executable;
-  static inline std::unordered_map<RE::Actor*, std::uint64_t> executableActors;
+  static inline std::unordered_set<RE::Actor*> executableActors;
 
   // 需要锁
   // 保存受害者 -> 处决者，用于在处决过程中持续处理伤害等逻辑

@@ -1,18 +1,18 @@
 {
-  "name": "Human Posture Break Idle",
+  "name": "Execution - Human",
   "description": "None",
-  "priority": 2064143000,
+  "priority": 2064143005,
   "conditions": [
     {
       "condition": "CompareValues",
       "requiredVersion": "1.0.0.0",
       "Value A": {
-        "graphVariable": "RimCombat_Executable",
-        "graphVariableType": "Bool"
+        "graphVariable": "RimCombat_StaggerLevel",
+        "graphVariableType": "Int"
       },
       "Comparison": "==",
       "Value B": {
-        "value": 1.0
+        "value": 5
       }
     }
   ]

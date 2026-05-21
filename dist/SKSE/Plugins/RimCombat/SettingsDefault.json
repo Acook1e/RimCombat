@@ -129,7 +129,7 @@
         "UseAttackStaminaSystem": true,
         "ConsumeStaminaOutCombat": true,
         "NormalAttackConsumeStamina": true,
-        "DisablePlayerAttackWhenStaminaZero": true,
+        "DisableAttackWhenStaminaZero": true,
         "StaminaRegenMult": 5.0,
         "StaminaRegenMin": 10.0,
         "StaminaRegenMax": 50.0,

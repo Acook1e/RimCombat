@@ -136,8 +136,7 @@ function renderList() {
     elements.artList.querySelectorAll("[data-art-id]").forEach((button) => {
         button.addEventListener("click", () => {
             selectedArtId = Number(button.dataset.artId);
-            renderDetail();
-            renderList();
+            renderAll();
         });
     });
 }
@@ -161,7 +160,23 @@ function renderWeaponPanel() {
         return;
     }
 
+    const art = getSelectedArt();
     const hasAssignedArt = Boolean(state.selectedWeapon.currentArtId);
+    const canAssign = Boolean(
+        art && state.selectedWeapon && art.unlocked && art.weaponAllowed && !art.isAssigned
+    );
+    const assignLabel = !art
+        ? "No Weapon Art Selected"
+        : art.isAssigned
+            ? "Selected Art Already Bound"
+            : `Bind ${art.name}`;
+    const weaponHint = !art
+        ? "Select a weapon art from the catalog to bind it to this weapon."
+        : canAssign
+            ? `Bind ${art.name} to this weapon, or clear the current binding without assigning a replacement.`
+            : hasAssignedArt
+                ? "This weapon already has a bound weapon art. You can bind the highlighted compatible art or clear the current binding."
+                : "Select an unlocked compatible weapon art to bind it, or leave this weapon unassigned.";
 
     elements.weaponPanel.innerHTML = `
 		<div class="panel-title">
@@ -176,11 +191,23 @@ function renderWeaponPanel() {
 		</div>
         <p class="weapon-description">The highlighted weapon art can be bound to this weapon if it is unlocked and compatible.</p>
         <div class="action-row">
+            <button class="action-button primary" id="weapon-assign-button" type="button" ${canAssign ? "" : "disabled"}>
+                ${assignLabel}
+            </button>
             <button class="action-button secondary" id="unbind-button" type="button" ${hasAssignedArt ? "" : "disabled"}>
                 ${hasAssignedArt ? "Unbind Current Weapon Art" : "No Weapon Art Bound"}
             </button>
         </div>
-        <p class="action-hint">${hasAssignedArt ? "Clear the current weapon-art binding from this weapon without assigning a replacement." : "This weapon currently has no bound weapon art to clear."}</p>`;
+        <p class="action-hint">${weaponHint}</p>`;
+
+    const weaponAssignButton = document.getElementById("weapon-assign-button");
+    if (weaponAssignButton) {
+        weaponAssignButton.addEventListener("click", () => {
+            if (canAssign && art) {
+                callPrismaListener("setWeaponArt", String(art.id));
+            }
+        });
+    }
 
     const unbindButton = document.getElementById("unbind-button");
     if (unbindButton) {

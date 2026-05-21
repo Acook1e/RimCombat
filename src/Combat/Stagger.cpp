@@ -9,17 +9,6 @@
 
 using Level = Stagger::Level;
 
-float Stagger::GetStaggerMagnitudeFromMap(Level level)
-{
-  if (level >= Level::Largest)
-    return staggerMagnitudeMap[Level::Largest];
-
-  if (auto it = staggerMagnitudeMap.find(level); it != staggerMagnitudeMap.end())
-    return it->second;
-
-  return 0.0f;
-}
-
 Stagger::Stagger()
 {
   constexpr std::string_view MSLSettingsFile = "Data/SKSE/Plugins/ModernStaggerLock.ini";
@@ -101,6 +90,30 @@ void Stagger::Update()
   }
 }
 
+float Stagger::LevelToMagnitude(Level level)
+{
+  if (level >= Level::Largest)
+    return staggerMagnitudeMap[Level::Largest];
+
+  if (auto it = staggerMagnitudeMap.find(level); it != staggerMagnitudeMap.end())
+    return it->second;
+
+  return 0.0f;
+}
+
+Level Stagger::MagnitudeToLevel(float magnitude)
+{
+  if (magnitude >= LevelToMagnitude(Level::Largest))
+    return Level::Largest;
+  else if (magnitude >= LevelToMagnitude(Level::Large))
+    return Level::Large;
+  else if (magnitude >= LevelToMagnitude(Level::Medium))
+    return Level::Medium;
+  else if (magnitude >= LevelToMagnitude(Level::Small))
+    return Level::Small;
+  return Level::None;
+}
+
 float Stagger::GetStaggerMagnitude(RE::Actor* actor)
 {
   if (!actor)
@@ -113,11 +126,12 @@ float Stagger::GetStaggerMagnitude(RE::Actor* actor)
   return staggerMagnitude;
 }
 
-void Stagger::SetStaggerMagnitude(RE::Actor* actor, float magnitude)
+void Stagger::SetStaggerMagnitude(RE::Actor* actor, Level level)
 {
   if (!actor)
     return;
 
+  float magnitude = LevelToMagnitude(level);
   actor->SetGraphVariableFloat("staggerMagnitude", magnitude);
 }
 
@@ -126,25 +140,15 @@ Level Stagger::GetStaggerLevel(RE::Actor* actor)
   if (!actor)
     return Level::None;
 
-  float staggerMagnitude = GetStaggerMagnitude(actor);
+  std::int32_t level = 0;
+  if (!actor->GetGraphVariableInt(STAGGER_LEVEL, level))
+    return Level::None;
 
-  if (staggerMagnitude >= staggerMagnitudeMap[Level::Largest]) {
+  if (level < static_cast<std::int32_t>(Level::None) ||
+      level >= static_cast<std::int32_t>(Level::Total))
+    return Level::None;
 
-    auto staggerLevel = 0;
-    if (!actor->GetGraphVariableInt(STAGGER_LEVEL, staggerLevel))
-      return Level::Largest;
-    if (staggerLevel > static_cast<std::int8_t>(Level::Largest))
-      return static_cast<Level>(staggerLevel);
-    return Level::Largest;
-  } else if (staggerMagnitude >= staggerMagnitudeMap[Level::Large])
-    return Level::Large;
-  else if (staggerMagnitude >= staggerMagnitudeMap[Level::Medium])
-    return Level::Medium;
-  else if (staggerMagnitude >= staggerMagnitudeMap[Level::Small])
-    return Level::Small;
-
-  // 基于Modern Stagger Lock的配置，小于Small是有可能的，因此返回None而不是Small
-  return Level::None;
+  return static_cast<Level>(level);
 }
 
 void Stagger::SetStaggerLevel(RE::Actor* actor, Level level)
@@ -152,13 +156,7 @@ void Stagger::SetStaggerLevel(RE::Actor* actor, Level level)
   if (!actor)
     return;
 
-  if (level > Level::Largest)
-    actor->SetGraphVariableInt(STAGGER_LEVEL, static_cast<std::int8_t>(level));
-  else
-    actor->SetGraphVariableInt(STAGGER_LEVEL, 0);
-
-  float magnitude = GetStaggerMagnitudeFromMap(level);
-  SetStaggerMagnitude(actor, magnitude);
+  actor->SetGraphVariableInt(STAGGER_LEVEL, static_cast<std::int8_t>(level));
 }
 
 bool Stagger::IsImmune(RE::Actor* actor)
@@ -166,8 +164,9 @@ bool Stagger::IsImmune(RE::Actor* actor)
   if (!actor)
     return false;
 
-  auto immune  = GetImmuneLevel(actor);
-  auto stagger = GetStaggerLevel(actor);
+  auto immune    = GetImmuneLevel(actor);
+  auto magnitude = GetStaggerMagnitude(actor);
+  auto stagger   = MagnitudeToLevel(magnitude);
 
   if (immune >= stagger)
     return true;
@@ -185,7 +184,7 @@ Level Stagger::GetImmuneLevel(RE::Actor* actor)
     return Level::None;
 
   if (immune < static_cast<std::int32_t>(Level::None) ||
-      immune > static_cast<std::int32_t>(Level::Knockaway))
+      immune >= static_cast<std::int32_t>(Level::Total))
     return Level::None;
 
   return static_cast<Level>(immune);
@@ -202,25 +201,24 @@ void Stagger::SetImmuneLevel(RE::Actor* actor, Level level)
   actor->SetGraphVariableInt(STAGGER_IMMUNE, static_cast<std::int32_t>(level));
 }
 
-bool Stagger::ProcessStagger(RE::Actor* aggressor, RE::Actor* victim)
+void Stagger::ProcessStagger(RE::Actor* aggressor, RE::Actor* victim)
 {
   if (!aggressor || !victim)
-    return false;
-
-  auto res = false;
+    return;
 
   // 不清除Map中的数据，直到EndTarget事件，以确保在攻击过程中持续生效
 
   Level currentLevel = GetStaggerLevel(victim);
-  Level targetLevel  = Level::None;
+  // 如果当前已经位于Rim Combat的额外硬直等级中直接返回
+  if (currentLevel > Level::Largest)
+    return;
 
+  Level targetLevel = Level::None;
   {
     std::scoped_lock lock(mtx_targetCache);
     std::int8_t modifiedResult = 0;
-    if (auto it = modifyTargetLevelMap.find(aggressor); it != modifyTargetLevelMap.end()) {
-      res            = true;
+    if (auto it = modifyTargetLevelMap.find(aggressor); it != modifyTargetLevelMap.end())
       modifiedResult = static_cast<std::int8_t>(currentLevel) + it->second;
-    }
 
     // 确保修改后的等级在合法范围内
     if (modifiedResult < 0)
@@ -231,20 +229,17 @@ bool Stagger::ProcessStagger(RE::Actor* aggressor, RE::Actor* victim)
     // 仅有设置等级才可以设置Rim Combat的硬直等级
     // 保证设置Rim Combat的硬直等级一定会生效
     Level setLevel = Level::None;
-    if (auto it = setTargetLevelMap.find(aggressor); it != setTargetLevelMap.end()) {
-      res      = true;
+    if (auto it = setTargetLevelMap.find(aggressor); it != setTargetLevelMap.end())
       setLevel = it->second;
-    }
+
     targetLevel = setLevel > targetLevel ? setLevel : targetLevel;
   }
 
-  // 在当前值和目标值均使用Rim Combat的硬直等级时，不改变当前值
-  // 对当前的等级进行修改，取最大值，确保硬直等级不会因为修改而降低
-  if (currentLevel <= Level::Largest || targetLevel <= Level::Largest)
-    currentLevel = currentLevel > targetLevel ? currentLevel : targetLevel;
+  // 如果目标等级为None，则不处理硬直
+  if (targetLevel == Level::None)
+    return;
 
-  SetStaggerLevel(victim, currentLevel);
-  return res;
+  SetStaggerLevel(victim, targetLevel);
 }
 
 void Stagger::TargetSet(RE::Actor* actor, const std::string& payload)
@@ -315,7 +310,11 @@ void Stagger::Immune(RE::Actor* actor, const std::string& payload)
 
 void Stagger::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
-  if (payload == "end")
+  if (payload.starts_with("set|")) {
+    auto level = static_cast<Level>(Utils::toInt(payload.substr(4)));
+    if (level != Level::None)
+      SetStaggerLevel(actor, level);
+  } else if (payload == "end")
     actor->SetGraphVariableInt(STAGGER_LEVEL, 0);
   else if (payload.starts_with("targetset|"))
     TargetSet(actor, payload.substr(10));

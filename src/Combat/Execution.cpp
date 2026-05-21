@@ -1,14 +1,15 @@
 #include "Combat/Execution.h"
 
 #include "Combat/Exhausted.h"
-#include "Combat/Weapon.h"
+#include "Combat/Stagger.h"
 #include "Core/Settings.h"
+#include "Data/Race.h"
+#include "Data/Weapon.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
-using Race       = Execution::Race;
 using WeaponType = Weapon::Type;
 
 std::uint16_t operator|(WeaponType w, Race r)
@@ -114,163 +115,7 @@ Execution::Execution()
   }
 }
 
-void Execution::Update()
-{
-  // 定期更新可处决Actor列表，移除已不满足条件的Actor
-  std::lock_guard<std::mutex> lock(mtx_executable);
-  if (executableActors.empty())
-    return;
-
-  auto now = Utils::GetTime<std::chrono::milliseconds>();
-  for (auto it = executableActors.begin(); it != executableActors.end();) {
-    if (now > it->second) {
-      UnlockActor(it->first);
-      it = executableActors.erase(it);
-    } else
-      ++it;
-  }
-}
-
-Race Execution::GetRace(RE::Actor* actor)
-{
-  static std::unordered_map<std::string_view, Race> raceMap = {
-      {"0_Master.hkx", Race::Human},
-      {"WolfBehavior.hkx", Race::Wolf},
-      {"DogBehavior.hkx", Race::Dog},
-      {"ChickenBehavior.hkx", Race::Chicken},
-      {"HareBehavior.hkx", Race::Hare},
-      {"AtronachFlameBehavior.hkx", Race::FlameAtronach},
-      {"AtronachFrostBehavior.hkx", Race::FrostAtronach},
-      {"AtronachStormBehavior.hkx", Race::StormAtronach},
-      {"BearBehavior.hkx", Race::Bear},
-      {"ChaurusBehavior.hkx", Race::Chaurus},
-      {"H-CowBehavior.hkx", Race::Cow},
-      {"DeerBehavior.hkx", Race::Deer},
-      {"CHaurusFlyerBehavior.hkx", Race::ChaurusHunter},
-      {"VampireBruteBehavior.hkx", Race::Gargoyle},
-      {"BenthicLurkerBehavior.hkx", Race::Lurker},
-      {"BoarBehavior.hkx", Race::Boar},
-      {"BCBehavior.hkx", Race::DwarvenBallista},
-      {"HMDaedra.hkx", Race::Seeker},
-      {"NetchBehavior.hkx", Race::Netch},
-      {"RieklingBehavior.hkx", Race::Riekling},
-      {"ScribBehavior.hkx", Race::AshHopper},
-      {"DragonBehavior.hkx", Race::Dragon},
-      {"Dragon_Priest.hkx", Race::DragonPriest},
-      {"DraugrBehavior.hkx", Race::Draugr},
-      {"SCBehavior.hkx", Race::DwarvenSphere},
-      {"DwarvenSpiderBehavior.hkx", Race::DwarvenSpider},
-      {"SteamBehavior.hkx", Race::DwarvenCenturion},
-      {"FalmerBehavior.hkx", Race::Falmer},
-      {"FrostbiteSpiderBehavior.hkx", Race::Spider},
-      {"GiantBehavior.hkx", Race::Giant},
-      {"GoatBehavior.hkx", Race::Goat},
-      {"HavgravenBehavior.hkx", Race::Hagraven},
-      {"HorkerBehavior.hkx", Race::Horker},
-      {"HorseBehavior.hkx", Race::Horse},
-      {"IceWraithBehavior.hkx", Race::IceWraith},
-      {"MammothBehavior.hkx", Race::Mammoth},
-      {"MudcrabBehavior.hkx", Race::Mudcrab},
-      {"SabreCatBehavior.hkx", Race::Sabrecat},
-      {"SkeeverBehavior.hkx", Race::Skeever},
-      {"SlaughterfishBehavior.hkx", Race::Slaughterfish},
-      {"SprigganBehavior.hkx", Race::Spriggan},
-      {"TrollBehavior.hkx", Race::Troll},
-      {"VampireLord.hkx", Race::VampireLord},
-      {"WerewolfBehavior.hkx", Race::Werewolf},
-      {"WispBehavior.hkx", Race::Wispmother},
-      {"WitchlightBehavior.hkx", Race::Wisp},
-  };
-
-  auto behaviorPath =
-      actor->GetRace()->rootBehaviorGraphNames[actor->GetActorBase()->IsFemale() ? 1 : 0].data();
-  auto behaviorName = std::filesystem::path(behaviorPath).filename().string();
-
-  auto res = Race::None;
-  if (auto it = raceMap.find(behaviorName); it != raceMap.end()) {
-    res = it->second;
-  } else {
-    logger::warn("Execution::GetRace: Unknown behavior graph: {}", behaviorName);
-    return Race::None;
-  }
-
-  if (res == Race::Human)
-    return res;
-
-  auto editorId = std::string{actor->GetRace()->GetFormEditorID()};
-  switch (res) {
-  case Race::Boar:
-    static const auto DLC2RieklingMountedKeyword =
-        RE::TESDataHandler::GetSingleton()->LookupForm<RE::BGSKeyword>(0x03A159, "Dragonborn.esm");
-    if (actor->GetRace()->HasKeyword(DLC2RieklingMountedKeyword))
-      res = Race::BoarMounted;
-    break;
-  case Race::Chaurus:
-    if (editorId.find("reaper") != std::string::npos)
-      res = Race::ChaurusReaper;
-    else
-      res = Race::Chaurus;
-    break;
-  case Race::Spider:
-    if (editorId.find("giant") != std::string::npos)
-      res = Race::GiantSpider;
-    else if (editorId.find("large") != std::string::npos)
-      res = Race::LargeSpider;
-    break;
-  case Race::Wolf:
-    if (editorId.find("fox") != std::string::npos)
-      res = Race::Fox;
-    break;
-  case Race::Werewolf:
-    if (editorId.find("werebear") != std::string::npos)
-      res = Race::Werebear;
-    break;
-  default:
-    break;
-  }
-  return res;
-}
-
-void Execution::LockActor(RE::Actor* actor)
-{
-  if (!actor)
-    return;
-
-  // 首先强制打断当前动作
-  actor->InterruptCast(false);
-  actor->GetActorRuntimeData().currentProcess->StopCurrentIdle(actor, true);
-
-  actor->SetGraphVariableBool(EXECUTABLE, true);
-
-  if (actor->IsPlayerRef()) {
-    // 对于玩家启用AI驱动，但因为不存在真正的AI，所以相当于禁用玩家控制权
-    RE::PlayerCharacter::GetSingleton()->SetAIDriven(true);
-  } else {
-    // 对于NPC禁用移动
-    actor->AsActorState()->actorState1.lifeState = RE::ACTOR_LIFE_STATE::kRestrained;
-  }
-
-  // 发送默认姿势事件，由OAR条件播放对应的动画
-  Utils::AddTask([actor]() {
-    actor->NotifyAnimationGraph("IdleDefaultStart");
-  });
-}
-
-void Execution::UnlockActor(RE::Actor* actor)
-{
-  if (!actor)
-    return;
-
-  actor->SetGraphVariableBool(EXECUTABLE, false);
-
-  if (actor->IsPlayerRef()) {
-    // 对于玩家禁用AI驱动，恢复玩家控制权
-    RE::PlayerCharacter::GetSingleton()->SetAIDriven(false);
-  } else {
-    // 对于NPC重新启用移动
-    actor->AsActorState()->actorState1.lifeState = RE::ACTOR_LIFE_STATE::kAlive;
-  }
-}
+void Execution::Update() {}
 
 bool Execution::IsExecutable(RE::Actor* actor)
 {
@@ -278,9 +123,7 @@ bool Execution::IsExecutable(RE::Actor* actor)
     return false;
 
   std::lock_guard<std::mutex> lock(mtx_executable);
-  if (auto it = executableActors.find(actor); it != executableActors.end())
-    return it->second > Utils::GetTime<std::chrono::milliseconds>();
-  return false;
+  return executableActors.contains(actor);
 }
 
 void Execution::EnterExecutable(RE::Actor* actor)
@@ -288,10 +131,12 @@ void Execution::EnterExecutable(RE::Actor* actor)
   if (!actor || !Settings::bUseExecutionSystem)
     return;
 
+  // 对不同的种族应该具有不同的处决状态硬直
+  // 考虑将Race单独出来并且让RimCombat的Stagger系统分类处理
+
   std::lock_guard<std::mutex> lock(mtx_executable);
-  executableActors[actor] =
-      Utils::GetTime<std::chrono::milliseconds>() + Settings::uExecutableDuration;
-  LockActor(actor);
+  Stagger::SetStaggerLevel(actor, Stagger::Level::Execution);
+  executableActors.insert(actor);
 }
 
 void Execution::ExitExecutable(RE::Actor* actor)
@@ -299,26 +144,34 @@ void Execution::ExitExecutable(RE::Actor* actor)
   if (!actor || !Settings::bUseExecutionSystem)
     return;
 
+  // 无论是自然退出还是受击退出，都结束硬直状态
+  Stagger::SetStaggerLevel(actor, Stagger::Level::None);
+
   std::lock_guard<std::mutex> lock(mtx_executable);
   executableActors.erase(actor);
-  UnlockActor(actor);
 }
 
 RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
 {
+  // 暂时禁用处决
+  return nullptr;
+
+  if (!aggressor || !Settings::bUseExecutionSystem)
+    return nullptr;
+
   std::lock_guard<std::mutex> lock(mtx_executable);
   if (executableActors.empty())
     return nullptr;
 
   RE::Actor* closestTarget = nullptr;
   float closestDistance    = (std::numeric_limits<float>::max)();
-  for (auto& [actor, timestamp] : executableActors) {
-    float distance = aggressor->GetPosition().GetDistance(actor->GetPosition());
+  for (auto* victim : executableActors) {
+    float distance = aggressor->GetPosition().GetDistance(victim->GetPosition());
     if (distance > 250.0f)
       continue;
     if (distance < closestDistance) {
       closestDistance = distance;
-      closestTarget   = actor;
+      closestTarget   = victim;
     }
   }
   return closestTarget;
@@ -346,6 +199,7 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   auto weaponType = Weapon::GetActorEquipmentType(aggressor);
   auto race       = GetRace(victim);
   auto flag       = weaponType | race;
+
   std::lock_guard<std::mutex> lock(mtx_executable);
   if (!availableExcutions.contains(flag)) {
     logger::info("Execution::TryExecute: No available Idle for using Weapon {} to execute Race {}",
@@ -434,13 +288,13 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
       !victim->NotifyAnimationGraph(victimAnimEvent)) {
     logger::warn("Execution::TryExecute: Failed to send animation event. Aggressor: {}, Victim: {}",
                  aggressor->GetDisplayFullName(), victim->GetDisplayFullName());
-    UnlockActor(victim);
     return false;
   }
 
+  executableActors.erase(victim);
+
   std::lock_guard<std::mutex> lock_executing(mtx_executing);
   executingActors[victim] = aggressor;
-  executableActors.erase(victim);
   return true;
 }
 
@@ -470,8 +324,6 @@ void Execution::ExecutionEnd(RE::Actor* victim)
 
   victim->SetGraphVariableInt(EXECUTION_FLAG, 0);
 
-  UnlockActor(victim);
-
   std::lock_guard<std::mutex> lock(mtx_executing);
   if (executingActors.contains(victim))
     executingActors.erase(victim);
@@ -483,16 +335,7 @@ void Execution::AddExecutionStartListener(ExecutionStartCallback callback)
   executionStartListeners.push_back(callback);
 }
 
-void Execution::PayloadParse(RE::Actor* actor, const std::string& payload)
-{
-  if (payload == "end")
-    Execution::ExecutionEnd(actor);
-  else if (payload.starts_with("damage|"))
-    Execution::ApplyExecutionDamage(actor, payload.substr(7));
-  // 等待拓展
-}
-
-void Execution::ApplyExecutionDamage(RE::Actor* victim, const std::string& payload)
+void Execution::Damage(RE::Actor* victim, const std::string& payload)
 {
   if (!victim || !Settings::bUseExecutionSystem)
     return;
@@ -527,4 +370,13 @@ void Execution::ApplyExecutionDamage(RE::Actor* victim, const std::string& paylo
 
   // 处决伤害结算，直接对目标造成真实伤害
   victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);
+}
+
+void Execution::PayloadParse(RE::Actor* actor, const std::string& payload)
+{
+  if (payload == "end")
+    Execution::ExecutionEnd(actor);
+  else if (payload.starts_with("damage|"))
+    Execution::Damage(actor, payload.substr(7));
+  // 等待拓展
 }

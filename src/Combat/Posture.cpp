@@ -3,10 +3,10 @@
 #include "Combat/Block.h"
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
-#include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "Data/Weapon.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
@@ -79,9 +79,8 @@ void Posture::Update(std::uint64_t deltaTime)
     if (data.current < data.max) {
       if (Execution::IsExecutable(actor)) {
         // 作为平衡性和视觉表现上的优化
-        // 进入处决状态默认恢复到一半的最大值，并在持续时间内逐渐恢复到满值
-        data.current +=
-            (deltaTime / static_cast<float>(Settings::uExecutableDuration * 2)) * data.max;
+        // 进入处决状态默认恢复到一半的最大值，并在处决状态内以一半的速度恢复
+        data.current += (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 2000.0f);
         data.current = std::clamp(data.current, 0.0f, data.max);
       } else if (now >= data.regenResumeTime) {
         data.current +=
@@ -199,13 +198,16 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
   if (auto* left = aggressor->GetEquippedObject(true); left)
     shield = left->IsArmor();
 
-  auto type = Weapon::GetWeaponType(attackWeapon);
-  // 如果是格挡攻击但没有武器且有盾，则视为盾击
-  // 因为空手且带盾的情况下，bash只能由盾牌触发
-  // 但某些动画包可能允许空手带盾用手触发bash
-  // 可能会导致误判，但目前没有更好的解决方案了
-  if (!attackWeapon && bash && shield)
-    type = Weapon::Type::Shield;
+  auto type = Weapon::Type::None;
+  // 在bash发生的时候，attackWeapon是空的，使用右手武器类型来判断攻击类型
+  if (bash) {
+    if (shield)
+      type = Weapon::Type::Shield;
+    else
+      type = Weapon::GetActorEquipmentType(aggressor, false);
+  } else
+    type = Weapon::GetWeaponType(aggressor, attackWeapon);
+
   float postureDamage = Weapon::GetBasePostureDamage(type);
 
   // Process Power Attack

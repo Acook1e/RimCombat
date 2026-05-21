@@ -1,7 +1,7 @@
 {
   "name": "Knockdown",
   "description": "None",
-  "priority": 2064144005,
+  "priority": 2064143006,
   "conditions": [
     {
       "condition": "CompareValues",
@@ -12,7 +12,7 @@
       },
       "Comparison": "==",
       "Value B": {
-        "value": 5
+        "value": 6
       }
     }
   ]

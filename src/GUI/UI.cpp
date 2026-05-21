@@ -3,8 +3,8 @@
 #include "GUI/Localization.h"
 
 #include "Combat/Posture.h"
-#include "Combat/Weapon.h"
 #include "Core/Settings.h"
+#include "Data/Weapon.h"
 #include "Utils.h"
 
 #include "API/PrismaUI_API.h"
@@ -264,13 +264,14 @@ void WeaponArtMenu::SyncViewData()
 
   auto* selectedWeapon      = GetSelectedWeapon();
   std::int32_t currentArtID = 0;
+  auto player               = RE::PlayerCharacter::GetSingleton();
   if (selectedWeapon) {
     currentArtID     = WeaponArt::Manager::GetWeaponArtID(selectedWeapon);
     auto* weaponName = selectedWeapon->GetName();
 
     payload["selectedWeapon"] = {
         {"name", weaponName ? weaponName : ""},
-        {"type", ResolveEnumLabel(Weapon::GetWeaponType(selectedWeapon),
+        {"type", ResolveEnumLabel(Weapon::GetWeaponType(player, selectedWeapon),
                                   ResolveLabel("UnknownWeaponType", "Unknown"))},
         {"currentArtId", currentArtID},
         {"currentArtName", ResolveWeaponArtName(currentArtID)}};

@@ -239,7 +239,8 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
     return std::find(weapons.begin(), weapons.end(), weapon->GetFormID()) != weapons.end();
 
   // 武器类型
-  auto weaponType = WeaponTypeMapping(Weapon::GetWeaponType(weapon));
+  auto player     = RE::PlayerCharacter::GetSingleton();
+  auto weaponType = WeaponTypeMapping(Weapon::GetWeaponType(player, weapon));
 
   auto aviailableAttack = availableWeapon & attackMask;
 

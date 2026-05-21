@@ -18,9 +18,7 @@ void Initialize()
       if (serial->OpenRecord(type, SerializationVersion))
         callback(serial);
       else
-        logger::error(
-            "Serialization::Initialize: Failed to open record for type: {}",
-            type);
+        logger::error("Serialization::Initialize: Failed to open record for type: {}", type);
   });
   serial->SetLoadCallback([](SKSE::SerializationInterface* serial) {
     std::uint32_t type, version, length;
@@ -77,6 +75,7 @@ bool RegisterRevertCallback(std::uint32_t type, Callback callback)
 
 std::uint64_t ToPersistForm(RE::FormID formID)
 {
+
   if (formID >= 0xFF000000)
     return 0;  // Not a mod form, cannot persist
   auto* dataHandler = RE::TESDataHandler::GetSingleton();
@@ -85,7 +84,7 @@ std::uint64_t ToPersistForm(RE::FormID formID)
   const RE::TESFile* mod = nullptr;
   std::uint32_t rawForm  = 0;
   if (formID >= 0xFE000000) {
-    mod = dataHandler->LookupLoadedLightModByIndex((formID & 0x00FFF000) >> 12);
+    mod     = dataHandler->LookupLoadedLightModByIndex((formID & 0x00FFF000) >> 12);
     rawForm = formID & 0x00000FFF;
   } else {
     mod     = dataHandler->LookupLoadedModByIndex(formID >> 24);
@@ -93,29 +92,22 @@ std::uint64_t ToPersistForm(RE::FormID formID)
   }
   if (!mod || !rawForm)
     return 0;  // Mod not found or invalid formID
-  return (static_cast<std::uint64_t>(Utils::hash(mod->fileName)) << 32) |
-         rawForm;
+  return (static_cast<std::uint64_t>(Utils::hash(mod->fileName)) << 32) | rawForm;
 }
 
 RE::FormID ToForm(std::uint64_t persistForm)
 {
-  static std::unordered_map<std::uint32_t, std::uint32_t> modHashToIndexCache;
+  static std::unordered_map<std::uint32_t, std::uint32_t> modHashToIndexCache{};
 
-  std::uint32_t modHash = persistForm >> 32;
-  std::uint32_t rawForm = persistForm & 0xFFFFFFFF;
-  if (auto it = modHashToIndexCache.find(modHash);
-      it != modHashToIndexCache.end()) {
-    return it->second | rawForm;
-  } else {
+  const auto initCache = []() {
     auto* dataHandler = RE::TESDataHandler::GetSingleton();
     if (!dataHandler)
-      return 0;
+      return;
     auto* mods = dataHandler->GetLoadedMods();
     for (std::size_t i = 0; i < dataHandler->GetLoadedModCount(); ++i) {
       auto* mod = mods[i];
       if (mod->compileIndex && mod->compileIndex != 0xFF)
-        modHashToIndexCache[Utils::hash(mod->fileName)] = mod->compileIndex
-                                                          << 24;
+        modHashToIndexCache[Utils::hash(mod->fileName)] = mod->compileIndex << 24;
     }
     mods = dataHandler->GetLoadedLightMods();
     for (std::size_t i = 0; i < dataHandler->GetLoadedLightModCount(); ++i) {
@@ -124,10 +116,17 @@ RE::FormID ToForm(std::uint64_t persistForm)
         modHashToIndexCache[Utils::hash(mod->fileName)] =
             (mod->smallFileCompileIndex << 12) | 0xFE000000;
     }
-    if (auto it = modHashToIndexCache.find(modHash);
-        it != modHashToIndexCache.end())
-      return it->second | rawForm;
-    return 0;  // Not found
-  }
+  };
+
+  if (modHashToIndexCache.empty())
+    initCache();
+
+  std::uint32_t modHash = persistForm >> 32;
+  std::uint32_t rawForm = persistForm & 0xFFFFFFFF;
+  if (auto it = modHashToIndexCache.find(modHash); it != modHashToIndexCache.end())
+    return it->second | rawForm;
+  else if (modHash == "Skyrim.esm"_h)  // 特殊处理
+    return rawForm;
+  return 0;
 }
 }  // namespace Serialization

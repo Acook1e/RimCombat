@@ -1,7 +1,7 @@
 {
   "name": "Strikefly",
   "description": "None",
-  "priority": 2064144006,
+  "priority": 2064143007,
   "conditions": [
     {
       "condition": "CompareValues",
@@ -12,7 +12,7 @@
       },
       "Comparison": "==",
       "Value B": {
-        "value": 6
+        "value": 7
       }
     }
   ]

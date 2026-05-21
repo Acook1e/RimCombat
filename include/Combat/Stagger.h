@@ -15,9 +15,12 @@ public:
 
     // 级别等同于Largest，RimCombat补充的额外级别
 
+    Execution,  // 处决状态专用的硬直
     Knockdown,  // 砸趴
     Strikefly,  // 挑飞
     Knockaway,  // 击飞
+
+    Total
   };
 
   // Int图变量
@@ -27,6 +30,7 @@ public:
   // 在执行硬直之前，根据这个判断是否免疫硬直
   constexpr static std::string_view STAGGER_IMMUNE = "RimCombat_StaggerImmune";
   // 图事件，padload用于传递信息
+  // Set|level用于设置当前的硬直等级为level，level为Level对应的数值
   // End表示退出RimCombat的硬直系统，恢复原版的硬直处理
   // Immune|level|Duration用于设置当前的硬直免疫等级为level，level为Level对应的数值，Duration为持续时间，单位为毫秒
   // TargetSet|level用于设置击中目标的硬直等级为level，level为Level对应的数值
@@ -43,13 +47,12 @@ public:
 
   static void Update();
 
-  static float GetStaggerMagnitude(RE::Actor* actor);
-  static void SetStaggerMagnitude(RE::Actor* actor, float magnitude);
+  static float LevelToMagnitude(Level level);
+  static Level MagnitudeToLevel(float magnitude);
 
-  // MaxsuPoise的硬直计算和写回发生在ProcessHit
-  // 确保调用时已经处理完攻击了
-  // Modern Stagger Lock的硬直等级计算是在NotifyAnimationGraph中进行的
-  // 但我们的硬直等级处理在PerformAction中，早于NotifyAnimationGraph，因此需要在这里重新计算硬直等级
+  static float GetStaggerMagnitude(RE::Actor* actor);
+  static void SetStaggerMagnitude(RE::Actor* actor, Level level);
+
   static Level GetStaggerLevel(RE::Actor* actor);
   static void SetStaggerLevel(RE::Actor* actor, Level level);
 
@@ -57,7 +60,12 @@ public:
   static Level GetImmuneLevel(RE::Actor* actor);
   static void SetImmuneLevel(RE::Actor* actor, Level level);
 
-  static bool ProcessStagger(RE::Actor* aggressor, RE::Actor* victim);
+  // MaxsuPoise的硬直计算和写回发生在TryStagger
+  // 确保调用时已经处理完攻击了
+  // Modern Stagger Lock的硬直等级计算是在NotifyAnimationGraph中进行的
+  // 但我们的硬直等级处理在PerformAction中，早于NotifyAnimationGraph，因此需要在这里应用最终的硬直等级
+  // 返回true表示这次硬直处理被RimCombat接管了，返回false表示不处理，交给原版
+  static void ProcessStagger(RE::Actor* aggressor, RE::Actor* victim);
 
   static void TargetSet(RE::Actor* actor, const std::string& payload);
   static void TargetModify(RE::Actor* actor, const std::string& payload);
@@ -79,8 +87,6 @@ private:
       {Level::None, 0.0f},   {Level::Small, 0.25f},  {Level::Medium, 0.5f},
       {Level::Large, 0.75f}, {Level::Largest, 1.0f},
   };
-
-  static float GetStaggerMagnitudeFromMap(Level level);
 
   // 由于动画事件的发送早于受击处理
   // 因此缓存在动画事件的数据，在受击处理时再处理

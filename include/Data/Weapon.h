@@ -73,7 +73,7 @@ void Initialize();
 [[nodiscard]] bool IsUnarmed(Type type);
 
 [[nodiscard]] Type GetActorEquipmentType(RE::Actor* actor, bool leftHand = false);
-[[nodiscard]] Type GetWeaponType(RE::TESObjectWEAP* object);
+[[nodiscard]] Type GetWeaponType(RE::Actor* actor, RE::TESObjectWEAP* object);
 [[nodiscard]] Type GetBlockType(RE::Actor* actor);
 
 [[nodiscard]] float GetBasePostureDamage(Type type);

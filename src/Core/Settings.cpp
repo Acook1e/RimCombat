@@ -1,6 +1,6 @@
 #include "Core/Settings.h"
 
-#include "Combat/Weapon.h"
+#include "Data/Weapon.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
@@ -131,8 +131,8 @@ namespace
 
     json stamina = {{"UseAttackStaminaSystem", bUseAttackStaminaSystem},
                     {"ConsumeStaminaOutCombat", bConsumeStaminaOutCombat},
-                    {"NormalAttackConsumeStamina", bNormalAttackComsumeStamina},
-                    {"DisablePlayerAttackWhenStaminaZero", bDisablePlayerAttackWhenStaminaZero},
+                    {"NormalAttackConsumeStamina", bNormalAttackConsumeStamina},
+                    {"DisableAttackWhenStaminaZero", bDisableAttackWhenStaminaZero},
                     {"StaminaRegenMult", fStaminaRegenMult},
                     {"StaminaRegenMin", fStaminaRegenMin},
                     {"StaminaRegenMax", fStaminaRegenMax},
@@ -188,8 +188,6 @@ namespace
                          {"WeaponArtMenuStartPercent", fWeaponArtMenuStartPercent}};
 
     json execution = {{"UseExecutionSystem", bUseExecutionSystem},
-                      {"ExitExecutionOnHit", bExitExecutionOnHit},
-                      {"ExecutableDuration", uExecutableDuration},
                       {"OnHitDamageMultWhenExecutable", fOnHitDamageMultWhenExecutable}};
     SaveWeaponFloatMap(execution, "ExecutionDamageMult", executionDamageMultMap);
     root["Execution"] = std::move(execution);
@@ -283,9 +281,8 @@ void LoadSettings()
     const auto& stamina = *it;
     LoadSetting(stamina, "Stamina", "UseAttackStaminaSystem", bUseAttackStaminaSystem);
     LoadSetting(stamina, "Stamina", "ConsumeStaminaOutCombat", bConsumeStaminaOutCombat);
-    LoadSetting(stamina, "Stamina", "NormalAttackConsumeStamina", bNormalAttackComsumeStamina);
-    LoadSetting(stamina, "Stamina", "DisablePlayerAttackWhenStaminaZero",
-                bDisablePlayerAttackWhenStaminaZero);
+    LoadSetting(stamina, "Stamina", "NormalAttackConsumeStamina", bNormalAttackConsumeStamina);
+    LoadSetting(stamina, "Stamina", "DisableAttackWhenStaminaZero", bDisableAttackWhenStaminaZero);
     LoadSetting(stamina, "Stamina", "StaminaRegenMult", fStaminaRegenMult);
     LoadSetting(stamina, "Stamina", "StaminaRegenMin", fStaminaRegenMin);
     LoadSetting(stamina, "Stamina", "StaminaRegenMax", fStaminaRegenMax);
@@ -360,8 +357,6 @@ void LoadSettings()
   if (const auto it = root.find("Execution"); it != root.end() && it->is_object()) {
     const auto& execution = *it;
     LoadSetting(execution, "Execution", "UseExecutionSystem", bUseExecutionSystem);
-    LoadSetting(execution, "Execution", "ExitExecutionOnHit", bExitExecutionOnHit);
-    LoadSetting(execution, "Execution", "ExecutableDuration", uExecutableDuration);
     LoadSetting(execution, "Execution", "OnHitDamageMultWhenExecutable",
                 fOnHitDamageMultWhenExecutable);
     LoadWeaponFloatMap(execution, "Execution", "ExecutionDamageMult", executionDamageMultMap);

@@ -1,4 +1,4 @@
-#include "Combat/Weapon.h"
+#include "Data/Weapon.h"
 
 #include "Core/Settings.h"
 
@@ -33,6 +33,8 @@ bool OCF_Installed = false;
 
 // 类型关键词
 // 区分大类型，减少对每把武器的关键词查询次数
+// 空手类
+static RE::BGSKeyword* OCF_Unarmed = nullptr;
 // 小型单手刀剑类
 static RE::BGSKeyword* OCF_SmallBladed1H = nullptr;
 // 单面刃类
@@ -115,6 +117,7 @@ void Initialize()
   }
 
   // 录入关键词
+  OCF_Unarmed       = dataHandler->LookupForm<RE::BGSKeyword>(0x82D, "OCF.esp");
   OCF_SmallBladed1H = dataHandler->LookupForm<RE::BGSKeyword>(0x887, "OCF.esp");
   OCF_Bladed1H      = dataHandler->LookupForm<RE::BGSKeyword>(0x884, "OCF.esp");
   OCF_Edged1H       = dataHandler->LookupForm<RE::BGSKeyword>(0x886, "OCF.esp");
@@ -175,17 +178,8 @@ Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
 
   auto equipment = actor->GetEquippedObject(leftHand);
 
-  if (!equipment) {
-    // TODO: 这里可以根据种族返回不同的空手类型，目前只有狼人和吸血鬼领主有特殊处理
-    auto race = actor->GetRace();
-    if (race == werewolfRace)
-      return Type::Werewolf;
-    else if (race == werebearRace)
-      return Type::Werebear;
-    else if (race == vampireLordRace)
-      return Type::VampireLord;
-    return Type::Unarm;
-  }
+  if (!equipment)
+    return Type::None;
 
   if (equipment->IsArmor())
     return Type::Shield;
@@ -194,25 +188,30 @@ Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
     return Type::Torch;
 
   if (equipment->IsWeapon())
-    return GetWeaponType(equipment->As<RE::TESObjectWEAP>());
+    return GetWeaponType(actor, equipment->As<RE::TESObjectWEAP>());
 
   logger::warn("Weapon::GetActorEquipmentType: Unsupported equipment type: {}",
                equipment->GetName());
   return Type::None;
 }
 
-Type GetWeaponType(RE::TESObjectWEAP* weapon)
+Type GetWeaponType(RE::Actor* actor, RE::TESObjectWEAP* weapon)
 {
-  // 一般来说，能够使用此函数的时候
-  // 传入的weapon应该是非空的，并且是一个武器对象
-  // 但为了保险起见，还是加上了空指针检查和类型检查
   if (!weapon)
-    return Type::Unarm;
+    return Type::None;
 
-  const auto OCF_Fallback = [weapon]() -> Type {
+  const auto OCF_Fallback = [actor, weapon]() -> Type {
     switch (weapon->GetWeaponType()) {
-    case RE::WEAPON_TYPE::kHandToHandMelee:
-      return Type::Cestus;  // 近战空手，暂且当成拳套
+    case RE::WEAPON_TYPE::kHandToHandMelee: {
+      auto race = actor->GetRace();
+      if (race == werewolfRace)
+        return Type::Werewolf;
+      else if (race == werebearRace)
+        return Type::Werebear;
+      else if (race == vampireLordRace)
+        return Type::VampireLord;
+      return Type::Unarm;
+    }
     case RE::WEAPON_TYPE::kOneHandSword:
       return Type::Sword;
     case RE::WEAPON_TYPE::kOneHandDagger:
@@ -244,6 +243,20 @@ Type GetWeaponType(RE::TESObjectWEAP* weapon)
   // 使用原版判断
   if (!OCF_Installed)
     return OCF_Fallback();
+
+  const auto DetectUnarmed = [actor, weapon]() -> Type {
+    if (!weapon->HasKeyword(OCF_Unarmed))
+      return DebugInfo(weapon, Type::None);
+
+    auto race = actor->GetRace();
+    if (race == werewolfRace)
+      return Type::Werewolf;
+    else if (race == werebearRace)
+      return Type::Werebear;
+    else if (race == vampireLordRace)
+      return Type::VampireLord;
+    return Type::Unarm;
+  };
 
   const auto Detect1HType = [weapon]() -> Type {
     if (weapon->HasKeyword(OCF_SmallBladed1H)) {
@@ -353,6 +366,7 @@ Type GetWeaponType(RE::TESObjectWEAP* weapon)
   // 第二步根据OCF的关键词系统进行细分
   switch (weapon->GetWeaponType()) {
   case RE::WEAPON_TYPE::kHandToHandMelee:
+    return DetectUnarmed();
   case RE::WEAPON_TYPE::kOneHandSword:
   case RE::WEAPON_TYPE::kOneHandDagger:
   case RE::WEAPON_TYPE::kOneHandAxe:

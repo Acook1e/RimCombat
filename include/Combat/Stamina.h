@@ -8,7 +8,7 @@ public:
   // 图事件，payload用于传递信息
   // Start表示这次攻击使用RimCombat的耐力系统，weaponSwing通道的耐力消耗不会生效
   // End表示此动画的耐力消耗结束，恢复原版的耐力系统
-  // Comsume|AttackType|Side|Multiplier|FallbackMultiplier 表示基于某个攻击类型的耐力消耗
+  // Consume|AttackType|Side|Multiplier|FallbackMultiplier 表示基于某个攻击类型的耐力消耗
   // AttackType可以是Normal或Power
   // Side为可以是Left或Right以及Auto
   // Multiplier和FallbackMultiplier是耐力消耗倍率，不处理小于0的值

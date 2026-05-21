@@ -1,9 +1,9 @@
 #include "Combat/Stamina.h"
 
-#include "Combat/Weapon.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "Data/Weapon.h"
 
 #include "magic_enum/magic_enum.hpp"
 
@@ -114,7 +114,7 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
     auto attacking = actor->GetAttackingWeapon();
     auto obj       = attacking ? attacking->object : nullptr;
     if (obj && obj->IsWeapon())
-      type = Weapon::GetWeaponType(obj->As<RE::TESObjectWEAP>());
+      type = Weapon::GetWeaponType(actor, obj->As<RE::TESObjectWEAP>());
     else
       type = Weapon::GetActorEquipmentType(actor, false);
   } else {

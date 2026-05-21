@@ -14,12 +14,10 @@ inline bool bUseAttackStaminaSystem = true;
 // 是否在战斗外消耗耐力（如奔跑、跳跃等）
 inline bool bConsumeStaminaOutCombat = true;
 // 是否普通攻击消耗耐力
-inline bool bNormalAttackComsumeStamina = true;
-// 是否在玩家耐力为零时禁用攻击
+inline bool bNormalAttackConsumeStamina = true;
+// 是否在耐力为零时禁用攻击
 // 推荐开启，关闭后可能会影响战斗平衡
-// 另外不设置耐力为零禁用NPC攻击的选项
-// 推荐使用力竭系统来实现NPC攻击禁用，更加灵活且具有沉浸感
-inline bool bDisablePlayerAttackWhenStaminaZero = true;
+inline bool bDisableAttackWhenStaminaZero = true;
 
 // 全局耐力再生倍率
 inline float fStaminaRegenMult = 5.0f;
@@ -55,9 +53,9 @@ inline float fMaxPostureBase = 100.0f;
 // 每点生命值对应的最大架势值增加量
 inline float fMaxPostureHealthMult = 0.1f;
 // 架势值恢复的延迟，单位为毫秒
-inline std::uint64_t uPostureRegenDelay = 2000;
+inline std::uint64_t uPostureRegenDelay = 5000;
 // 每秒恢复的架势值百分比
-inline float fPostureRegenPercentPerSecond = 5.0f;
+inline float fPostureRegenPercentPerSecond = 3.0f;
 
 // 基础架势伤害，乘以攻击伤害类型和其他相关倍率后得到最终架势伤害
 inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
@@ -141,10 +139,6 @@ inline float fWeaponArtMenuStartPercent = 50.0f;
 #pragma region Execution
 // 是否启用处决系统
 inline bool bUseExecutionSystem = true;
-// 是否启用受击退出处决状态
-inline bool bExitExecutionOnHit = true;
-// 处决状态的持续时间，单位为毫秒
-inline std::uint64_t uExecutableDuration = 5000;
 // 处决状态受击是受到的伤害倍率，乘以原始伤害
 inline float fOnHitDamageMultWhenExecutable = 1.8f;
 

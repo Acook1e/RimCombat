@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Combat/Weapon.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "Data/Weapon.h"
 #include "Utils.h"
 
 namespace WeaponArt

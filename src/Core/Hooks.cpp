@@ -27,11 +27,11 @@ namespace
     if (!actor)
       return false;
 
-    if (actor->IsPlayerRef()) {
-      if (Settings::bDisablePlayerAttackWhenStaminaZero &&
-          actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0)
-        return true;
+    if (Settings::bDisableAttackWhenStaminaZero &&
+        actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) <= 0)
+      return true;
 
+    if (actor->IsPlayerRef()) {
       if (Settings::bDisablePlayerAttackWhenExhausted && Exhausted::IsActorExhausted(actor))
         return true;
     } else {
@@ -102,9 +102,11 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   // 处决状态增伤
   // 引入处决触发的入口在Posture，退出状态必须在Posture之前
-  if (Settings::bExitExecutionOnHit && Execution::IsExecutable(victim)) {
+  if (Execution::IsExecutable(victim)) {
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
     Execution::ExitExecutable(victim);
+    victim->NotifyAnimationGraph("staggerStop");
+    logger::info("Quit by Hit Victim {}", victim->GetDisplayFullName());
   }
 
   // 力竭状态增伤
@@ -118,13 +120,10 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     Block::ProcessDamage(victim, hitData);
   }
 
-  // 第三部分：处理会修改状态但不直接修改HitData的变更
-
   Posture::ProcessMeleeHit(aggressor, victim, hitData);
 
-  // 如果设置了被击打时退出力竭状态，则在此处退出
-  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
-    Exhausted::ExitExhausted(victim);
+  // 必须在Posture之后处理，处决的入口在Posture中
+  Stagger::ProcessStagger(aggressor, victim);
 
   // 韧性相关的模组都会在处理攻击之中调用TryStagger
   // 不能保证对硬直等级的修改时序在他们修改之前，TryStagger之后
@@ -136,6 +135,13 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     WeaponArt::PlayerStat::AddExp(hitData.totalDamage);
 
   _ProcessHit(victim, hitData);
+
+  // 第三部分：处理会修改状态但不直接修改HitData的变更
+  // 此时HitData中的数值已经是最终的伤害，可以根据这个数值来处理一些状态变更
+
+  // 如果设置了被击打时退出力竭状态，则在此处退出
+  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
+    Exhausted::ExitExhausted(victim);
 }
 
 void Hook_OnTryStagger::Install()
@@ -154,15 +160,26 @@ void Hook_OnTryStagger::Install()
 }
 void Hook_OnTryStagger::TryStagger(RE::Actor* target, float staggerMult, RE::Actor* aggressor)
 {
+
+  // 时序：ProcessHit 原函数前 -> TryStagger 原函数前 -> PerformAction的ActionStaggerStart事件 ->
+  // NotifyAnimationGraph的StaggerStart事件 -> TryStagger 原函数后 -> ProcessHit 原函数后
+
   // 使用Detour的hook模式取得最低的调用优先级，确保在其他模组修改硬直等级之后再进行计算和处理
   // TryStagger的第二个参数会被原版用于回写staggerMagnitude
   // 因此需要在这里统一修正传给原版的最终数值，而不只是修改图变量
-  auto res = Stagger::ProcessStagger(aggressor, target);
+  auto level     = Stagger::GetStaggerLevel(target);
+  auto magnitude = 0.0f;
 
-  if (res)
-    _TryStagger(target, Stagger::GetStaggerMagnitude(target), aggressor);
-  else
-    _TryStagger(target, staggerMult, aggressor);
+  // 处理Rim Combat的特殊硬直
+  if (level != Stagger::Level::None) {
+    magnitude = Stagger::LevelToMagnitude(level);
+    Stagger::SetStaggerMagnitude(target, level);
+  }
+
+  if (magnitude > 0.0f)
+    staggerMult = magnitude;
+
+  _TryStagger(target, staggerMult, aggressor);
 }
 
 void Hook_OnPlayIdle::Install()
@@ -237,12 +254,14 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
     return _PerformAction(actionData);
 
   switch (action->GetFormID()) {
-    // MCO/BFCO框架下的攻击
-    // 对于Right，一般都是真正的攻击动作
-    // 对于Left，一般都是防御动作
-    // 对于Dual，几乎用不到，暂时不处理
+  // MCO/BFCO框架下的攻击
+  // 对于Right，一般都是真正的攻击动作
+  // 对于Left，一般都是防御动作
+  // 对于Dual，是BFCO的特殊攻击
   case 0x13005:  // ActionRightAttack
   case 0x13383:  // ActionRightPowerAttack
+  case 0x50C96:  // ActionDualAttack
+  case 0x2E2F7:  // ActionDualPowerAttack
 
     if (auto victim = Execution::FindExecutableTarget(sourceActor); victim) {
       // 如果找到了可处决的目标，则强制进入处决处决判断
@@ -258,9 +277,20 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
 
     // case 0x13004:  // ActionLeftAttack
     // case 0x2E2F6:  // ActionLeftPowerAttack
-    // case 0x50C96:  // ActionDualAttack
-    // case 0x2E2F7:  // ActionDualPowerAttack
 
+  case 0x959F8:  // ActionMoveStart
+  case 0x5EDC9:  // ActionMoveForward
+  case 0x5EDCC:  // ActionMoveBackward
+  case 0x5EDCD:  // ActionMoveLeft
+  case 0x5EDCE:  // ActionMoveRight
+  case 0x959FC:  // ActionTurnLeft
+  case 0x959FD:  // ActionTurnRight
+  case 0x13006:  // ActionJump
+
+    // 存在卡死的风险，暂时注释掉
+    // if (Execution::IsExecutable(sourceActor))
+    //  return false;  // 处于可处决状态时禁止一切移动
+    break;
   case 0x13AF5:  // ActionRecoil
     if (Block::IsBlocking(sourceActor))
       return false;
@@ -271,15 +301,19 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
     break;
   case 0x138D2:  // ActionStaggerStart
   {
-    // 如果硬直等级不足或者硬直免疫
-    // 把RimCombat的硬直系统的硬直等级重置为0
-    // 避免因为没有进入硬直动作导致的RimCombat的硬直系统被意外触发
-    auto staggerLevel = Stagger::GetStaggerLevel(sourceActor);
-    if (staggerLevel < Stagger::Level::Largest)
-      Stagger::SetStaggerLevel(sourceActor, Stagger::Level::None);
+    auto level  = Stagger::GetStaggerLevel(sourceActor);
+    bool immune = false;
 
-    if (Block::IsTimedBlocking(sourceActor) || Stagger::IsImmune(sourceActor)) {
+    // 限时格挡只能免疫最大硬直以下的硬直
+    if (Block::IsTimedBlocking(sourceActor) && level < Stagger::Level::Largest)
+      immune = true;
+
+    if (Stagger::IsImmune(sourceActor))
+      immune = true;
+
+    if (immune) {
       Stagger::SetStaggerLevel(sourceActor, Stagger::Level::None);
+      Stagger::SetStaggerMagnitude(sourceActor, Stagger::Level::None);
       return false;
     }
 

@@ -28,17 +28,14 @@ public:
   // Int图变量
   // 在硬直位于Largest，根据这个判断是否处于RimCombat的额外硬直等级中
   constexpr static std::string_view STAGGER_LEVEL = "RimCombat_StaggerLevel";
-  // Int图变量
-  // 在执行硬直之前，根据这个判断是否免疫硬直
-  constexpr static std::string_view STAGGER_IMMUNE = "RimCombat_StaggerImmune";
+  // Bool图变量
+  // Modern Stagger Lock的硬直恢复状态，
+  // RimCombat中调用这个变量来传递是否可以恢复硬直
+  constexpr static std::string_view STAGGER_RECOVERABLE = "MSL_IsStaggerRecovery";
   // 图事件，padload用于传递信息
-  // Set|level用于设置当前的硬直等级为level，level为Level对应的数值
-  // End表示退出RimCombat的硬直系统，恢复原版的硬直处理
-  // Immune|level|Duration用于设置当前的硬直免疫等级为level，level为Level对应的数值，Duration为持续时间，单位为毫秒
   // TargetSet|level用于设置击中目标的硬直等级为level，level为Level对应的数值
-  // TargetModify|level用于修改击中目标的硬直等级，level为要修改的等级值，正数表示增加等级，负数表示降低等级
-  // 如果Set和Modify同时存在，则只会Set目标的硬直等级，Modify会被忽略
   // TargetEnd用于结束对目标的硬直等级设置和修改，通常在此次攻击命中帧结束时触发
+  // Immune|level|Duration用于设置当前的硬直免疫等级为level，level为Level对应的数值，Duration为持续时间，单位为毫秒
   constexpr static std::string_view RIMSTAGGER = "RimStagger";
 
   static Stagger& GetSingleton()
@@ -70,7 +67,6 @@ public:
   static void ProcessStagger(RE::Actor* aggressor, RE::Actor* victim);
 
   static void TargetSet(RE::Actor* actor, const std::string& payload);
-  static void TargetModify(RE::Actor* actor, const std::string& payload);
   static void TargetEnd(RE::Actor* actor);
   static void Immune(RE::Actor* actor, const std::string& payload);
 
@@ -93,10 +89,13 @@ private:
   // 由于动画事件的发送早于受击处理
   // 因此缓存在动画事件的数据，在受击处理时再处理
   static inline std::mutex mtx_targetCache;
-  static inline std::unordered_map<RE::Actor*, Level> setTargetLevelMap;
-  static inline std::unordered_map<RE::Actor*, std::int8_t> modifyTargetLevelMap;
+  static inline std::unordered_map<RE::Actor*, Level> staggerLevelOnHit;
 
   // 缓存免疫硬直时间
   static inline std::mutex mtx_immuneCache;
-  static inline std::unordered_map<RE::Actor*, std::uint64_t> immuneActors;
+  static inline std::unordered_map<RE::Actor*, std::pair<Level, std::uint64_t>> immuneActors;
+
+  // 缓存受击恢复时间
+  static inline std::mutex mtx_recoverTime;
+  static inline std::unordered_map<RE::Actor*, std::pair<Level, std::uint64_t>> staggerRecoverTime;
 };

@@ -109,7 +109,6 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   if (Execution::IsExecutable(victim)) {
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
     Execution::ExitExecutable(victim);
-    Stagger::SetStaggerLevel(victim, Stagger::Level::Knockaway);
     victim->NotifyAnimationGraph("staggerStop");
   }
 
@@ -129,13 +128,14 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     Block::ProcessDamage(victim, hitData);
   }
 
+  // 如果使用Rim Combat的硬直系统，则在这里将原版的硬直数值清零，避免被原版的硬直系统再次处理
+  if (Settings::bUseStaggerSystem)
+    hitData.stagger = 0.0f;
+
   // 在架势之前处理
   Poise::ProcessHit(aggressor, victim, hitData);
 
   Posture::ProcessMeleeHit(aggressor, victim, hitData);
-
-  // 在所有涉及硬直的系统的最后处理
-  Stagger::ProcessStagger(aggressor, victim);
 
   // 韧性相关的模组都会在处理攻击之中调用TryStagger
   // 不能保证对硬直等级的修改时序在他们修改之前，TryStagger之后
@@ -146,16 +146,8 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   // 第三部分：处理会修改状态但不直接修改HitData的变更
   // 此时HitData中的数值已经是最终的伤害，可以根据这个数值来处理一些状态变更
 
-  // 一般来说，如果其他的韧性模组参与了硬直处理，那么他们会在TryStagger中修改传给原版的数值，来达到修改最终伤害的目的
-  // 如果没参与，那么就在此处完成硬直处理
-  auto level = Stagger::GetStaggerLevel(victim);
-  if (level != Stagger::Level::None) {
-    Stagger::SetStaggerMagnitude(victim, level);
-    Stagger::SetStaggerLevel(victim, Stagger::Level::None);
-    logger::info("Enforce Stagger Actor {}, Level {}", victim->GetDisplayFullName(),
-                 magic_enum::enum_name(level));
-    victim->NotifyAnimationGraph("staggerStart");
-  }
+  // 在所有涉及硬直的系统的最后处理
+  Stagger::ProcessStagger(aggressor, victim);
 
   // 如果设置了被击打时退出力竭状态，则在此处退出
   if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
@@ -185,18 +177,6 @@ void Hook_OnTryStagger::TryStagger(RE::Actor* target, float staggerMult, RE::Act
   // 使用Detour的hook模式取得最低的调用优先级，确保在其他模组修改硬直等级之后再进行计算和处理
   // TryStagger的第二个参数会被原版用于回写staggerMagnitude
   // 因此需要在这里统一修正传给原版的最终数值，而不只是修改图变量
-
-  auto level     = Stagger::GetStaggerLevel(target);
-  auto magnitude = 0.0f;
-
-  // 处理Rim Combat的特殊硬直
-  if (level != Stagger::Level::None) {
-    magnitude = Stagger::LevelToMagnitude(level);
-    Stagger::SetStaggerMagnitude(target, level);
-  }
-
-  if (magnitude > staggerMult)
-    staggerMult = magnitude;
 
   _TryStagger(target, staggerMult, aggressor);
 }

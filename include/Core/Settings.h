@@ -50,7 +50,7 @@ inline bool bUsePostureSystem = true;
 inline bool bUsePostureHUD = true;
 
 // 每点生命值对应的最大架势值增加量
-inline float fMaxPostureHealthMult = 0.12f;
+inline float fMaxPostureHealthMult = 0.06f;
 // 每点耐力值对应的最大架势值增加量
 inline float fMaxPostureStaminaMult = 0.04f;
 // 架势值恢复的延迟，单位为毫秒
@@ -79,15 +79,19 @@ inline float fArmorPostureDamageFactor = 1.1f;
 // 是否启用韧性系统
 inline bool bUsePoiseSystem = true;
 // 每点耐力值对应的韧性增加量
-inline float fPoiseStaminaMult = 0.04f;
+inline float fPoiseStaminaMult = 0.002f;
+// 每单位质量对应的韧性增加量
+inline float fPoiseMassMult = 1.2f;
 // 韧性恢复的延迟，单位为毫秒
 inline std::uint64_t uPoiseRegenDelay = 3000;
 // 每秒恢复的韧性值百分比
 inline float fPoiseRegenPercentPerSecond = 15.0f;
+// 硬直补偿的最低最大韧性百分比伤害
+inline float fStaggerCompensationPercent = 0.70f;
 // 造成小型、中型、大型硬直的冲击力阈值
-inline float fImpactLevelSmall  = 1.0f;
-inline float fImpactLevelMedium = 6.0f;
-inline float fImpactLevelLarge  = 11.0f;
+inline float fStaggerLevelSmall  = 1.0f;
+inline float fStaggerLevelMedium = 3.0f;
+inline float fStaggerLevelLarge  = 5.5f;
 // 轻甲对应部位的最大韧性值修正
 inline float fLightArmorHeadMaxPoiseBonus = 0.35f;
 inline float fLightArmorBodyMaxPoiseBonus = 1.0f;
@@ -117,9 +121,9 @@ inline std::unordered_map<WeaponEnumType, float> basePoiseDamageMap{};
 inline bool bUseStaggerSystem = true;
 
 // 受到小型，中型，大型硬直的恢复时间，单位为毫秒
-inline std::uint64_t uStaggerRecoveryTimeSmall  = 100;
-inline std::uint64_t uStaggerRecoveryTimeMedium = 300;
-inline std::uint64_t uStaggerRecoveryTimeLarge  = 500;
+inline std::uint64_t uStaggerRecoveryTimeSmall  = 500;
+inline std::uint64_t uStaggerRecoveryTimeMedium = 900;
+inline std::uint64_t uStaggerRecoveryTimeLarge  = 1300;
 
 #pragma endregion
 

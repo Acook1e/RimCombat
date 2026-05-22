@@ -59,14 +59,13 @@ Stagger::Stagger()
     }
   }
 
-  logger::info("Stagger: Modern Stagger Lock stagger magnitude thresholds loaded:");
+  logger::info("Stagger: Modern Stagger Lock stagger magnitude thresholds loaded");
 
   // 使用序列化系统重置缓存
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     {
       std::scoped_lock lock(mtx_targetCache);
-      setTargetLevelMap.clear();
-      modifyTargetLevelMap.clear();
+      staggerLevelOnHit.clear();
     }
     {
       std::scoped_lock lock(mtx_immuneCache);
@@ -80,13 +79,29 @@ void Stagger::Update()
   auto now = Utils::GetTime<std::chrono::milliseconds>();
 
   // 更新免疫缓存，移除过期的免疫状态
-  std::scoped_lock lock(mtx_immuneCache);
-  for (auto it = immuneActors.begin(); it != immuneActors.end();) {
-    if (it->second <= now) {
-      SetImmuneLevel(it->first, Level::None);
-      it = immuneActors.erase(it);
-    } else
-      ++it;
+  {
+    std::scoped_lock lock(mtx_immuneCache);
+    for (auto it = immuneActors.begin(); it != immuneActors.end();) {
+      if (it->second.second <= now)
+        it = immuneActors.erase(it);
+      else
+        ++it;
+    }
+  }
+
+  // 更新恢复时间缓存
+  {
+    std::scoped_lock lock(mtx_recoverTime);
+    for (auto it = staggerRecoverTime.begin(); it != staggerRecoverTime.end();) {
+      auto victim      = it->first;
+      auto recoverTime = it->second.second;
+      if (recoverTime <= now) {
+        if (victim)
+          victim->SetGraphVariableBool(STAGGER_RECOVERABLE, true);
+        it = staggerRecoverTime.erase(it);
+      } else
+        ++it;
+    }
   }
 }
 
@@ -156,9 +171,6 @@ void Stagger::SetStaggerLevel(RE::Actor* actor, Level level)
   if (!actor)
     return;
 
-  logger::info("Actor {} is set to Level {}", actor->GetDisplayFullName(),
-               magic_enum::enum_name(level));
-
   actor->SetGraphVariableInt(STAGGER_LEVEL, static_cast<std::int8_t>(level));
 }
 
@@ -182,67 +194,77 @@ Level Stagger::GetImmuneLevel(RE::Actor* actor)
   if (!actor)
     return Level::None;
 
-  std::int32_t immune = 0;
-  if (!actor->GetGraphVariableInt(STAGGER_IMMUNE, immune))
-    return Level::None;
+  std::lock_guard lock(mtx_immuneCache);
+  if (auto it = immuneActors.find(actor); it != immuneActors.end())
+    return it->second.first;
 
-  if (immune < static_cast<std::int32_t>(Level::None) ||
-      immune >= static_cast<std::int32_t>(Level::Total))
-    return Level::None;
-
-  return static_cast<Level>(immune);
-}
-
-void Stagger::SetImmuneLevel(RE::Actor* actor, Level level)
-{
-  if (!actor)
-    return;
-
-  if (level > Level::Largest)
-    level = Level::Largest;
-
-  actor->SetGraphVariableInt(STAGGER_IMMUNE, static_cast<std::int32_t>(level));
+  return Level::None;
 }
 
 void Stagger::ProcessStagger(RE::Actor* aggressor, RE::Actor* victim)
 {
-  if (!aggressor || !victim)
+  if (!aggressor || !victim || !Settings::bUseStaggerSystem)
     return;
-
-  // 不清除Map中的数据，直到EndTarget事件，以确保在攻击过程中持续生效
 
   Level currentLevel = GetStaggerLevel(victim);
-  // 如果当前已经位于Rim Combat的额外硬直等级中直接返回
-  if (currentLevel > Level::Largest)
-    return;
 
+  // 处理外源硬直
+  // 不清除Map中的数据，直到EndTarget事件，以确保在攻击过程中持续生效
   Level targetLevel = Level::None;
   {
-    std::scoped_lock lock(mtx_targetCache);
-    std::int8_t modifiedResult = 0;
-    if (auto it = modifyTargetLevelMap.find(aggressor); it != modifyTargetLevelMap.end())
-      modifiedResult = static_cast<std::int8_t>(currentLevel) + it->second;
-
-    // 确保修改后的等级在合法范围内
-    if (modifiedResult < 0)
-      targetLevel = Level::None;
-    else if (modifiedResult > static_cast<std::int8_t>(Level::Largest))
-      targetLevel = Level::Largest;
-
-    // 仅有设置等级才可以设置Rim Combat的硬直等级
-    // 保证设置Rim Combat的硬直等级一定会生效
-    Level setLevel = Level::None;
-    if (auto it = setTargetLevelMap.find(aggressor); it != setTargetLevelMap.end())
-      setLevel = it->second;
-
-    targetLevel = setLevel > targetLevel ? setLevel : targetLevel;
+    std::lock_guard lock(mtx_targetCache);
+    if (auto it = staggerLevelOnHit.find(aggressor); it != staggerLevelOnHit.end())
+      targetLevel = it->second;
   }
 
-  // 如果目标等级为None，则不处理硬直
-  if (targetLevel == Level::None)
+  if (targetLevel != Level::None || currentLevel < targetLevel)
+    currentLevel = targetLevel;
+
+  SetStaggerLevel(victim, currentLevel);
+  SetStaggerMagnitude(victim, currentLevel);
+
+  if (currentLevel == Level::None)
     return;
 
-  SetStaggerLevel(victim, targetLevel);
+  std::uint64_t recoverTime = 0;
+  switch (currentLevel) {
+  case Level::Small:
+    recoverTime = Settings::uStaggerRecoveryTimeSmall;
+    break;
+  case Level::Medium:
+    recoverTime = Settings::uStaggerRecoveryTimeMedium;
+    break;
+  case Level::Large:
+    recoverTime = Settings::uStaggerRecoveryTimeLarge;
+    break;
+  default:
+    break;
+  }
+
+  if (recoverTime > 0) {
+    auto now = Utils::GetTime<std::chrono::milliseconds>();
+    std::scoped_lock<std::mutex> lock(mtx_recoverTime);
+    if (!staggerRecoverTime.contains(victim))
+      staggerRecoverTime[victim] = {currentLevel, now + recoverTime};
+    else {
+      auto [lastLevel, lastTime] = staggerRecoverTime[victim];
+
+      // 如果在大硬直期间受到小硬直，则忽略这次硬直
+      if (lastLevel < currentLevel)
+        return;
+
+      auto delta = lastTime - now;
+      // TODO：找一个比相加乘以0.2更合理的算法
+      recoverTime                = (delta + recoverTime) * 0.2f;
+      staggerRecoverTime[victim] = {lastLevel, now + recoverTime};
+    }
+  }
+
+  if (victim->IsStaggering())
+    victim->NotifyAnimationGraph("staggerStop");
+  victim->SetGraphVariableBool(STAGGER_RECOVERABLE, false);
+  victim->NotifyAnimationGraph("staggerStart");
+  SetStaggerLevel(victim, Level::None);
 }
 
 void Stagger::TargetSet(RE::Actor* actor, const std::string& payload)
@@ -258,23 +280,7 @@ void Stagger::TargetSet(RE::Actor* actor, const std::string& payload)
   if (level == Level::None)
     return;
   std::lock_guard lock(mtx_targetCache);
-  setTargetLevelMap[actor] = level;
-}
-
-void Stagger::TargetModify(RE::Actor* actor, const std::string& payload)
-{
-  if (!actor)
-    return;
-
-  // 如果是战技的属性，那仅在Eligible状态生效，Subordinate状态不生效
-  if (WeaponArt::Manager::GetPerform(actor) == WeaponArt::Manager::Perform::Subordinate)
-    return;
-
-  auto modifiedLevel = Utils::toInt(payload);
-  if (modifiedLevel == 0)
-    return;
-  std::lock_guard lock(mtx_targetCache);
-  modifyTargetLevelMap[actor] = modifiedLevel;
+  staggerLevelOnHit[actor] = level;
 }
 
 void Stagger::TargetEnd(RE::Actor* actor)
@@ -283,8 +289,7 @@ void Stagger::TargetEnd(RE::Actor* actor)
     return;
 
   std::lock_guard lock(mtx_targetCache);
-  setTargetLevelMap.erase(actor);
-  modifyTargetLevelMap.erase(actor);
+  staggerLevelOnHit.erase(actor);
 }
 
 void Stagger::Immune(RE::Actor* actor, const std::string& payload)
@@ -303,26 +308,17 @@ void Stagger::Immune(RE::Actor* actor, const std::string& payload)
   auto immuneLevel = static_cast<Level>(Utils::toInt(split[0]));
   auto duration    = Utils::toInt(split[1]);
 
-  if (immuneLevel == Level::None || duration <= 0)
+  if (immuneLevel == Level::None || immuneLevel > Level::Largest || duration <= 0)
     return;
 
-  SetImmuneLevel(actor, immuneLevel);
   std::lock_guard lock(mtx_immuneCache);
-  immuneActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration;
+  immuneActors[actor] = {immuneLevel, Utils::GetTime<std::chrono::milliseconds>() + duration};
 }
 
 void Stagger::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
-  if (payload.starts_with("set|")) {
-    auto level = static_cast<Level>(Utils::toInt(payload.substr(4)));
-    if (level != Level::None)
-      SetStaggerLevel(actor, level);
-  } else if (payload == "end")
-    actor->SetGraphVariableInt(STAGGER_LEVEL, 0);
-  else if (payload.starts_with("targetset|"))
+  if (payload.starts_with("targetset|"))
     TargetSet(actor, payload.substr(10));
-  else if (payload.starts_with("targetmodify|"))
-    TargetModify(actor, payload.substr(13));
   else if (payload == "targetend")
     TargetEnd(actor);
   else if (payload.starts_with("immune|"))

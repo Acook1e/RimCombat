@@ -129,6 +129,9 @@ bool Execution::IsExecutable(RE::Actor* actor)
 
 void Execution::EnterExecutable(RE::Actor* actor)
 {
+  // 暂时禁用处决
+  return;
+
   if (!actor || !Settings::bUseExecutionSystem)
     return;
 

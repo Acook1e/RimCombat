@@ -84,12 +84,17 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     break;
   case "staggerstart"_h:
     break;
-  case "staggerstop"_h:
-    if (Execution::IsExecutable(actor)) {
+  case "staggerstop"_h: {
+    // 如果在可恢复状态后解除硬直，则硬直生命周期结束
+    auto recoverable = false;
+    if (actor->GetGraphVariableBool(Stagger::STAGGER_RECOVERABLE, recoverable))
+      Stagger::SetStaggerLevel(actor, Stagger::Level::None);
+
+    if (Execution::IsExecutable(actor))
       Execution::ExitExecutable(actor);
-      logger::info("Quit by Stagger Actor {}", actor->GetDisplayFullName());
-    }
+
     break;
+  }
   case "prehitframe"_h:
     break;
   case "interruptcast"_h:

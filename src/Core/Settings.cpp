@@ -220,11 +220,12 @@ namespace
 
     json poise = {{"UsePoiseSystem", bUsePoiseSystem},
                   {"PoiseStaminaMult", fPoiseStaminaMult},
+                  {"PoiseMassMult", fPoiseMassMult},
                   {"PoiseRegenDelay", uPoiseRegenDelay},
                   {"PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond},
-                  {"ImpactLevelSmall", fImpactLevelSmall},
-                  {"ImpactLevelMedium", fImpactLevelMedium},
-                  {"ImpactLevelLarge", fImpactLevelLarge},
+                  {"StaggerLevelSmall", fStaggerLevelSmall},
+                  {"StaggerLevelMedium", fStaggerLevelMedium},
+                  {"StaggerLevelLarge", fStaggerLevelLarge},
                   {"LightArmorHeadMaxPoiseBonus", fLightArmorHeadMaxPoiseBonus},
                   {"LightArmorBodyMaxPoiseBonus", fLightArmorBodyMaxPoiseBonus},
                   {"LightArmorHandMaxPoiseBonus", fLightArmorHandMaxPoiseBonus},
@@ -404,11 +405,21 @@ void LoadSettings()
     const auto& poise = *it;
     LoadSetting(poise, "Poise", "UsePoiseSystem", bUsePoiseSystem);
     LoadSetting(poise, "Poise", "PoiseStaminaMult", fPoiseStaminaMult);
+    LoadSetting(poise, "Poise", "PoiseMassMult", fPoiseMassMult);
     LoadSetting(poise, "Poise", "PoiseRegenDelay", uPoiseRegenDelay);
     LoadSetting(poise, "Poise", "PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond);
-    LoadSetting(poise, "Poise", "ImpactLevelSmall", fImpactLevelSmall);
-    LoadSetting(poise, "Poise", "ImpactLevelMedium", fImpactLevelMedium);
-    LoadSetting(poise, "Poise", "ImpactLevelLarge", fImpactLevelLarge);
+    if (poise.contains("StaggerLevelSmall"))
+      LoadSetting(poise, "Poise", "StaggerLevelSmall", fStaggerLevelSmall);
+    else
+      LoadSetting(poise, "Poise", "ImpactLevelSmall", fStaggerLevelSmall);
+    if (poise.contains("StaggerLevelMedium"))
+      LoadSetting(poise, "Poise", "StaggerLevelMedium", fStaggerLevelMedium);
+    else
+      LoadSetting(poise, "Poise", "ImpactLevelMedium", fStaggerLevelMedium);
+    if (poise.contains("StaggerLevelLarge"))
+      LoadSetting(poise, "Poise", "StaggerLevelLarge", fStaggerLevelLarge);
+    else
+      LoadSetting(poise, "Poise", "ImpactLevelLarge", fStaggerLevelLarge);
     LoadSetting(poise, "Poise", "LightArmorHeadMaxPoiseBonus", fLightArmorHeadMaxPoiseBonus);
     LoadSetting(poise, "Poise", "LightArmorBodyMaxPoiseBonus", fLightArmorBodyMaxPoiseBonus);
     LoadSetting(poise, "Poise", "LightArmorHandMaxPoiseBonus", fLightArmorHandMaxPoiseBonus);

@@ -12,12 +12,6 @@
     },
     {
         "projectPath": "Actors",
-        "type": "kInt",
-        "name": "RimCombat_StaggerImmune",
-        "value": 0
-    },
-    {
-        "projectPath": "Actors",
         "type": "kEvent",
         "name": "RimStagger"
     },
@@ -25,6 +19,11 @@
         "projectPath": "Actors",
         "type": "kEvent",
         "name": "RimStamina"
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kEvent",
+        "name": "RimPoise"
     },
     {
         "projectPath": "Actors",

@@ -1,0 +1,7 @@
+{
+  "QuickRecoveryEvents": [
+    "blockStart",
+    "moveStart",
+    "attackStart"
+  ]
+}

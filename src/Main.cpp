@@ -2,6 +2,7 @@
 #include "Combat/Damage.h"
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
+#include "Combat/Poise.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
@@ -26,6 +27,7 @@ void onPostLoad()
   // 读取配置+序列化
   Block::GetSingleton();
   Posture::GetSingleton();
+  Poise::GetSingleton();
   Damage::GetSingleton();
   Stagger::GetSingleton();
   Stamina::GetSingleton();

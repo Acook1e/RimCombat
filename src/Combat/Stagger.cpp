@@ -156,6 +156,9 @@ void Stagger::SetStaggerLevel(RE::Actor* actor, Level level)
   if (!actor)
     return;
 
+  logger::info("Actor {} is set to Level {}", actor->GetDisplayFullName(),
+               magic_enum::enum_name(level));
+
   actor->SetGraphVariableInt(STAGGER_LEVEL, static_cast<std::int8_t>(level));
 }
 

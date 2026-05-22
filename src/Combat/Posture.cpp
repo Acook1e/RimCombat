@@ -6,10 +6,51 @@
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "Data/Race.h"
 #include "Data/Weapon.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
+
+float Posture::InitPosture(RE::Actor* actor)
+{
+  // 仅在获取值时初始化架势数据，避免不必要的初始化开销
+  // 因此可以无锁
+
+  float maxPosture = CalculateMaxPosture(actor);
+  if (actor->GetActorBase()->IsUnique())
+    postureMap[actor->GetFormID()] = {maxPosture, maxPosture, 0};
+  else
+    runtimePostureMap[actor] = {maxPosture, maxPosture, 0};
+  return maxPosture;
+}
+
+float Posture::CalculateMaxPosture(RE::Actor* actor)
+{
+  float base       = Race::GetBasePostureHealth(actor);
+  float maxHealth  = Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth);
+  float maxStamina = Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kStamina);
+  float maxPosture = base + maxHealth * Settings::fMaxPostureHealthMult +
+                     maxStamina * Settings::fMaxPostureStaminaMult;
+  return maxPosture;
+}
+
+Posture::PostureData& Posture::GetPostureDataRef(RE::Actor* actor)
+{
+  // 无锁，仅用于内部调用
+  if (actor->GetActorBase()->IsUnique()) {
+    if (postureMap.contains(actor->GetFormID()))
+      return postureMap[actor->GetFormID()];
+  } else {
+    if (runtimePostureMap.contains(actor))
+      return runtimePostureMap[actor];
+  }
+  InitPosture(actor);
+  if (actor->GetActorBase()->IsUnique())
+    return postureMap[actor->GetFormID()];
+  else
+    return runtimePostureMap[actor];
+}
 
 Posture::Posture()
 {
@@ -33,7 +74,7 @@ Posture::Posture()
   });
 
   Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
-    std::lock_guard<std::mutex> lock(mtx_postureData);
+    std::unique_lock lock(mtx_postureData);
     postureMap.clear();
     runtimePostureMap.clear();
 
@@ -55,16 +96,16 @@ Posture::Posture()
 
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     {
-      std::scoped_lock lock(mtx_postureData);
+      std::unique_lock lock(mtx_postureData);
       postureMap.clear();
       runtimePostureMap.clear();
     }
     {
-      std::scoped_lock lock(mtx_damageCache);
+      std::unique_lock lock(mtx_damageCache);
       damageCache.clear();
     }
     {
-      std::scoped_lock lock(mtx_unbreakableCache);
+      std::unique_lock lock(mtx_unbreakableCache);
       unbreakableActors.clear();
     }
   });
@@ -72,7 +113,7 @@ Posture::Posture()
 
 void Posture::Update(std::uint64_t deltaTime)
 {
-  std::lock_guard<std::mutex> lock(mtx_postureData);
+  std::unique_lock lock(mtx_postureData);
   auto now = Utils::GetTime<std::chrono::milliseconds>();
 
   const auto update = [&](RE::Actor* actor, PostureData& data) {
@@ -110,33 +151,12 @@ void Posture::Update(std::uint64_t deltaTime)
   }
 }
 
-float Posture::CalculateMaxPosture(RE::Actor* actor)
-{
-  float maxPosture = Settings::fMaxPostureBase;
-  maxPosture += Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth) *
-                Settings::fMaxPostureHealthMult;
-  return maxPosture;
-}
-
-float Posture::InitPosture(RE::Actor* actor)
-{
-  // 仅在获取值时初始化架势数据，避免不必要的初始化开销
-  // 因此可以无锁
-
-  float maxPosture = CalculateMaxPosture(actor);
-  if (actor->GetActorBase()->IsUnique())
-    postureMap[actor->GetFormID()] = {maxPosture, maxPosture, 0};
-  else
-    runtimePostureMap[actor] = {maxPosture, maxPosture, 0};
-  return maxPosture;
-}
-
-void Posture::ReCalculateMaxPosture(RE::Actor* actor)
+void Posture::UpdateMaxPosture(RE::Actor* actor)
 {
   if (!actor || !Settings::bUsePostureSystem)
     return;
 
-  std::lock_guard<std::mutex> lock(mtx_postureData);
+  std::unique_lock lock(mtx_postureData);
   float maxPosture = CalculateMaxPosture(actor);
   auto& data       = GetPostureDataRef(actor);
   data.max         = maxPosture;
@@ -156,33 +176,18 @@ float Posture::GetMaxPosture(RE::Actor* actor)
 
 Posture::PostureData Posture::GetPostureData(RE::Actor* actor)
 {
-  std::lock_guard<std::mutex> lock(mtx_postureData);
-  if (actor->GetActorBase()->IsUnique()) {
-    if (postureMap.contains(actor->GetFormID()))
-      return postureMap[actor->GetFormID()];
-  } else {
-    if (runtimePostureMap.contains(actor))
-      return runtimePostureMap[actor];
+  PostureData data{0, 0, 0};
+  {
+    std::shared_lock lock(mtx_postureData);
+    if (actor->GetActorBase()->IsUnique()) {
+      if (postureMap.contains(actor->GetFormID()))
+        data = postureMap[actor->GetFormID()];
+    } else {
+      if (runtimePostureMap.contains(actor))
+        data = runtimePostureMap[actor];
+    }
   }
-  float maxPosture = InitPosture(actor);
-  return {maxPosture, maxPosture, 0};
-}
-
-Posture::PostureData& Posture::GetPostureDataRef(RE::Actor* actor)
-{
-  // 无锁，仅用于内部调用
-  if (actor->GetActorBase()->IsUnique()) {
-    if (postureMap.contains(actor->GetFormID()))
-      return postureMap[actor->GetFormID()];
-  } else {
-    if (runtimePostureMap.contains(actor))
-      return runtimePostureMap[actor];
-  }
-  InitPosture(actor);
-  if (actor->GetActorBase()->IsUnique())
-    return postureMap[actor->GetFormID()];
-  else
-    return runtimePostureMap[actor];
+  return data;
 }
 
 void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
@@ -236,10 +241,10 @@ void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDa
   if (hitFlags.any(RE::HitData::Flag::kBlocked)) {
     Block::ProcessPostureDamage(aggressor, victim, postureDamage);
   } else {
-    DamagePostureValue(victim, postureDamage);
+    DamagePostureHealth(victim, postureDamage);
   }
 }
-void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak)
+void Posture::DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBreak)
 {
   if (!actor)
     return;
@@ -253,7 +258,7 @@ void Posture::DamagePostureValue(RE::Actor* actor, float value, bool ignoreBreak
   if (Execution::IsExecutable(actor))
     return;
 
-  std::lock_guard<std::mutex> lock(mtx_postureData);
+  std::unique_lock lock(mtx_postureData);
   // 在锁中获取引用以避免同一个引用被多次获取导致的线程安全问题
   auto& postureData = GetPostureDataRef(actor);
 

@@ -426,6 +426,16 @@ float GetBasePostureDamage(Type type)
   return 0.0f;
 }
 
+float GetBasePoiseDamage(Type type)
+{
+  auto id = static_cast<EnumType>(type);
+  if (Settings::basePoiseDamageMap.contains(id))
+    return Settings::basePoiseDamageMap[id];
+  logger::warn("Weapon::GetBasePoiseDamage: Unsupported weapon type: {}",
+               magic_enum::enum_name(type));
+  return 0.0f;
+}
+
 float GetBaseStaminaConsumption(Type type)
 {
   auto id = static_cast<EnumType>(type);

@@ -7,6 +7,7 @@ const inline std::string SettingsFile        = SettingsDir + "Settings.json";
 const inline std::string SettingsDefaultFile = SettingsDir + "SettingsDefault.json";
 
 using WeaponEnumType = std::uint8_t;
+using RaceEnumType   = std::uint8_t;
 
 #pragma region Stamina
 // 是否启用攻击耐力系统
@@ -32,7 +33,7 @@ inline float fStaminaRegenMultCombat = 1.0f;
 // 格挡时耐力再生倍率
 inline float fStaminaRegenMultBlock = 0.5f;
 
-// 基础耐力消耗，乘以武器类型和其他相关倍率后得到最终耐力消耗
+// 每种武器类型的基础耐力消耗
 inline std::unordered_map<WeaponEnumType, float> baseStaminaCostMap{};
 // 每单位质量的额外耐力消耗，适用于所有武器类型
 inline float fNormalAttackStaminaCostPerMass = 0.2f;
@@ -48,16 +49,19 @@ inline bool bUsePostureSystem = true;
 // 是否使用TrueHUD显示架势值
 inline bool bUsePostureHUD = true;
 
-// 默认最大架势值
-inline float fMaxPostureBase = 100.0f;
 // 每点生命值对应的最大架势值增加量
-inline float fMaxPostureHealthMult = 0.1f;
+inline float fMaxPostureHealthMult = 0.12f;
+// 每点耐力值对应的最大架势值增加量
+inline float fMaxPostureStaminaMult = 0.04f;
 // 架势值恢复的延迟，单位为毫秒
 inline std::uint64_t uPostureRegenDelay = 5000;
 // 每秒恢复的架势值百分比
 inline float fPostureRegenPercentPerSecond = 3.0f;
 
-// 基础架势伤害，乘以攻击伤害类型和其他相关倍率后得到最终架势伤害
+// 各个种族的基础架势值
+inline std::unordered_map<RaceEnumType, float> basePostureMap{};
+
+// 每种武器类型的基础架势伤害
 inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
 
 // 格挡攻击架势伤害倍率，乘以基础架势伤害
@@ -69,6 +73,54 @@ inline float fPowerBashPostureDamageMult = 2.5f;
 
 // 护甲值减少的架势伤害计算因子
 inline float fArmorPostureDamageFactor = 1.1f;
+#pragma endregion
+
+#pragma region Poise
+// 是否启用韧性系统
+inline bool bUsePoiseSystem = true;
+// 每点耐力值对应的韧性增加量
+inline float fPoiseStaminaMult = 0.04f;
+// 韧性恢复的延迟，单位为毫秒
+inline std::uint64_t uPoiseRegenDelay = 3000;
+// 每秒恢复的韧性值百分比
+inline float fPoiseRegenPercentPerSecond = 15.0f;
+// 造成小型、中型、大型硬直的冲击力阈值
+inline float fImpactLevelSmall  = 1.0f;
+inline float fImpactLevelMedium = 6.0f;
+inline float fImpactLevelLarge  = 11.0f;
+// 轻甲对应部位的最大韧性值修正
+inline float fLightArmorHeadMaxPoiseBonus = 0.35f;
+inline float fLightArmorBodyMaxPoiseBonus = 1.0f;
+inline float fLightArmorHandMaxPoiseBonus = 0.2f;
+inline float fLightArmorFeetMaxPoiseBonus = 0.2f;
+// 重甲对应部位的最大韧性值修正
+inline float fHeavyArmorHeadMaxPoiseBonus = 0.8f;
+inline float fHeavyArmorBodyMaxPoiseBonus = 2.5f;
+inline float fHeavyArmorHandMaxPoiseBonus = 0.6f;
+inline float fHeavyArmorFeetMaxPoiseBonus = 0.6f;
+// 格挡攻击韧性伤害倍率，乘以基础韧性伤害
+inline float fBashPoiseDamageMult = 2.0f;
+// 重击的韧性伤害倍率，乘以基础韧性伤害
+inline float fPowerAttackPoiseDamageMult = 1.5f;
+// 格挡猛击韧性伤害倍率，乘以基础韧性伤害
+inline float fPowerBashPoiseDamageMult = 2.5f;
+
+// 各个种族的基础韧性值
+inline std::unordered_map<RaceEnumType, float> basePoiseMap{};
+
+// 每种武器类型的基础韧性伤害
+inline std::unordered_map<WeaponEnumType, float> basePoiseDamageMap{};
+#pragma endregion
+
+#pragma region Stagger
+// 是否启用硬直系统
+inline bool bUseStaggerSystem = true;
+
+// 受到小型，中型，大型硬直的恢复时间，单位为毫秒
+inline std::uint64_t uStaggerRecoveryTimeSmall  = 100;
+inline std::uint64_t uStaggerRecoveryTimeMedium = 300;
+inline std::uint64_t uStaggerRecoveryTimeLarge  = 500;
+
 #pragma endregion
 
 #pragma region Exhausted
@@ -111,11 +163,7 @@ inline float fBlockMaxStaminaConsumePercent = 0.5f;
 // 耐力不足消耗的时候，附带的额外耐力数值
 inline float fBlockMinStaminaConsume = 10.0f;
 
-// 格挡强度，通过这个数值计算
-// 格挡时每点伤害对应的耐力消耗
-// 格挡时的最大伤害减免
-// 格挡时的架势伤害乘数
-// 格挡时返还的架势伤害乘数
+// 每种武器类型的格挡强度，影响格挡时的伤害减免和架势伤害倍率
 inline std::unordered_map<WeaponEnumType, float> blockStrengthMap{};
 // 限时格挡的额外格挡强度乘数
 inline float fTimedBlockBlockStrengthMult = 4.0f;
@@ -142,9 +190,7 @@ inline bool bUseExecutionSystem = true;
 // 处决状态受击是受到的伤害倍率，乘以原始伤害
 inline float fOnHitDamageMultWhenExecutable = 1.8f;
 
-// 处决伤害倍率，由右手类型决定倍率
-// 由右手基础伤害作为基础伤害
-// 设定要高于重击，且为真实伤害，因此至少为2.0倍
+// 每种武器类型的处决伤害倍率
 inline std::unordered_map<WeaponEnumType, float> executionDamageMultMap{};
 #pragma endregion
 

@@ -1,5 +1,6 @@
 #include "Core/Settings.h"
 
+#include "Data/Race.h"
 #include "Data/Weapon.h"
 #include "Utils.h"
 
@@ -13,6 +14,7 @@ namespace Settings
 namespace
 {
   using WeaponType = Weapon::Type;
+  using RaceType   = Race::Type;
 
   bool EnsureSettingsDir()
   {
@@ -47,10 +49,18 @@ namespace
     return static_cast<WeaponEnumType>(type);
   }
 
-  void ClearWeaponSettingMaps()
+  constexpr RaceEnumType ToRaceKey(RaceType type)
+  {
+    return static_cast<RaceEnumType>(type);
+  }
+
+  void ClearSettingMaps()
   {
     baseStaminaCostMap.clear();
+    basePostureMap.clear();
     basePostureDamageMap.clear();
+    basePoiseMap.clear();
+    basePoiseDamageMap.clear();
     blockStrengthMap.clear();
     executionDamageMultMap.clear();
   }
@@ -91,6 +101,24 @@ namespace
     }
   }
 
+  void SaveRaceFloatMap(json& section, std::string_view subsectionName,
+                        const std::unordered_map<RaceEnumType, float>& map)
+  {
+    auto& subsection = section[std::string(subsectionName)];
+    subsection       = json::object();
+    for (auto type : magic_enum::enum_values<RaceType>()) {
+      if (type == RaceType::None)
+        continue;
+
+      auto name = magic_enum::enum_name(type);
+      if (name.empty())
+        continue;
+
+      if (auto it = map.find(ToRaceKey(type)); it != map.end())
+        subsection[std::string(name)] = it->second;
+    }
+  }
+
   void LoadWeaponFloatMap(const json& section, std::string_view sectionName,
                           std::string_view subsectionName,
                           std::unordered_map<WeaponEnumType, float>& map)
@@ -114,6 +142,37 @@ namespace
         if (auto valueIt = subsection.find(name); valueIt != subsection.end()) {
           try {
             map.insert_or_assign(ToWeaponKey(type), valueIt->get<float>());
+          } catch (const std::exception& e) {
+            logger::warn("Settings: failed to parse {}.{}: {}", qualifiedName, name, e.what());
+          }
+        }
+      }
+    }
+  }
+
+  void LoadRaceFloatMap(const json& section, std::string_view sectionName,
+                        std::string_view subsectionName,
+                        std::unordered_map<RaceEnumType, float>& map)
+  {
+    if (const auto it = section.find(subsectionName); it != section.end()) {
+      if (!it->is_object()) {
+        logger::warn("Settings: {}.{} is not a JSON object.", sectionName, subsectionName);
+        return;
+      }
+
+      const auto& subsection   = *it;
+      const auto qualifiedName = std::string(sectionName) + "." + std::string(subsectionName);
+      for (auto type : magic_enum::enum_values<RaceType>()) {
+        if (type == RaceType::None)
+          continue;
+
+        auto name = magic_enum::enum_name(type);
+        if (name.empty())
+          continue;
+
+        if (auto valueIt = subsection.find(name); valueIt != subsection.end()) {
+          try {
+            map.insert_or_assign(ToRaceKey(type), valueIt->get<float>());
           } catch (const std::exception& e) {
             logger::warn("Settings: failed to parse {}.{}: {}", qualifiedName, name, e.what());
           }
@@ -147,16 +206,44 @@ namespace
 
     json posture = {{"UsePostureSystem", bUsePostureSystem},
                     {"UsePostureHUD", bUsePostureHUD},
-                    {"MaxPostureBase", fMaxPostureBase},
                     {"MaxPostureHealthMult", fMaxPostureHealthMult},
+                    {"MaxPostureStaminaMult", fMaxPostureStaminaMult},
                     {"PostureRegenDelay", uPostureRegenDelay},
                     {"PostureRegenPercentPerSecond", fPostureRegenPercentPerSecond},
                     {"BashPostureDamageMult", fBashPostureDamageMult},
                     {"PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult},
                     {"PowerBashPostureDamageMult", fPowerBashPostureDamageMult},
                     {"ArmorPostureDamageFactor", fArmorPostureDamageFactor}};
+    SaveRaceFloatMap(posture, "BasePosture", basePostureMap);
     SaveWeaponFloatMap(posture, "BasePostureDamage", basePostureDamageMap);
     root["Posture"] = std::move(posture);
+
+    json poise = {{"UsePoiseSystem", bUsePoiseSystem},
+                  {"PoiseStaminaMult", fPoiseStaminaMult},
+                  {"PoiseRegenDelay", uPoiseRegenDelay},
+                  {"PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond},
+                  {"ImpactLevelSmall", fImpactLevelSmall},
+                  {"ImpactLevelMedium", fImpactLevelMedium},
+                  {"ImpactLevelLarge", fImpactLevelLarge},
+                  {"LightArmorHeadMaxPoiseBonus", fLightArmorHeadMaxPoiseBonus},
+                  {"LightArmorBodyMaxPoiseBonus", fLightArmorBodyMaxPoiseBonus},
+                  {"LightArmorHandMaxPoiseBonus", fLightArmorHandMaxPoiseBonus},
+                  {"LightArmorFeetMaxPoiseBonus", fLightArmorFeetMaxPoiseBonus},
+                  {"HeavyArmorHeadMaxPoiseBonus", fHeavyArmorHeadMaxPoiseBonus},
+                  {"HeavyArmorBodyMaxPoiseBonus", fHeavyArmorBodyMaxPoiseBonus},
+                  {"HeavyArmorHandMaxPoiseBonus", fHeavyArmorHandMaxPoiseBonus},
+                  {"HeavyArmorFeetMaxPoiseBonus", fHeavyArmorFeetMaxPoiseBonus},
+                  {"BashPoiseDamageMult", fBashPoiseDamageMult},
+                  {"PowerAttackPoiseDamageMult", fPowerAttackPoiseDamageMult},
+                  {"PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult}};
+    SaveRaceFloatMap(poise, "BasePoise", basePoiseMap);
+    SaveWeaponFloatMap(poise, "BasePoiseDamage", basePoiseDamageMap);
+    root["Poise"] = std::move(poise);
+
+    root["Stagger"] = {{"UseStaggerSystem", bUseStaggerSystem},
+                       {"StaggerRecoveryTimeSmall", uStaggerRecoveryTimeSmall},
+                       {"StaggerRecoveryTimeMedium", uStaggerRecoveryTimeMedium},
+                       {"StaggerRecoveryTimeLarge", uStaggerRecoveryTimeLarge}};
 
     root["Exhausted"] = {
         {"UseExhaustedSystem", bUseExhaustedSystem},
@@ -247,7 +334,7 @@ void UpdateGameSettings()
 
 void LoadSettings()
 {
-  ClearWeaponSettingMaps();
+  ClearSettingMaps();
 
   if (!EnsureSettingsDir())
     return;
@@ -301,15 +388,48 @@ void LoadSettings()
     const auto& posture = *it;
     LoadSetting(posture, "Posture", "UsePostureSystem", bUsePostureSystem);
     LoadSetting(posture, "Posture", "UsePostureHUD", bUsePostureHUD);
-    LoadSetting(posture, "Posture", "MaxPostureBase", fMaxPostureBase);
     LoadSetting(posture, "Posture", "MaxPostureHealthMult", fMaxPostureHealthMult);
+    LoadSetting(posture, "Posture", "MaxPostureStaminaMult", fMaxPostureStaminaMult);
     LoadSetting(posture, "Posture", "PostureRegenDelay", uPostureRegenDelay);
     LoadSetting(posture, "Posture", "PostureRegenPercentPerSecond", fPostureRegenPercentPerSecond);
     LoadSetting(posture, "Posture", "BashPostureDamageMult", fBashPostureDamageMult);
     LoadSetting(posture, "Posture", "PowerAttackPostureDamageMult", fPowerAttackPostureDamageMult);
     LoadSetting(posture, "Posture", "PowerBashPostureDamageMult", fPowerBashPostureDamageMult);
     LoadSetting(posture, "Posture", "ArmorPostureDamageFactor", fArmorPostureDamageFactor);
+    LoadRaceFloatMap(posture, "Posture", "BasePosture", basePostureMap);
     LoadWeaponFloatMap(posture, "Posture", "BasePostureDamage", basePostureDamageMap);
+  }
+
+  if (const auto it = root.find("Poise"); it != root.end() && it->is_object()) {
+    const auto& poise = *it;
+    LoadSetting(poise, "Poise", "UsePoiseSystem", bUsePoiseSystem);
+    LoadSetting(poise, "Poise", "PoiseStaminaMult", fPoiseStaminaMult);
+    LoadSetting(poise, "Poise", "PoiseRegenDelay", uPoiseRegenDelay);
+    LoadSetting(poise, "Poise", "PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond);
+    LoadSetting(poise, "Poise", "ImpactLevelSmall", fImpactLevelSmall);
+    LoadSetting(poise, "Poise", "ImpactLevelMedium", fImpactLevelMedium);
+    LoadSetting(poise, "Poise", "ImpactLevelLarge", fImpactLevelLarge);
+    LoadSetting(poise, "Poise", "LightArmorHeadMaxPoiseBonus", fLightArmorHeadMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "LightArmorBodyMaxPoiseBonus", fLightArmorBodyMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "LightArmorHandMaxPoiseBonus", fLightArmorHandMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "LightArmorFeetMaxPoiseBonus", fLightArmorFeetMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "HeavyArmorHeadMaxPoiseBonus", fHeavyArmorHeadMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "HeavyArmorBodyMaxPoiseBonus", fHeavyArmorBodyMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "HeavyArmorHandMaxPoiseBonus", fHeavyArmorHandMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "HeavyArmorFeetMaxPoiseBonus", fHeavyArmorFeetMaxPoiseBonus);
+    LoadSetting(poise, "Poise", "BashPoiseDamageMult", fBashPoiseDamageMult);
+    LoadSetting(poise, "Poise", "PowerAttackPoiseDamageMult", fPowerAttackPoiseDamageMult);
+    LoadSetting(poise, "Poise", "PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult);
+    LoadRaceFloatMap(poise, "Poise", "BasePoise", basePoiseMap);
+    LoadWeaponFloatMap(poise, "Poise", "BasePoiseDamage", basePoiseDamageMap);
+  }
+
+  if (const auto it = root.find("Stagger"); it != root.end() && it->is_object()) {
+    const auto& stagger = *it;
+    LoadSetting(stagger, "Stagger", "UseStaggerSystem", bUseStaggerSystem);
+    LoadSetting(stagger, "Stagger", "StaggerRecoveryTimeSmall", uStaggerRecoveryTimeSmall);
+    LoadSetting(stagger, "Stagger", "StaggerRecoveryTimeMedium", uStaggerRecoveryTimeMedium);
+    LoadSetting(stagger, "Stagger", "StaggerRecoveryTimeLarge", uStaggerRecoveryTimeLarge);
   }
 
   if (const auto it = root.find("Exhausted"); it != root.end() && it->is_object()) {

@@ -174,9 +174,9 @@ void Block::ProcessPostureDamage(RE::Actor* aggressor, RE::Actor* victim, float 
   // 格挡时返回给攻击者的架势伤害乘数
   float postureDamageReflectMult = blockStrength * 0.002f;
 
-  Posture::DamagePostureValue(aggressor, postureDamage * postureDamageReflectMult, true);
-  Posture::DamagePostureValue(victim, postureDamage * postureDamageMult,
-                              timedBlock && Settings::bTimedBlockNeverPostureBreak);
+  Posture::DamagePostureHealth(aggressor, postureDamage * postureDamageReflectMult, true);
+  Posture::DamagePostureHealth(victim, postureDamage * postureDamageMult,
+                               timedBlock && Settings::bTimedBlockNeverPostureBreak);
 }
 
 bool Block::IsBlocking(RE::Actor* actor)

@@ -5,17 +5,19 @@ class Stagger
 public:
   enum class Level : std::uint8_t
   {
-    // MaxsuPoise对应的四个等级
+    // Rim Poise系统的硬直等级
 
     None,
     Small,
     Medium,
     Large,
+
+    // Largest 等级，默认情况下是架势崩溃状态专用的硬直
     Largest,
+    Execution = Largest,
 
-    // 级别等同于Largest，RimCombat补充的额外级别
+    // 根据攻击类型， RimCombat补充的额外级别
 
-    Execution,  // 处决状态专用的硬直
     Knockdown,  // 砸趴
     Strikefly,  // 挑飞
     Knockaway,  // 击飞

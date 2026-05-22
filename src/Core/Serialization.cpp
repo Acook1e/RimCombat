@@ -75,9 +75,9 @@ bool RegisterRevertCallback(std::uint32_t type, Callback callback)
 
 std::uint64_t ToPersistForm(RE::FormID formID)
 {
-
+  // 对于非Unique角色生成的FormID，直接返回原ID，无需转换
   if (formID >= 0xFF000000)
-    return 0;  // Not a mod form, cannot persist
+    return formID;
   auto* dataHandler = RE::TESDataHandler::GetSingleton();
   if (!dataHandler)
     return 0;
@@ -127,6 +127,8 @@ RE::FormID ToForm(std::uint64_t persistForm)
     return it->second | rawForm;
   else if (modHash == "Skyrim.esm"_h)  // 特殊处理
     return rawForm;
+  else if (modHash == 0)
+    return rawForm;  // 可能是原生生成的FormID，直接返回
   return 0;
 }
 }  // namespace Serialization

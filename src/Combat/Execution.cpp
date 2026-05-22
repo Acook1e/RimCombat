@@ -11,13 +11,14 @@
 #include "nlohmann/json.hpp"
 
 using WeaponType = Weapon::Type;
+using RaceType   = Race::Type;
 
-std::uint16_t operator|(WeaponType w, Race r)
+std::uint16_t operator|(WeaponType w, RaceType r)
 {
   return (static_cast<std::uint16_t>(w) << 8) | static_cast<std::uint16_t>(r);
 }
 
-std::pair<std::string_view, std::string_view> GetAnimEvent(Race race, bool back)
+std::pair<std::string_view, std::string_view> GetAnimEvent(RaceType race, bool back)
 {
   // 处决者调用的均是成对动画的位置1
   // 受击者调用位置2
@@ -25,7 +26,7 @@ std::pair<std::string_view, std::string_view> GetAnimEvent(Race race, bool back)
   // 除人类外的种族很少具有背刺动画
   if (back) {
     switch (race) {
-    case Race::Human:
+    case RaceType::Human:
       // Animations\Paired_1HMKillMoveBackStab.hkx
       return {"pa_KillMove1HMBackStab", "KillMove1HMBackStab"};
     default:
@@ -36,65 +37,65 @@ std::pair<std::string_view, std::string_view> GetAnimEvent(Race race, bool back)
   // 部分种族不具有原版的KillMove
   // 但保留种族的入口以便未来行为图的更新
   switch (race) {
-  case Race::Human:
+  case RaceType::Human:
     // Animations\Paired_1HMKillMove.hkx
     return {"pa_KillMove", "KillMove"};
-  case Race::Boar:
-  case Race::BoarMounted:
+  case RaceType::Boar:
+  case RaceType::BoarMounted:
 
-  case Race::Chaurus:
-  case Race::ChaurusReaper:
+  case RaceType::Chaurus:
+  case RaceType::ChaurusReaper:
 
-  case Race::Dog:
-  case Race::Fox:
-  case Race::Wolf:
+  case RaceType::Dog:
+  case RaceType::Fox:
+  case RaceType::Wolf:
 
-  case Race::Spider:
-  case Race::GiantSpider:
-  case Race::LargeSpider:
+  case RaceType::Spider:
+  case RaceType::GiantSpider:
+  case RaceType::LargeSpider:
 
-  case Race::Werebear:
-  case Race::Werewolf:
+  case RaceType::Werebear:
+  case RaceType::Werewolf:
 
-  case Race::AshHopper:
-  case Race::Bear:
-  case Race::ChaurusHunter:
-  case Race::Chicken:
-  case Race::Cow:
-  case Race::Deer:
-  case Race::Dragon:
-  case Race::DragonPriest:
-  case Race::Draugr:
-  case Race::DwarvenBallista:
-  case Race::DwarvenCenturion:
-  case Race::DwarvenSphere:
-  case Race::DwarvenSpider:
-  case Race::Falmer:
-  case Race::FlameAtronach:
-  case Race::FrostAtronach:
-  case Race::Gargoyle:
-  case Race::Giant:
-  case Race::Goat:
-  case Race::Hagraven:
-  case Race::Hare:
-  case Race::Horker:
-  case Race::Horse:
-  case Race::IceWraith:
-  case Race::Lurker:
-  case Race::Mammoth:
-  case Race::Mudcrab:
-  case Race::Netch:
-  case Race::Riekling:
-  case Race::Sabrecat:
-  case Race::Seeker:
-  case Race::Skeever:
-  case Race::Slaughterfish:
-  case Race::Spriggan:
-  case Race::StormAtronach:
-  case Race::Troll:
-  case Race::VampireLord:
-  case Race::Wisp:
-  case Race::Wispmother:
+  case RaceType::AshHopper:
+  case RaceType::Bear:
+  case RaceType::ChaurusHunter:
+  case RaceType::Chicken:
+  case RaceType::Cow:
+  case RaceType::Deer:
+  case RaceType::Dragon:
+  case RaceType::DragonPriest:
+  case RaceType::Draugr:
+  case RaceType::DwarvenBallista:
+  case RaceType::DwarvenCenturion:
+  case RaceType::DwarvenSphere:
+  case RaceType::DwarvenSpider:
+  case RaceType::Falmer:
+  case RaceType::FlameAtronach:
+  case RaceType::FrostAtronach:
+  case RaceType::Gargoyle:
+  case RaceType::Giant:
+  case RaceType::Goat:
+  case RaceType::Hagraven:
+  case RaceType::Hare:
+  case RaceType::Horker:
+  case RaceType::Horse:
+  case RaceType::IceWraith:
+  case RaceType::Lurker:
+  case RaceType::Mammoth:
+  case RaceType::Mudcrab:
+  case RaceType::Netch:
+  case RaceType::Riekling:
+  case RaceType::Sabrecat:
+  case RaceType::Seeker:
+  case RaceType::Skeever:
+  case RaceType::Slaughterfish:
+  case RaceType::Spriggan:
+  case RaceType::StormAtronach:
+  case RaceType::Troll:
+  case RaceType::VampireLord:
+  case RaceType::Wisp:
+  case RaceType::Wispmother:
   default:
     return {"", ""};
   }
@@ -111,7 +112,7 @@ Execution::Execution()
     if (value == WeaponType::None)
       continue;
 
-    availableExcutions.insert({value | Race::Human, 150.0f});
+    availableExcutions.insert({value | RaceType::Human, 150.0f});
   }
 }
 
@@ -193,11 +194,11 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
     return false;
 
   // 约定只有人类能作为处决者
-  if (GetRace(aggressor) != Race::Human)
+  if (Race::GetRace(aggressor) != RaceType::Human)
     return false;
 
   auto weaponType = Weapon::GetActorEquipmentType(aggressor);
-  auto race       = GetRace(victim);
+  auto race       = Race::GetRace(victim);
   auto flag       = weaponType | race;
 
   std::lock_guard<std::mutex> lock(mtx_executable);

@@ -1,6 +1,12 @@
 #pragma once
 
-enum class Race : std::uint8_t
+#include "Core/Settings.h"
+
+namespace Race
+{
+using EnumType = Settings::RaceEnumType;
+
+enum class Type : EnumType
 {
   // 野猪，蓝客灵骑乘野猪 具有相同行为图
   // 查鲁斯，查鲁斯收割者具有相同行为图
@@ -63,4 +69,7 @@ enum class Race : std::uint8_t
   Wolf             = 0x34,
 };
 
-Race GetRace(RE::Actor* actor);
+[[nodiscard]] Type GetRace(RE::Actor* actor);
+[[nodiscard]] float GetBasePostureHealth(RE::Actor* actor);
+[[nodiscard]] float GetBasePoiseHealth(RE::Actor* actor);
+}  // namespace Race

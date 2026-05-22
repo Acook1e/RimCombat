@@ -1,101 +1,129 @@
 #include "Data/Race.h"
 
-Race GetRace(RE::Actor* actor)
+#include "magic_enum/magic_enum.hpp"
+
+namespace Race
 {
-  static std::unordered_map<std::string_view, Race> raceMap = {
-      {"0_Master.hkx", Race::Human},
-      {"WolfBehavior.hkx", Race::Wolf},
-      {"DogBehavior.hkx", Race::Dog},
-      {"ChickenBehavior.hkx", Race::Chicken},
-      {"HareBehavior.hkx", Race::Hare},
-      {"AtronachFlameBehavior.hkx", Race::FlameAtronach},
-      {"AtronachFrostBehavior.hkx", Race::FrostAtronach},
-      {"AtronachStormBehavior.hkx", Race::StormAtronach},
-      {"BearBehavior.hkx", Race::Bear},
-      {"ChaurusBehavior.hkx", Race::Chaurus},
-      {"H-CowBehavior.hkx", Race::Cow},
-      {"DeerBehavior.hkx", Race::Deer},
-      {"CHaurusFlyerBehavior.hkx", Race::ChaurusHunter},
-      {"VampireBruteBehavior.hkx", Race::Gargoyle},
-      {"BenthicLurkerBehavior.hkx", Race::Lurker},
-      {"BoarBehavior.hkx", Race::Boar},
-      {"BCBehavior.hkx", Race::DwarvenBallista},
-      {"HMDaedra.hkx", Race::Seeker},
-      {"NetchBehavior.hkx", Race::Netch},
-      {"RieklingBehavior.hkx", Race::Riekling},
-      {"ScribBehavior.hkx", Race::AshHopper},
-      {"DragonBehavior.hkx", Race::Dragon},
-      {"Dragon_Priest.hkx", Race::DragonPriest},
-      {"DraugrBehavior.hkx", Race::Draugr},
-      {"SCBehavior.hkx", Race::DwarvenSphere},
-      {"DwarvenSpiderBehavior.hkx", Race::DwarvenSpider},
-      {"SteamBehavior.hkx", Race::DwarvenCenturion},
-      {"FalmerBehavior.hkx", Race::Falmer},
-      {"FrostbiteSpiderBehavior.hkx", Race::Spider},
-      {"GiantBehavior.hkx", Race::Giant},
-      {"GoatBehavior.hkx", Race::Goat},
-      {"HavgravenBehavior.hkx", Race::Hagraven},
-      {"HorkerBehavior.hkx", Race::Horker},
-      {"HorseBehavior.hkx", Race::Horse},
-      {"IceWraithBehavior.hkx", Race::IceWraith},
-      {"MammothBehavior.hkx", Race::Mammoth},
-      {"MudcrabBehavior.hkx", Race::Mudcrab},
-      {"SabreCatBehavior.hkx", Race::Sabrecat},
-      {"SkeeverBehavior.hkx", Race::Skeever},
-      {"SlaughterfishBehavior.hkx", Race::Slaughterfish},
-      {"SprigganBehavior.hkx", Race::Spriggan},
-      {"TrollBehavior.hkx", Race::Troll},
-      {"VampireLord.hkx", Race::VampireLord},
-      {"WerewolfBehavior.hkx", Race::Werewolf},
-      {"WispBehavior.hkx", Race::Wispmother},
-      {"WitchlightBehavior.hkx", Race::Wisp},
+
+Type GetRace(RE::Actor* actor)
+{
+  static std::unordered_map<std::string_view, Type> raceMap = {
+      {"0_Master.hkx", Type::Human},
+      {"WolfBehavior.hkx", Type::Wolf},
+      {"DogBehavior.hkx", Type::Dog},
+      {"ChickenBehavior.hkx", Type::Chicken},
+      {"HareBehavior.hkx", Type::Hare},
+      {"AtronachFlameBehavior.hkx", Type::FlameAtronach},
+      {"AtronachFrostBehavior.hkx", Type::FrostAtronach},
+      {"AtronachStormBehavior.hkx", Type::StormAtronach},
+      {"BearBehavior.hkx", Type::Bear},
+      {"ChaurusBehavior.hkx", Type::Chaurus},
+      {"H-CowBehavior.hkx", Type::Cow},
+      {"DeerBehavior.hkx", Type::Deer},
+      {"CHaurusFlyerBehavior.hkx", Type::ChaurusHunter},
+      {"VampireBruteBehavior.hkx", Type::Gargoyle},
+      {"BenthicLurkerBehavior.hkx", Type::Lurker},
+      {"BoarBehavior.hkx", Type::Boar},
+      {"BCBehavior.hkx", Type::DwarvenBallista},
+      {"HMDaedra.hkx", Type::Seeker},
+      {"NetchBehavior.hkx", Type::Netch},
+      {"RieklingBehavior.hkx", Type::Riekling},
+      {"ScribBehavior.hkx", Type::AshHopper},
+      {"DragonBehavior.hkx", Type::Dragon},
+      {"Dragon_Priest.hkx", Type::DragonPriest},
+      {"DraugrBehavior.hkx", Type::Draugr},
+      {"SCBehavior.hkx", Type::DwarvenSphere},
+      {"DwarvenSpiderBehavior.hkx", Type::DwarvenSpider},
+      {"SteamBehavior.hkx", Type::DwarvenCenturion},
+      {"FalmerBehavior.hkx", Type::Falmer},
+      {"FrostbiteSpiderBehavior.hkx", Type::Spider},
+      {"GiantBehavior.hkx", Type::Giant},
+      {"GoatBehavior.hkx", Type::Goat},
+      {"HavgravenBehavior.hkx", Type::Hagraven},
+      {"HorkerBehavior.hkx", Type::Horker},
+      {"HorseBehavior.hkx", Type::Horse},
+      {"IceWraithBehavior.hkx", Type::IceWraith},
+      {"MammothBehavior.hkx", Type::Mammoth},
+      {"MudcrabBehavior.hkx", Type::Mudcrab},
+      {"SabreCatBehavior.hkx", Type::Sabrecat},
+      {"SkeeverBehavior.hkx", Type::Skeever},
+      {"SlaughterfishBehavior.hkx", Type::Slaughterfish},
+      {"SprigganBehavior.hkx", Type::Spriggan},
+      {"TrollBehavior.hkx", Type::Troll},
+      {"VampireLord.hkx", Type::VampireLord},
+      {"WerewolfBehavior.hkx", Type::Werewolf},
+      {"WispBehavior.hkx", Type::Wispmother},
+      {"WitchlightBehavior.hkx", Type::Wisp},
   };
 
   auto behaviorPath =
       actor->GetRace()->rootBehaviorGraphNames[actor->GetActorBase()->IsFemale() ? 1 : 0].data();
   auto behaviorName = std::filesystem::path(behaviorPath).filename().string();
 
-  auto res = Race::None;
+  auto res = Type::None;
   if (auto it = raceMap.find(behaviorName); it != raceMap.end()) {
     res = it->second;
   } else {
     logger::warn("Execution::GetRace: Unknown behavior graph: {}", behaviorName);
-    return Race::None;
+    return Type::None;
   }
 
-  if (res == Race::Human)
+  if (res == Type::Human)
     return res;
 
   auto editorId = std::string{actor->GetRace()->GetFormEditorID()};
   switch (res) {
-  case Race::Boar:
+  case Type::Boar:
     static const auto DLC2RieklingMountedKeyword =
         RE::TESDataHandler::GetSingleton()->LookupForm<RE::BGSKeyword>(0x03A159, "Dragonborn.esm");
     if (actor->GetRace()->HasKeyword(DLC2RieklingMountedKeyword))
-      res = Race::BoarMounted;
+      res = Type::BoarMounted;
     break;
-  case Race::Chaurus:
+  case Type::Chaurus:
     if (editorId.find("reaper") != std::string::npos)
-      res = Race::ChaurusReaper;
+      res = Type::ChaurusReaper;
     else
-      res = Race::Chaurus;
+      res = Type::Chaurus;
     break;
-  case Race::Spider:
+  case Type::Spider:
     if (editorId.find("giant") != std::string::npos)
-      res = Race::GiantSpider;
+      res = Type::GiantSpider;
     else if (editorId.find("large") != std::string::npos)
-      res = Race::LargeSpider;
+      res = Type::LargeSpider;
     break;
-  case Race::Wolf:
+  case Type::Wolf:
     if (editorId.find("fox") != std::string::npos)
-      res = Race::Fox;
+      res = Type::Fox;
     break;
-  case Race::Werewolf:
+  case Type::Werewolf:
     if (editorId.find("werebear") != std::string::npos)
-      res = Race::Werebear;
+      res = Type::Werebear;
     break;
   default:
     break;
   }
   return res;
 }
+
+float GetBasePostureHealth(RE::Actor* actor)
+{
+  auto race = GetRace(actor);
+  auto id   = static_cast<EnumType>(race);
+  if (Settings::basePostureMap.contains(id))
+    return Settings::basePostureMap[id];
+  logger::warn("Race::GetBasePostureHealth: Unsupported race type: {}",
+               magic_enum::enum_name(race));
+  return 0.0f;
+}
+
+float GetBasePoiseHealth(RE::Actor* actor)
+{
+  auto race = GetRace(actor);
+  auto id   = static_cast<EnumType>(race);
+  if (Settings::basePoiseMap.contains(id))
+    return Settings::basePoiseMap[id];
+  logger::warn("Race::GetBasePoiseHealth: Unsupported race type: {}", magic_enum::enum_name(race));
+  return 0.0f;
+}
+
+}  // namespace Race

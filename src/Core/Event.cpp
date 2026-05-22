@@ -3,6 +3,7 @@
 #include "Combat/Block.h"
 #include "Combat/Damage.h"
 #include "Combat/Execution.h"
+#include "Combat/Poise.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
@@ -72,6 +73,9 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "rimstamina"_h:
     Stamina::PayloadParse(actor, payload);
     break;
+  case "rimpoise"_h:
+    Poise::PayloadParse(actor, payload);
+    break;
   case "rimposture"_h:
     Posture::PayloadParse(actor, payload);
     break;
@@ -81,6 +85,10 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "staggerstart"_h:
     break;
   case "staggerstop"_h:
+    if (Execution::IsExecutable(actor)) {
+      Execution::ExitExecutable(actor);
+      logger::info("Quit by Stagger Actor {}", actor->GetDisplayFullName());
+    }
     break;
   case "prehitframe"_h:
     break;
@@ -89,6 +97,8 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     Damage::End(actor);
     Stagger::TargetEnd(actor);
     Stamina::End(actor);
+    Poise::End(actor);
+    Poise::TargetEnd(actor);
     Posture::End(actor);
     WeaponArt::Manager::Interrupt(actor);
     break;

@@ -77,6 +77,7 @@ void Initialize();
 [[nodiscard]] Type GetBlockType(RE::Actor* actor);
 
 [[nodiscard]] float GetBasePostureDamage(Type type);
+[[nodiscard]] float GetBasePoiseDamage(Type type);
 [[nodiscard]] float GetBaseStaminaConsumption(Type type);
 [[nodiscard]] float GetBlockStrength(Type type);
 [[nodiscard]] float GetBaseExecutionMultiplier(RE::Actor* actor);

@@ -12,8 +12,8 @@ Exhausted::Exhausted()
     // 将FormID转换为持久化格式
     // 并自动去除非法或未找到的FormID
     std::unordered_set<std::uint64_t> persistSet;
-    for (const auto& formID : exhaustedActors) {
-      auto persist = Serialization::ToPersistForm(formID);
+    for (const auto* actor : exhaustedActors) {
+      auto persist = Serialization::ToPersistForm(actor->GetFormID());
       if (persist)
         persistSet.insert(persist);
     }
@@ -28,7 +28,6 @@ Exhausted::Exhausted()
   Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
     std::scoped_lock lock(mtx);
     exhaustedActors.clear();
-    runtimeExhaustedActors.clear();
 
     std::uint32_t count;
     if (serial->ReadRecordData(&count, sizeof(count))) {
@@ -36,8 +35,11 @@ Exhausted::Exhausted()
         std::uint64_t persist;
         if (serial->ReadRecordData(&persist, sizeof(persist))) {
           auto formID = Serialization::ToForm(persist);
-          if (formID)
-            exhaustedActors.insert(formID);
+          if (!formID)
+            continue;
+          auto form = RE::TESForm::LookupByID(formID);
+          if (auto actor = form ? form->As<RE::Actor>() : nullptr; actor)
+            exhaustedActors.insert(actor);
         }
       }
     }
@@ -46,7 +48,6 @@ Exhausted::Exhausted()
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     std::scoped_lock lock(mtx);
     exhaustedActors.clear();
-    runtimeExhaustedActors.clear();
   });
 }
 
@@ -55,11 +56,7 @@ bool Exhausted::IsActorExhausted(RE::Actor* actor)
   if (!actor || !Settings::bUseExhaustedSystem)
     return false;
   std::scoped_lock lock(mtx);
-  if (actor->GetActorBase()->IsUnique()) {
-    return exhaustedActors.contains(actor->GetFormID());
-  } else {
-    return runtimeExhaustedActors.contains(actor);
-  }
+  return exhaustedActors.contains(actor);
 }
 
 void Exhausted::EnterExhausted(RE::Actor* actor)
@@ -67,10 +64,7 @@ void Exhausted::EnterExhausted(RE::Actor* actor)
   if (!actor || !Settings::bUseExhaustedSystem)
     return;
   std::scoped_lock lock(mtx);
-  if (actor->GetActorBase()->IsUnique())
-    exhaustedActors.insert(actor->GetFormID());
-  else
-    runtimeExhaustedActors.insert(actor);
+  exhaustedActors.insert(actor);
   UI::TrueHUD::EnterGreyOut(actor);
 }
 
@@ -79,9 +73,6 @@ void Exhausted::ExitExhausted(RE::Actor* actor)
   if (!actor || !Settings::bUseExhaustedSystem)
     return;
   std::scoped_lock lock(mtx);
-  if (actor->GetActorBase()->IsUnique())
-    exhaustedActors.erase(actor->GetFormID());
-  else
-    runtimeExhaustedActors.erase(actor);
+  exhaustedActors.erase(actor);
   UI::TrueHUD::ExitGreyOut(actor);
 }

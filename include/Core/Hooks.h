@@ -68,7 +68,40 @@ private:
   static inline REL::Relocation<decltype(GetAttackStaminaCost)> _GetAttackStaminaCost;
 };
 
-class Hook_OnMeleeHit
+class Hook_OnGetMeleeDamage
+{
+public:
+  static void Install()
+  {
+    auto& trampoline = SKSE::GetTrampoline();
+    SKSE::AllocTrampoline(14 * 3);
+
+    std::uintptr_t addr = REL::VariantID(42832, 44001, 0).address();
+
+    std::uintptr_t offset_GetWeaponDamage  = REL::VariantOffset(0x1A5, 0x1A4, 0x0).offset();
+    std::uintptr_t offset_GetBashDamage    = REL::VariantOffset(0x22F, 0x226, 0x0).offset();
+    std::uintptr_t offset_GetUnarmedDamage = REL::VariantOffset(0x26A, 0x24D, 0x0).offset();
+
+    _GetWeaponDamage  = trampoline.write_call<5>(addr + offset_GetWeaponDamage, GetWeaponDamage);
+    _GetBashDamage    = trampoline.write_call<5>(addr + offset_GetBashDamage, GetBashDamage);
+    _GetUnarmedDamage = trampoline.write_call<5>(addr + offset_GetUnarmedDamage, GetUnarmedDamage);
+
+    logger::info("Hooks: OnGetMeleeDamage installed.");
+  }
+
+private:
+  static float GetWeaponDamage(RE::InventoryEntryData* weapon, RE::ActorValueOwner* actorValueOwner,
+                               float damageMult, bool unk);
+  static void GetBashDamage(RE::ActorValueOwner* actorValueOwner, float& outDamage);
+  static void GetUnarmedDamage(RE::ActorValueOwner* actorValueOwner, float& outDamage);
+
+  static inline REL::Relocation<decltype(GetWeaponDamage)> _GetWeaponDamage;
+  static inline REL::Relocation<decltype(GetBashDamage)> _GetBashDamage;
+  static inline REL::Relocation<decltype(GetUnarmedDamage)> _GetUnarmedDamage;
+};
+
+// 包含空手，近战武器，弓弩
+class Hook_OnWeaponHit
 {
 public:
   static void Install()
@@ -78,25 +111,13 @@ public:
 
     std::uintptr_t hook =
         REL::VariantID(37673, 38627, 0).address() + REL::VariantOffset(0x3C0, 0x4A8, 0x0).offset();
-    // 140628C20       14064E760
     _ProcessHit = trampoline.write_call<5>(hook, ProcessHit);
-    logger::info("Hook: OnMeleeHit installed.");
+    logger::info("Hook: OnWeaponHit installed.");
   }
 
 private:
   static void ProcessHit(RE::Actor* victim, RE::HitData& hitData);
   static inline REL::Relocation<decltype(ProcessHit)> _ProcessHit;
-  // 140626400       14064BAB0
-};
-
-class Hook_OnTryStagger
-{
-public:
-  static void Install();
-
-private:
-  static void TryStagger(RE::Actor* target, float staggerMult, RE::Actor* aggressor);
-  static inline void (*_TryStagger)(RE::Actor*, float, RE::Actor*) = nullptr;
 };
 
 class Hook_OnPlayIdle

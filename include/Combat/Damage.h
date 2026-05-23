@@ -17,7 +17,8 @@ public:
     return singleton;
   }
 
-  static void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
+  // Damage系统作用于近战的初始伤害倍率，而非最终伤害倍率
+  static void ProcessDamage(RE::Actor* aggressor, float& damage);
 
   static void SetMult(RE::Actor* actor, const std::string& payload);
   static void End(RE::Actor* actor);

@@ -13,15 +13,15 @@ Damage::Damage()
   });
 }
 
-void Damage::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
+void Damage::ProcessDamage(RE::Actor* aggressor, float& damage)
 {
-  if (!aggressor || !victim)
+  if (!aggressor)
     return;
 
   // 不清除，一次攻击可能有多个对象
   std::lock_guard<std::mutex> lock(mtx_damageCache);
   if (auto it = damageCache.find(aggressor); it != damageCache.end())
-    hitData.totalDamage *= it->second;
+    damage *= it->second;
 }
 
 void Damage::SetMult(RE::Actor* actor, const std::string& payload)

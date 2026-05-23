@@ -357,154 +357,153 @@ Manager::Manager()
   // 从JSON文件加载战技信息
   const std::string weaponArtDir = std::string(Settings::SettingsDir) + "WeaponArt/";
   for (const auto& entry : std::filesystem::directory_iterator(weaponArtDir)) {
-    if (entry.is_regular_file() && entry.path().extension() == ".json") {
-      try {
-        std::ifstream file(entry.path());
-        nlohmann::json j;
-        file >> j;
+    if (!entry.is_regular_file() || entry.path().extension() != ".json")
+      continue;
 
-        for (const auto& [key, value] : j.items()) {
-          std::int32_t id = Utils::hash(key);
-          // 0为无效ID，跳过
-          if (id == 0) {
-            logger::warn("Invalid Weapon Art ID for {} in file {}. Skipping.", key,
+    try {
+      std::ifstream file(entry.path());
+      nlohmann::json j;
+      file >> j;
+
+      for (const auto& [key, value] : j.items()) {
+        std::int32_t id = Utils::hash(key);
+        // 0为无效ID，跳过
+        if (id == 0) {
+          logger::warn("Invalid Weapon Art ID for {} in file {}. Skipping.", key,
+                       entry.path().string());
+          continue;
+        }
+        // 一般hash值不会发生碰撞，但为了安全起见，仍然验证ID的唯一性
+        if (artMap.find(id) != artMap.end()) {
+          logger::warn("Hash collision for Weapon Art {} in file {}. Skipping.", key,
+                       entry.path().string());
+          continue;
+        }
+
+        // 名字必须存在
+        std::string name = value.value("name", "");
+        if (name.empty()) {
+          logger::warn("Missing name for Weapon Art {} in file {}. Skipping.", key,
+                       entry.path().string());
+          continue;
+        }
+
+        // 描述可以不存在，默认为空字符串
+        std::string description = value.value("description", "");
+
+        // 武器可以不存在，默认为空列表
+        std::vector<std::string> weaponStrs = value.value("weapons", std::vector<std::string>{});
+
+        // 可用武器类型可以不存在，默认为None
+        std::vector<std::string> availableWeaponStrs =
+            value.value("availableWeapon", std::vector<std::string>{});
+
+        // 不必对weaponStrs判空
+        std::vector<RE::FormID> weapons{};
+        for (const auto& w : weaponStrs) {
+          auto split = Utils::split(w, '|');
+          if (split.size() != 2) {
+            logger::warn("Invalid weapon '{}' for Weapon Art {} in file {}. Skipping.", w, key,
                          entry.path().string());
             continue;
           }
-          // 一般hash值不会发生碰撞，但为了安全起见，仍然验证ID的唯一性
-          if (artMap.find(id) != artMap.end()) {
-            logger::warn("Hash collision for Weapon Art {} in file {}. Skipping.", key,
-                         entry.path().string());
-            continue;
+          auto res = dataHandle->LookupFormID(Utils::hash(split[0]), split[1]);
+          if (res)
+            weapons.push_back(res);
+        }
+
+        AvailableWeapon availableWeapon = AvailableWeapon::None;
+        for (const auto& awStr : availableWeaponStrs) {
+          if (auto awOpt = magic_enum::enum_flags_cast<AvailableWeapon>(awStr); awOpt.has_value()) {
+            availableWeapon = availableWeapon | awOpt.value();
+          } else {
+            logger::warn("Invalid weapon art type '{}' for Weapon Art {} in file {}. Skipping.",
+                         awStr, key, entry.path().string());
           }
+        }
 
-          // 名字必须存在
-          std::string name = value.value("name", "");
-          if (name.empty()) {
-            logger::warn("Missing name for Weapon Art {} in file {}. Skipping.", key,
-                         entry.path().string());
-            continue;
-          }
+        // 不必判断None，会默认通配所有类型
+        // 如果不是Unique类型，则需要后处理保证匹配
+        if (availableWeapon != AvailableWeapon::Unique) {
+          // 如果没有指定重量要求，则视为通配
+          if ((availableWeapon & weightMask) == AvailableWeapon::None)
+            availableWeapon = availableWeapon | weightMask;
+          // 如果没有指定武器家族要求，则视为通配
+          if ((availableWeapon & familyMask) == AvailableWeapon::None)
+            availableWeapon = availableWeapon | familyMask;
+        }
 
-          // 描述可以不存在，默认为空字符串
-          std::string description = value.value("description", "");
+        // 法术特效可以不存在，默认为空对象
+        auto spellsJson = value.value("spells", nlohmann::json::object());
+        std::unordered_map<std::uint32_t, SpellInfo> spells{};
+        if (spellsJson.is_object()) {
+          for (const auto& [spellKey, spellValue] : spellsJson.items()) {
+            // 因为event处理中会把所以字符转为小写，所以这里也统一转为小写来hash
+            std::string lower = spellKey;
+            std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+            std::uint32_t spellHash = Utils::hash(lower);
 
-          // 武器可以不存在，默认为空列表
-          std::vector<std::string> weaponStrs = value.value("weapons", std::vector<std::string>{});
-
-          // 可用武器类型可以不存在，默认为None
-          std::vector<std::string> availableWeaponStrs =
-              value.value("availableWeapon", std::vector<std::string>{});
-
-          // 不必对weaponStrs判空
-          std::vector<RE::FormID> weapons{};
-          for (const auto& w : weaponStrs) {
-            auto split = Utils::split(w, '|');
-            if (split.size() != 2) {
-              logger::warn("Invalid weapon '{}' for Weapon Art {} in file {}. Skipping.", w, key,
-                           entry.path().string());
+            std::string modName   = spellValue.value("mod", "");
+            std::string formIDStr = spellValue.value("formID", "");
+            auto formID           = Utils::toInt(formIDStr, 16);
+            auto spellFormID      = dataHandle->LookupFormID(formID, modName);
+            if (!spellFormID) {
+              logger::warn("Invalid spell reference '{}' for Weapon Art {} in file {}. Skipping.",
+                           spellKey, key, entry.path().string());
               continue;
             }
-            auto res = dataHandle->LookupFormID(Utils::hash(split[0]), split[1]);
-            if (res)
-              weapons.push_back(res);
-          }
-
-          AvailableWeapon availableWeapon = AvailableWeapon::None;
-          for (const auto& awStr : availableWeaponStrs) {
-            if (auto awOpt = magic_enum::enum_flags_cast<AvailableWeapon>(awStr);
-                awOpt.has_value()) {
-              availableWeapon = availableWeapon | awOpt.value();
-            } else {
-              logger::warn("Invalid weapon art type '{}' for Weapon Art {} in file {}. Skipping.",
-                           awStr, key, entry.path().string());
+            auto* spell = RE::TESForm::LookupByID<RE::SpellItem>(spellFormID);
+            if (!spell || spell->formType != RE::FormType::Spell) {
+              logger::warn("Form ID '{}' does not correspond to a valid spell for Weapon Art {} "
+                           "in file {}. Skipping.",
+                           formID, key, entry.path().string());
+              continue;
             }
-          }
 
-          // 不必判断None，会默认通配所有类型
-          // 如果不是Unique类型，则需要后处理保证匹配
-          if (availableWeapon != AvailableWeapon::Unique) {
-            // 如果没有指定重量要求，则视为通配
-            if ((availableWeapon & weightMask) == AvailableWeapon::None)
-              availableWeapon = availableWeapon | weightMask;
-            // 如果没有指定武器家族要求，则视为通配
-            if ((availableWeapon & familyMask) == AvailableWeapon::None)
-              availableWeapon = availableWeapon | familyMask;
-          }
-
-          // 法术特效可以不存在，默认为空对象
-          auto spellsJson = value.value("spells", nlohmann::json::object());
-          std::unordered_map<std::uint32_t, SpellInfo> spells{};
-          if (spellsJson.is_object()) {
-            for (const auto& [spellKey, spellValue] : spellsJson.items()) {
-              // 因为event处理中会把所以字符转为小写，所以这里也统一转为小写来hash
-              std::string lower = spellKey;
-              std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-              std::uint32_t spellHash = Utils::hash(lower);
-
-              std::string modName   = spellValue.value("mod", "");
-              std::string formIDStr = spellValue.value("formID", "");
-              auto formID           = Utils::toInt(formIDStr, 16);
-              auto spellFormID      = dataHandle->LookupFormID(formID, modName);
-              if (!spellFormID) {
-                logger::warn("Invalid spell reference '{}' for Weapon Art {} in file {}. Skipping.",
-                             spellKey, key, entry.path().string());
-                continue;
-              }
-              auto* spell = RE::TESForm::LookupByID<RE::SpellItem>(spellFormID);
-              if (!spell || spell->formType != RE::FormType::Spell) {
-                logger::warn("Form ID '{}' does not correspond to a valid spell for Weapon Art {} "
-                             "in file {}. Skipping.",
-                             formID, key, entry.path().string());
-                continue;
-              }
-
-              bool selfCast        = spellValue.value("selfCast", false);
-              float effectiveness  = spellValue.value("effectiveness", 1.0f);
-              float stdMagnitude   = spellValue.value("stdMagnitude", 0.0f);
-              std::string skillStr = spellValue.value("skill", "None");
-              Skill skill          = magic_enum::enum_cast<Skill>(skillStr).value_or(Skill::None);
-              if (skill == Skill::None) {
-                logger::warn(
-                    "Invalid skill '{}' for spell '{}' in Weapon Art {} in file {}. Skipping.",
-                    skillStr, spellKey, key, entry.path().string());
-                continue;
-              }
-
-              float factor = spellValue.value("factor", 1.0f);
-              if (factor < 0.0f) {
-                logger::warn(
-                    "Invalid factor {} for spell '{}' in Weapon Art {} in file {}. Skipping.",
-                    factor, spellKey, key, entry.path().string());
-                continue;
-              }
-
-              spells[spellHash] =
-                  SpellInfo{spell, effectiveness, stdMagnitude, factor, skill, selfCast};
+            bool selfCast        = spellValue.value("selfCast", false);
+            float effectiveness  = spellValue.value("effectiveness", 1.0f);
+            float stdMagnitude   = spellValue.value("stdMagnitude", 0.0f);
+            std::string skillStr = spellValue.value("skill", "None");
+            Skill skill          = magic_enum::enum_cast<Skill>(skillStr).value_or(Skill::None);
+            if (skill == Skill::None) {
+              logger::warn(
+                  "Invalid skill '{}' for spell '{}' in Weapon Art {} in file {}. Skipping.",
+                  skillStr, spellKey, key, entry.path().string());
+              continue;
             }
+
+            float factor = spellValue.value("factor", 1.0f);
+            if (factor < 0.0f) {
+              logger::warn(
+                  "Invalid factor {} for spell '{}' in Weapon Art {} in file {}. Skipping.", factor,
+                  spellKey, key, entry.path().string());
+              continue;
+            }
+
+            spells[spellHash] =
+                SpellInfo{spell, effectiveness, stdMagnitude, factor, skill, selfCast};
           }
-
-          // 消耗的战技点数和解锁所需等级，默认为0和1
-          std::uint8_t consumePoint = value.value("consumePoint", 0);
-          std::uint8_t unlockLevel  = value.value("unlockLevel", 1);
-
-          // 是否准备动画，不要求一定存在，默认为false
-          bool needPrepare = value.value("needPrepare", false);
-
-          // 如果想要查看ID，可以在对应的战技定义中添加"verbose": true字段
-          bool verbose = value.value("verbose", false);
-          if (verbose)
-            logger::info("Loaded Weapon Art {} (ID: {}) from file {}.", name, id,
-                         entry.path().string());
-
-          WeaponArtInfo art(id, name, description, availableWeapon, std::move(weapons),
-                            std::move(spells), consumePoint, unlockLevel, needPrepare);
-          artMap[id] = std::move(art);
         }
-      } catch (const std::exception& e) {
-        logger::error("Failed to load Weapon Art from file {}: {}", entry.path().string(),
-                      e.what());
+
+        // 消耗的战技点数和解锁所需等级，默认为0和1
+        std::uint8_t consumePoint = value.value("consumePoint", 0);
+        std::uint8_t unlockLevel  = value.value("unlockLevel", 1);
+
+        // 是否准备动画，不要求一定存在，默认为false
+        bool needPrepare = value.value("needPrepare", false);
+
+        // 如果想要查看ID，可以在对应的战技定义中添加"verbose": true字段
+        bool verbose = value.value("verbose", false);
+        if (verbose)
+          logger::info("Loaded Weapon Art {} (ID: {}) from file {}.", name, id,
+                       entry.path().string());
+
+        WeaponArtInfo art(id, name, description, availableWeapon, std::move(weapons),
+                          std::move(spells), consumePoint, unlockLevel, needPrepare);
+        artMap[id] = std::move(art);
       }
+    } catch (const std::exception& e) {
+      logger::error("Failed to load Weapon Art from file {}: {}", entry.path().string(), e.what());
     }
   }
 

@@ -12,6 +12,8 @@
 #include "GUI/UI.h"
 #include "Utils.h"
 
+#include "magic_enum/magic_enum.hpp"
+
 namespace Events
 {
 // 返回True表示事件不需要往下传递了，返回False表示继续往下传递
@@ -42,12 +44,14 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "soundplay.wpnunarmedswing"_h:
     Stamina::SwingStaminaConsume(actor, false, true);
     break;
-  // 原版和MCO/BFCO框架下的攻击触发
-  case "attackstart"_h:
-  case "mco_attackentry"_h:
-  case "mco_powerattackentry"_h:
-  case "bfco_playerattackstart"_h:
-  case "bfco_npcattackstart"_h:
+  case "collision_attackstart"_h:
+    Stamina::PrecisionStart(actor);
+    break;
+  case "collision_attackend"_h:
+    Stamina::PrecisionEnd(actor);
+    break;
+  case "collision_add"_h:
+    Stamina::CollisionStaminaConsume(actor, payload);
     break;
   case "blockstart"_h:
   case "blockstartout"_h:
@@ -56,10 +60,44 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "blockstop"_h:
     Block::EndBlock(actor);
     break;
+  // 原版和MCO/BFCO框架下的攻击触发
+  case "attackstart"_h:
+  case "mco_attackentry"_h:
+  case "mco_powerattackentry"_h:
+  case "bfco_playerattackstart"_h:
+  case "bfco_npcattackstart"_h:
+    break;
+
+  // 攻击停止或者触发硬直重置只用于一次攻击的系统
+  case "attackstop"_h:
+  case "staggerstart"_h:
+    Damage::End(actor);
+    Stagger::TargetEnd(actor);
+    Stamina::End(actor);
+    Stamina::PrecisionEnd(actor);
+    Poise::End(actor);
+    Poise::TargetEnd(actor);
+    Posture::End(actor);
+    WeaponArt::Manager::Interrupt(actor);
+    break;
+
   case "killactor"_h:
     // 如果进入处决状态，忽略KillMove的处决事件
     if (Execution::IsExecutingVictim(actor))
       return true;
+    break;
+  case "staggerstop"_h: {
+    // 如果在可恢复状态后解除硬直，则硬直生命周期结束
+    auto recoverable = false;
+    if (actor->GetGraphVariableBool(Stagger::STAGGER_RECOVERABLE, recoverable))
+      Stagger::SetStaggerLevel(actor, Stagger::Level::None);
+    break;
+  }
+  case "prehitframe"_h:
+    break;
+  case "tkdr_iframeend"_h:
+    break;
+  case "dodge"_h:
     break;
   case "rimdamage"_h:
     Damage::PayloadParse(actor, payload);
@@ -81,35 +119,6 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     break;
   case "rimweaponart"_h:
     WeaponArt::Manager::PayloadParse(actor, payload);
-    break;
-  case "staggerstart"_h:
-    break;
-  case "staggerstop"_h: {
-    // 如果在可恢复状态后解除硬直，则硬直生命周期结束
-    auto recoverable = false;
-    if (actor->GetGraphVariableBool(Stagger::STAGGER_RECOVERABLE, recoverable))
-      Stagger::SetStaggerLevel(actor, Stagger::Level::None);
-
-    if (Execution::IsExecutable(actor))
-      Execution::ExitExecutable(actor);
-
-    break;
-  }
-  case "prehitframe"_h:
-    break;
-  case "interruptcast"_h:
-  case "attackstop"_h:
-    Damage::End(actor);
-    Stagger::TargetEnd(actor);
-    Stamina::End(actor);
-    Poise::End(actor);
-    Poise::TargetEnd(actor);
-    Posture::End(actor);
-    WeaponArt::Manager::Interrupt(actor);
-    break;
-  case "tkdr_iframeend"_h:
-    break;
-  case "dodge"_h:
     break;
   }
   return false;
@@ -133,6 +142,18 @@ AnimEvent::ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   if (ProcessEvent(sink, event, eventSource))
     return RE::BSEventNotifyControl::kStop;
   return _ProcessEvent_PC(sink, event, eventSource);
+}
+
+RE::BSEventNotifyControl HitEvent::ProcessEvent(const RE::TESHitEvent* event,
+                                                RE::BSTEventSource<RE::TESHitEvent>* eventSource)
+{
+  if (!event || !event->target || !event->source || !event->projectile)
+    return RE::BSEventNotifyControl::kContinue;
+
+  auto victim = event->target->As<RE::Actor>();
+  Stagger::ProcessProjectileStagger(victim, event->source);
+
+  return RE::BSEventNotifyControl::kContinue;
 }
 
 RE::BSEventNotifyControl

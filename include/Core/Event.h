@@ -48,7 +48,7 @@ public:
     auto source = RE::ScriptEventSourceHolder::GetSingleton()->GetEventSource<RE::TESHitEvent>();
     if (source)
       source->AddEventSink(GetSingleton());
-    logger::info("HitEvent: installing event hook");
+    logger::info("HitEvent: Installing event hook");
   }
 
   RE::BSEventNotifyControl ProcessEvent(const RE::TESHitEvent* event,
@@ -69,7 +69,7 @@ public:
     auto ui = RE::UI::GetSingleton();
     if (ui)
       ui->AddEventSink<RE::MenuOpenCloseEvent>(GetSingleton());
-    logger::info("MenuEvent: installing event hook");
+    logger::info("MenuEvent: Installing event hook");
   }
 
   RE::BSEventNotifyControl
@@ -99,6 +99,7 @@ private:
 inline void Install()
 {
   AnimEvent::Install();
+  HitEvent::Install();
   MenuEvent::Install();
   InputEvent::Install();
 }

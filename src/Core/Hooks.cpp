@@ -92,17 +92,47 @@ float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avO
   return _GetAttackStaminaCost(avOwner, atkData);
 }
 
-void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
+float Hook_OnGetMeleeDamage::GetWeaponDamage(RE::InventoryEntryData* weapon,
+                                             RE::ActorValueOwner* actorValueOwner, float damageMult,
+                                             bool unk)
+{
+  float damage = _GetWeaponDamage(weapon, actorValueOwner, damageMult, unk);
+
+  auto actor = skyrim_cast<RE::Actor*>(actorValueOwner);
+  if (actor)
+    Damage::ProcessDamage(actor, damage);
+  return damage;
+}
+
+void Hook_OnGetMeleeDamage::GetBashDamage(RE::ActorValueOwner* actorValueOwner, float& outDamage)
+{
+  _GetBashDamage(actorValueOwner, outDamage);
+
+  auto actor = skyrim_cast<RE::Actor*>(actorValueOwner);
+  if (actor)
+    Damage::ProcessDamage(actor, outDamage);
+}
+
+void Hook_OnGetMeleeDamage::GetUnarmedDamage(RE::ActorValueOwner* actorValueOwner, float& outDamage)
+{
+  _GetUnarmedDamage(actorValueOwner, outDamage);
+
+  auto actor = skyrim_cast<RE::Actor*>(actorValueOwner);
+  if (actor)
+    Damage::ProcessDamage(actor, outDamage);
+}
+
+void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 {
   auto* aggressor = hitData.aggressor.get().get();
 
   if (!victim || !aggressor || victim->IsDead())
     return _ProcessHit(victim, hitData);
 
-  // 第一部分：根据状态修正数值
+  bool blocked = hitData.flags.any(RE::HitData::Flag::kBlocked);
+  bool bash    = hitData.flags.any(RE::HitData::Flag::kBash);
 
-  // Rim Combat 伤害系统的修正
-  Damage::ProcessMeleeHit(aggressor, victim, hitData);
+  // 第一部分：根据状态修正数值
 
   // 处决状态增伤
   // 引入处决触发的入口在Posture，退出状态必须在Posture之前
@@ -123,7 +153,7 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   // 第二部分：处理会直接修改HitData的状态和数值变更
 
-  if (hitData.flags.any(RE::HitData::Flag::kBlocked)) {
+  if (blocked) {
     Block::ProcessBlock(victim);
     Block::ProcessDamage(victim, hitData);
   }
@@ -132,14 +162,12 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   if (Settings::bUseStaggerSystem)
     hitData.stagger = 0.0f;
 
-  // 在架势之前处理
-  Poise::ProcessHit(aggressor, victim, hitData);
+  // 在架势之前处理，处决级别的硬直入口在架势
+  // 如果攻击被格挡了，则不处理硬直和韧性
+  if (!blocked)
+    Poise::ProcessWeaponHit(aggressor, victim, hitData);
 
-  Posture::ProcessMeleeHit(aggressor, victim, hitData);
-
-  // 韧性相关的模组都会在处理攻击之中调用TryStagger
-  // 不能保证对硬直等级的修改时序在他们修改之前，TryStagger之后
-  // 因此直接Detour TryStagger
+  Posture::ProcessWeaponHit(aggressor, victim, hitData);
 
   _ProcessHit(victim, hitData);
 
@@ -147,38 +175,11 @@ void Hook_OnMeleeHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   // 此时HitData中的数值已经是最终的伤害，可以根据这个数值来处理一些状态变更
 
   // 在所有涉及硬直的系统的最后处理
-  Stagger::ProcessStagger(aggressor, victim);
+  Stagger::ProcessWeaponStagger(aggressor, victim);
 
   // 如果设置了被击打时退出力竭状态，则在此处退出
   if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
     Exhausted::ExitExhausted(victim);
-}
-
-void Hook_OnTryStagger::Install()
-{
-  std::uintptr_t addr = REL::VariantID(36700, 37710, 0).address();
-  _TryStagger         = reinterpret_cast<decltype(_TryStagger)>(addr);
-
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<PVOID*>(&_TryStagger), TryStagger);
-  if (DetourTransactionCommit() != NO_ERROR) {
-    logger::error("Failed to install Hook_OnTryStagger.");
-    return;
-  }
-  logger::info("Hook: OnTryStagger installed.");
-}
-void Hook_OnTryStagger::TryStagger(RE::Actor* target, float staggerMult, RE::Actor* aggressor)
-{
-
-  // 时序：ProcessHit 原函数前 -> TryStagger 原函数前 -> PerformAction的ActionStaggerStart事件 ->
-  // NotifyAnimationGraph的StaggerStart事件 -> TryStagger 原函数后 -> ProcessHit 原函数后
-
-  // 使用Detour的hook模式取得最低的调用优先级，确保在其他模组修改硬直等级之后再进行计算和处理
-  // TryStagger的第二个参数会被原版用于回写staggerMagnitude
-  // 因此需要在这里统一修正传给原版的最终数值，而不只是修改图变量
-
-  _TryStagger(target, staggerMult, aggressor);
 }
 
 void Hook_OnPlayIdle::Install()
@@ -199,7 +200,6 @@ bool Hook_OnPlayIdle::PlayIdle(RE::AIProcess* aiProcess, RE::Actor* actor,
                                RE::DEFAULT_OBJECT action, RE::TESIdleForm* idle, bool arg5,
                                bool arg6, RE::TESObjectREFR* target)
 {
-  // 仅针对玩家
   if (!aiProcess || !actor || !idle)
     return _PlayIdle(aiProcess, actor, action, idle, arg5, arg6, target);
 
@@ -444,10 +444,10 @@ void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::A
 void Install()
 {
   Hook_OnMainUpdate::Install();
-  Hook_OnActorUpdate::Install();
+  // 目前用不到
+  // Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
-  Hook_OnMeleeHit::Install();
-  Hook_OnTryStagger::Install();
+  Hook_OnGetMeleeDamage::Install();
   Hook_OnPlayIdle::Install();
   Hook_OnPerformAction::Install();
   Hook_OnModActorValue::Install();

@@ -7,12 +7,30 @@
 
 #include "magic_enum/magic_enum.hpp"
 
+float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
+{
+  if (!actor)
+    return baseCost;
+
+  float finalCost = baseCost;
+
+  auto powerEntry = RE::BGSPerkEntry::EntryPoint::kModPowerAttackStamina;
+
+  return finalCost;
+}
+
 Stamina::Stamina()
 {
   // 使用序列化重置缓存
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface* serial) {
-    std::lock_guard<std::mutex> lock(mtx);
-    useRimStaminaActors.clear();
+    {
+      std::scoped_lock lock(mtx_precision);
+      usePrecisionStaminaActors.clear();
+    }
+    {
+      std::scoped_lock lock(mtx_rimStamina);
+      useRimStaminaActors.clear();
+    }
   });
 }
 
@@ -23,8 +41,14 @@ void Stamina::SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
   if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
   {
+    // 使用Precision系统的角色不处理Swing的攻击耐力消耗
+    std::scoped_lock lock(mtx_precision);
+    if (usePrecisionStaminaActors.contains(actor))
+      return;
+  }
+  {
     // 使用RimCombat耐力系统的角色不处理Swing的攻击耐力消耗
-    std::scoped_lock lock(mtx);
+    std::scoped_lock lock(mtx_rimStamina);
     if (useRimStaminaActors.contains(actor))
       return;
   }
@@ -53,12 +77,71 @@ void Stamina::SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }
 
+void Stamina::PrecisionStart(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+
+  std::scoped_lock lock(mtx_precision);
+  usePrecisionStaminaActors.insert(actor);
+}
+
+void Stamina::PrecisionEnd(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+
+  std::scoped_lock lock(mtx_precision);
+  usePrecisionStaminaActors.erase(actor);
+}
+
+void Stamina::CollisionStaminaConsume(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  {
+    // 只有在使用RimCombat耐力系统时忽略基于Collision事件的攻击耐力消耗
+    std::scoped_lock lock(mtx_rimStamina);
+    if (!useRimStaminaActors.contains(actor))
+      return;
+  }
+
+  bool right = payload.find("weapon") != std::string::npos;
+  bool left  = payload.find("shield") != std::string::npos;
+
+  if (!right && !left) {
+    logger::error("Stamina::CollisionStaminaConsume: Invalid payload for collision_add: {}",
+                  payload);
+    return;
+  }
+
+  auto type         = Weapon::GetActorEquipmentType(actor, left);
+  auto equipment    = actor->GetEquippedObject(left);
+  auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
+  if (type == Weapon::Type::None)
+    return;
+
+  float staminaCost = Weapon::GetBaseStaminaConsumption(type);
+  if (actor->IsPowerAttacking()) {
+    staminaCost *= Settings::fPowerAttackStaminaCostMult;
+    staminaCost += Settings::fPowerAttackStaminaCostPerMass * weaponWeight;
+  } else
+    staminaCost += Settings::fNormalAttackStaminaCostPerMass * weaponWeight;
+
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
+}
+
 void Stamina::Start(RE::Actor* actor)
 {
   if (!actor || !Settings::bUseAttackStaminaSystem)
     return;
 
-  std::lock_guard lock(mtx);
+  std::scoped_lock lock(mtx_rimStamina);
   useRimStaminaActors.insert(actor);
 }
 
@@ -67,7 +150,7 @@ void Stamina::End(RE::Actor* actor)
   if (!actor || !Settings::bUseAttackStaminaSystem)
     return;
 
-  std::lock_guard lock(mtx);
+  std::scoped_lock lock(mtx_rimStamina);
   useRimStaminaActors.erase(actor);
 }
 

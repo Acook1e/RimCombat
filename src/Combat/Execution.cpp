@@ -148,9 +148,6 @@ void Execution::ExitExecutable(RE::Actor* actor)
   if (!actor || !Settings::bUseExecutionSystem)
     return;
 
-  // 无论是自然退出还是受击退出，都结束硬直状态
-  Stagger::SetStaggerLevel(actor, Stagger::Level::None);
-
   std::lock_guard<std::mutex> lock(mtx_executable);
   executableActors.erase(actor);
 }

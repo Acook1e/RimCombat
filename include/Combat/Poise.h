@@ -38,7 +38,7 @@ public:
   // 韧性不需要HUD显示，用于外部API查询和内部处理
   static PoiseData GetPoiseData(RE::Actor* actor);
 
-  static void ProcessHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
+  static void ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
   static void DamagePoiseHealth(RE::Actor* actor, float value);
 
   static void Set(RE::Actor* actor, const std::string& payload);
@@ -56,6 +56,11 @@ private:
 
   // Rim Combat Poise System
   constexpr static inline std::uint32_t serialType = 'RCPS';
+
+  // 无锁，仅初始化时写入，之后只读取
+  // 来源于设置的对种族或者Actor的基础韧性覆盖
+  static inline std::unordered_map<RE::TESRace*, float> racePoiseOverrideMap;
+  static inline std::unordered_map<RE::Actor*, float> actorPoiseOverrideMap;
 
   // 需要锁和序列化
   // Actor的韧性数据

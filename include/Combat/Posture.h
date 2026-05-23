@@ -36,7 +36,7 @@ public:
   static float GetMaxPosture(RE::Actor* actor);
   static PostureData GetPostureData(RE::Actor* actor);
 
-  static void ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
+  static void ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
   static void DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBreak = false);
 
   static void Unbreakable(RE::Actor* actor, const std::string& payload);
@@ -57,8 +57,7 @@ private:
 
   // 读取频繁，使用共享锁和序列化
   static inline std::shared_mutex mtx_postureData;
-  static inline std::unordered_map<RE::FormID, PostureData> postureMap;
-  static inline std::unordered_map<RE::Actor*, PostureData> runtimePostureMap;
+  static inline std::unordered_map<RE::Actor*, PostureData> postureMap;
 
   // 缓存每次攻击的架势伤害，直到攻击结束时再处理
   static inline std::mutex mtx_damageCache;

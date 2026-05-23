@@ -184,7 +184,7 @@ PoiseData Poise::GetPoiseData(RE::Actor* actor)
   return poiseDataMap[actor];
 }
 
-void Poise::ProcessHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
+void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
 {
   if (!aggressor || !victim || !Settings::bUsePoiseSystem)
     return;
@@ -209,6 +209,17 @@ void Poise::ProcessHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hit
     type = Weapon::GetWeaponType(aggressor, attackWeapon);
 
   float base = Weapon::GetBasePoiseDamage(type);
+
+  auto aggressorEntry = RE::BGSEntryPoint::ENTRY_POINTS::kModTargetStagger;
+  auto victimEntry    = RE::BGSEntryPoint::ENTRY_POINTS::kModIncomingStagger;
+
+  float aggressorMult = 0.5f;
+  float victimMult    = 0.5f;
+
+  RE::BGSEntryPoint::HandleEntryPoint(aggressorEntry, aggressor, &aggressorMult, &aggressorMult);
+  RE::BGSEntryPoint::HandleEntryPoint(victimEntry, aggressor, &victimMult, &victimMult);
+
+  logger::info("aggressor mult: {}, victim mult: {}", aggressorMult, victimMult);
 
   // 根据类型应用不同的韧性伤害倍率
   float poiseDamage = base;

@@ -20,6 +20,5 @@ private:
   // 力竭Actor数据序列化ID
   // Rim Combat Exhausted Data
   constexpr static inline std::uint32_t serialType = 'RCED';
-  static inline std::unordered_set<RE::FormID> exhaustedActors;
-  static inline std::unordered_set<RE::Actor*> runtimeExhaustedActors;
+  static inline std::unordered_set<RE::Actor*> exhaustedActors;
 };

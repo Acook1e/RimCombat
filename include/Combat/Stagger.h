@@ -59,12 +59,10 @@ public:
   static Level GetImmuneLevel(RE::Actor* actor);
   static void SetImmuneLevel(RE::Actor* actor, Level level);
 
-  // MaxsuPoise的硬直计算和写回发生在TryStagger
-  // 确保调用时已经处理完攻击了
-  // Modern Stagger Lock的硬直等级计算是在NotifyAnimationGraph中进行的
-  // 但我们的硬直等级处理在PerformAction中，早于NotifyAnimationGraph，因此需要在这里应用最终的硬直等级
-  // 返回true表示这次硬直处理被RimCombat接管了，返回false表示不处理，交给原版
-  static void ProcessStagger(RE::Actor* aggressor, RE::Actor* victim);
+  static void ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim);
+  static void ProcessProjectileStagger(RE::Actor* victim, RE::FormID formID);
+
+  static void StaggerStart(RE::Actor* victim);
 
   static void TargetSet(RE::Actor* actor, const std::string& payload);
   static void TargetEnd(RE::Actor* actor);
@@ -77,6 +75,10 @@ private:
   // 用于重置缓存
   // Rim Combat Stagger Cache
   constexpr static inline std::uint32_t serialType = 'RCSC';
+
+  // 无锁，仅初始化时写入，之后只读取
+  // 缓存弹射物造成的硬直等级，键为FormID，值为硬直等级
+  static inline std::unordered_map<RE::FormID, Level> projectileStagger;
 
   // 硬直等级取值范围
   // 因为Modern Stagger Lock没有把这些设置写入游戏

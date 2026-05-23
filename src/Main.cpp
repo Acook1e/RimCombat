@@ -26,10 +26,7 @@ void onPostLoad()
 
   // 读取配置+序列化
   Block::GetSingleton();
-  Posture::GetSingleton();
-  Poise::GetSingleton();
   Damage::GetSingleton();
-  Stagger::GetSingleton();
   Stamina::GetSingleton();
   Exhausted::GetSingleton();
   Execution::GetSingleton();
@@ -59,6 +56,9 @@ void onDataLoaded()
   // 依赖OCF
   Weapon::Initialize();
   // 依赖数据加载的系统
+  Poise::GetSingleton();
+  Posture::GetSingleton();
+  Stagger::GetSingleton();
   WeaponArt::Manager::GetSingleton();
   WeaponArt::PlayerStat::GetSingleton();  // 必须在Manager之后
 }

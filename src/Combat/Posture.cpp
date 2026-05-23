@@ -17,11 +17,8 @@ float Posture::InitPosture(RE::Actor* actor)
   // 仅在获取值时初始化架势数据，避免不必要的初始化开销
   // 因此可以无锁
 
-  float maxPosture = CalculateMaxPosture(actor);
-  if (actor->GetActorBase()->IsUnique())
-    postureMap[actor->GetFormID()] = {maxPosture, maxPosture, 0};
-  else
-    runtimePostureMap[actor] = {maxPosture, maxPosture, 0};
+  float maxPosture  = CalculateMaxPosture(actor);
+  postureMap[actor] = {maxPosture, maxPosture, 0};
   return maxPosture;
 }
 
@@ -38,18 +35,10 @@ float Posture::CalculateMaxPosture(RE::Actor* actor)
 Posture::PostureData& Posture::GetPostureDataRef(RE::Actor* actor)
 {
   // 无锁，仅用于内部调用
-  if (actor->GetActorBase()->IsUnique()) {
-    if (postureMap.contains(actor->GetFormID()))
-      return postureMap[actor->GetFormID()];
-  } else {
-    if (runtimePostureMap.contains(actor))
-      return runtimePostureMap[actor];
-  }
+  if (postureMap.contains(actor))
+    return postureMap[actor];
   InitPosture(actor);
-  if (actor->GetActorBase()->IsUnique())
-    return postureMap[actor->GetFormID()];
-  else
-    return runtimePostureMap[actor];
+  return postureMap[actor];
 }
 
 Posture::Posture()
@@ -58,8 +47,8 @@ Posture::Posture()
     // 将FormID转换为持久化格式
     // 并自动去除非法或未找到的FormID
     std::unordered_map<std::uint64_t, PostureData> persistMap;
-    for (const auto& [formID, data] : postureMap) {
-      auto persist = Serialization::ToPersistForm(formID);
+    for (const auto& [actor, data] : postureMap) {
+      auto persist = Serialization::ToPersistForm(actor->GetFormID());
       if (persist)
         persistMap[persist] = std::move(data);
     }
@@ -76,7 +65,6 @@ Posture::Posture()
   Serialization::RegisterLoadCallback(serialType, [](SKSE::SerializationInterface* serial) {
     std::unique_lock lock(mtx_postureData);
     postureMap.clear();
-    runtimePostureMap.clear();
 
     std::uint32_t count;
     if (serial->ReadRecordData(&count, sizeof(count))) {
@@ -87,8 +75,11 @@ Posture::Posture()
             serial->ReadRecordData(&data.current, sizeof(data.current)) &&
             serial->ReadRecordData(&data.max, sizeof(data.max))) {
           auto formID = Serialization::ToForm(persist);
-          if (formID)
-            postureMap[formID] = std::move(data);
+          if (!formID)
+            continue;
+          auto form = RE::TESForm::LookupByID(formID);
+          if (auto actor = form ? form->As<RE::Actor>() : nullptr; actor)
+            postureMap[actor] = std::move(data);
         }
       }
     }
@@ -98,14 +89,13 @@ Posture::Posture()
     {
       std::unique_lock lock(mtx_postureData);
       postureMap.clear();
-      runtimePostureMap.clear();
     }
     {
-      std::unique_lock lock(mtx_damageCache);
+      std::scoped_lock lock(mtx_damageCache);
       damageCache.clear();
     }
     {
-      std::unique_lock lock(mtx_unbreakableCache);
+      std::scoped_lock lock(mtx_unbreakableCache);
       unbreakableActors.clear();
     }
   });
@@ -113,30 +103,26 @@ Posture::Posture()
 
 void Posture::Update(std::uint64_t deltaTime)
 {
-  std::unique_lock lock(mtx_postureData);
   auto now = Utils::GetTime<std::chrono::milliseconds>();
 
-  const auto update = [&](RE::Actor* actor, PostureData& data) {
-    if (data.current < data.max) {
-      if (Execution::IsExecutable(actor)) {
-        // 作为平衡性和视觉表现上的优化
-        // 进入处决状态默认恢复到一半的最大值，并在处决状态内以一半的速度恢复
-        data.current += (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 2000.0f);
-        data.current = std::clamp(data.current, 0.0f, data.max);
-      } else if (now >= data.regenResumeTime) {
-        data.current +=
-            data.max * (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 1000.0f);
-        data.current = std::clamp(data.current, 0.0f, data.max);
+  // 架势恢复
+  {
+    std::unique_lock lock(mtx_postureData);
+    for (auto& [actor, data] : postureMap) {
+      if (data.current < data.max) {
+        if (Execution::IsExecutable(actor)) {
+          // 作为平衡性和视觉表现上的优化
+          // 进入处决状态默认恢复到一半的最大值，并在处决状态内以一半的速度恢复
+          data.current +=
+              (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 2000.0f);
+          data.current = std::clamp(data.current, 0.0f, data.max);
+        } else if (now >= data.regenResumeTime) {
+          data.current +=
+              data.max * (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 1000.0f);
+          data.current = std::clamp(data.current, 0.0f, data.max);
+        }
       }
     }
-  };
-
-  // 架势恢复
-  for (auto& [actor, data] : runtimePostureMap)
-    update(actor, data);
-  for (auto& [formID, data] : postureMap) {
-    if (auto actor = RE::TESForm::LookupByID(formID)->As<RE::Actor>(); actor)
-      update(actor, data);
   }
 
   // 更新不可破防状态
@@ -179,18 +165,14 @@ Posture::PostureData Posture::GetPostureData(RE::Actor* actor)
   PostureData data{0, 0, 0};
   {
     std::shared_lock lock(mtx_postureData);
-    if (actor->GetActorBase()->IsUnique()) {
-      if (postureMap.contains(actor->GetFormID()))
-        data = postureMap[actor->GetFormID()];
-    } else {
-      if (runtimePostureMap.contains(actor))
-        data = runtimePostureMap[actor];
-    }
+    if (postureMap.contains(actor))
+      data = postureMap[actor];
+    InitPosture(actor);
+    return postureMap[actor];
   }
-  return data;
 }
 
-void Posture::ProcessMeleeHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
+void Posture::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
 {
   if (!aggressor || !victim || !Settings::bUsePostureSystem)
     return;

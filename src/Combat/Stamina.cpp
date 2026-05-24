@@ -3,9 +3,20 @@
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
+#include "Data/Race.h"
 #include "Data/Weapon.h"
 
 #include "magic_enum/magic_enum.hpp"
+
+float GetBaseStaminaConsumption(RE::Actor* actor, bool leftHand)
+{
+  auto type = Weapon::GetActorEquipmentType(actor, leftHand);
+  if (type != Weapon::Type::None)
+    return Weapon::GetBaseStaminaConsumption(type);
+
+  auto race = Race::GetRace(actor);
+  return Race::GetBaseStaminaConsumption(race);
+}
 
 float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
 {
@@ -15,6 +26,8 @@ float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
   float finalCost = baseCost;
 
   auto powerEntry = RE::BGSPerkEntry::EntryPoint::kModPowerAttackStamina;
+
+  // 无法判断乘法与加法的区别
 
   return finalCost;
 }
@@ -56,17 +69,15 @@ void Stamina::SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
-  auto* equipment = actor->GetEquippedObject(leftAttack);
-
-  auto type         = Weapon::GetActorEquipmentType(actor, leftAttack);
-  auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
-
   // 避免重复计算
+  auto type = Weapon::GetActorEquipmentType(actor, leftAttack);
   if (!unarm && type == Weapon::Type::Unarm)
     return;
 
-  float staminaCost = Weapon::GetBaseStaminaConsumption(type);
+  float staminaCost = GetBaseStaminaConsumption(actor, leftAttack);
 
+  auto* equipment   = actor->GetEquippedObject(leftAttack);
+  auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
   if (actor->IsPowerAttacking()) {
     staminaCost *= Settings::fPowerAttackStaminaCostMult;
     staminaCost += Settings::fPowerAttackStaminaCostPerMass * weaponWeight;
@@ -107,7 +118,7 @@ void Stamina::CollisionStaminaConsume(RE::Actor* actor, const std::string& paylo
   {
     // 只有在使用RimCombat耐力系统时忽略基于Collision事件的攻击耐力消耗
     std::scoped_lock lock(mtx_rimStamina);
-    if (!useRimStaminaActors.contains(actor))
+    if (useRimStaminaActors.contains(actor))
       return;
   }
 
@@ -120,13 +131,10 @@ void Stamina::CollisionStaminaConsume(RE::Actor* actor, const std::string& paylo
     return;
   }
 
-  auto type         = Weapon::GetActorEquipmentType(actor, left);
-  auto equipment    = actor->GetEquippedObject(left);
+  auto* equipment   = actor->GetEquippedObject(left);
   auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
-  if (type == Weapon::Type::None)
-    return;
 
-  float staminaCost = Weapon::GetBaseStaminaConsumption(type);
+  float staminaCost = GetBaseStaminaConsumption(actor, left);
   if (actor->IsPowerAttacking()) {
     staminaCost *= Settings::fPowerAttackStaminaCostMult;
     staminaCost += Settings::fPowerAttackStaminaCostPerMass * weaponWeight;
@@ -187,28 +195,26 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
   if (multiplier < 0.0f || fallbackMultiplier < 0.0f)
     return;
 
-  auto type = Weapon::Type::None;
-  if (side == "left")
-    type = Weapon::GetActorEquipmentType(actor, true);
-  else if (side == "right")
-    type = Weapon::GetActorEquipmentType(actor, false);
-  else if (side == "auto") {
-    // 自动检测攻击类型，优先右手
+  bool left  = side == "left";
+  bool right = side == "right";
+
+  float baseCost = 0.0f;
+  if (left || right)
+    baseCost = GetBaseStaminaConsumption(actor, left);
+  else {
+    // Auto的情况
     auto attacking = actor->GetAttackingWeapon();
     auto obj       = attacking ? attacking->object : nullptr;
-    if (obj && obj->IsWeapon())
-      type = Weapon::GetWeaponType(actor, obj->As<RE::TESObjectWEAP>());
-    else
-      type = Weapon::GetActorEquipmentType(actor, false);
-  } else {
-    logger::error("Stamina::PayloadParse: Invalid side in payload: {}", payload);
-    return;
+    if (obj && obj->IsWeapon()) {
+      auto type = Weapon::GetWeaponType(obj->As<RE::TESObjectWEAP>());
+      if (type == Weapon::Type::None)
+        baseCost = GetBaseStaminaConsumption(actor, false);
+      else
+        baseCost = Weapon::GetBaseStaminaConsumption(type);
+    } else if (!obj)
+      baseCost = GetBaseStaminaConsumption(actor, false);
   }
 
-  if (type == Weapon::Type::None)
-    return;
-
-  float baseCost = Weapon::GetBaseStaminaConsumption(type);
   if (attackType == "power")
     baseCost *= Settings::fPowerAttackStaminaCostMult;
 

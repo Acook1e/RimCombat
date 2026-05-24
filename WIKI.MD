@@ -74,15 +74,17 @@ At the current stage, the mod is already suitable for sustained playtesting and 
 - Max poise is influenced by stamina, equipment mass, armor class bonuses, and race-based overrides.
 - Poise damage is weapon-driven and supports separate self and target multipliers through animation payloads.
 - Stagger has configurable recovery times and can also be extended with special levels such as knockdown, strikefly, and knockaway.
+- Stagger application now keeps the higher hit level instead of letting a weaker target payload overwrite a stronger existing level.
+- Reapplying the same stagger level can extend recovery timing without replaying the same stagger animation.
 - Projectile or spell-like stagger sources can be authored through JSON files in the stagger directory.
 
 ### Weapon Arts
 
 - Weapon arts are loaded from JSON files and hashed into runtime IDs.
-- A weapon art can be assigned per weapon and can also support special unarmed-form IDs for player forms such as unarmed, werewolf, werebear, and vampire lord.
+- A weapon art can be assigned per weapon and can also support race-based special unarmed-form IDs such as human unarmed, werewolf, werebear, and vampire lord.
 - Each art can require unlock level, consume weapon-art points, optionally use a prepare state, and define spell payloads.
 - Player progression currently grants experience from weapon-art damage and awards points on level-up.
-- The player-facing portion is functional now; NPC-side usage and content breadth are still incomplete.
+- The player-facing portion and special creature-form interface are functional now; NPC-side AI usage and content breadth are still incomplete.
 
 ### UI, Localization, And Settings
 
@@ -143,7 +145,6 @@ At the current stage, the mod is already suitable for sustained playtesting and 
 | --- | --- |
 | `UseAttackStaminaSystem` | Master switch for the custom attack stamina system |
 | `ConsumeStaminaOutCombat` | Allows the custom stamina flow outside combat contexts |
-| `NormalAttackConsumeStamina` | Enables stamina use for regular attacks |
 | `DisableAttackWhenStaminaZero` | Prevents attacks when stamina reaches zero |
 | `StaminaRegenMult` | Global stamina regeneration multiplier |
 | `StaminaRegenMin` | Lower clamp for regenerated stamina rate |
@@ -297,8 +298,9 @@ This section is for modders, animators, and content authors. Regular players do 
 ### Important Current Caveat
 
 - The stagger enum includes `Knockdown`, `Strikefly`, and `Knockaway` as extra special levels.
-- `TargetSet|Level` can target those extra levels.
-- The current `Immune|Level|Duration` parser only accepts immunity up to `Largest`, so do not assume special-level immunity is active unless you also change the native implementation.
+- `TargetSet|Level` and `Immune|Level|Duration` can both use those extra levels.
+- A weaker `TargetSet|Level` payload no longer downgrades a stronger current stagger level.
+- Reapplying the same level refreshes recovery timing without forcing the same stagger animation to replay.
 
 ### Weapon-Art JSON Authoring
 

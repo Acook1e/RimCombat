@@ -1,319 +1,180 @@
-# Rim Combat Developer Notes / TODO
+# Rim Combat Code TODO
 
-这份文档面向两类人：
+这份文档只保留代码层面的改动计划。
 
-1. 继续维护 Rim Combat 本体的开发者。
-2. 想基于本项目做动画、规则扩展、联动插件或内容包的模组作者。
-
-它不追求宣传效果，只记录当前代码状态、扩展约定、已知风险和后续待办。
+WIKI、README、面向 Modder 的说明，不再写进这里。
 
 ---
 
-## 项目现状审查
+## P0：当前应优先处理的逻辑问题
 
-### 总体判断
+1. 收口处决系统当前的实际状态。
 
-当前项目已经不是“只有概念”的原型，而是已经接通以下主链路的可运行版本：
+	当前处决链路已经重新接回了一部分，但仍然处于状态不一致的阶段：
 
-- 攻击耐力
-- 力竭
-- 架势
-- 格挡 / 限时格挡
-- 基础处决
-- 战技菜单 / HUD / 分配
-- 常规硬直联动与特殊硬直框架
+	- `Execution::FindExecutableTarget` 直接提前返回。
+	- `Execution::EnterExecutable` 已经重新启用，会把目标送入可处决状态。
+	- `Hook_OnWeaponHit` 仍然会对可处决目标应用额外伤害倍率并退出状态。
 
-但它仍然明显处于“系统集成阶段”，不是“内容完成阶段”。
+	结果就是当前更像“可处决状态会生效，但主动处决动作不会触发”，需要先把这条链收成一种明确行为，而不是继续半开半关。
 
-当前最强的部分是机制链路。  
-当前最弱的部分是边界处理、表现层、NPC 覆盖、完整配置界面和更严格的验证体系。
+2. 重做处决触发方式，并收口旧触发路径。
 
-### 模块完成度
+	当前 `FindExecutableTarget` 这条旧触发路径仍然是硬禁用状态，而你已经明确倾向于换新的处决触发方式。
 
-| 模块 | 当前状态 | 说明 |
-| --- | --- | --- |
-| 攻击耐力 | 已可用 | 普通攻击 / 重击 / payload 耐力消耗已接通 |
-| 力竭 | 已可用 | 进入、退出、灰显、攻防倍率联动已接通 |
-| 架势 | 已可用 | 架势伤害、恢复、破韧、处决联动已接通 |
-| 格挡 / 限时格挡 | 已可用 | 限时窗口、强度倍率、耐力交换、返架势已接通 |
-| 战技菜单 / HUD | 已可用 | PrismaUI 菜单、HUD、切换与分配已接通 |
-| 战技成长 / 保存 | 半成品 | 等级、点数、解锁已接通，完整收尾仍不足 |
-| 战技数据驱动 | 半成品 | payload 路线已经成立，但类型还不够丰富 |
-| 处决 | 半成品 | 判定和动画触发已接通，锁定与演出不足 |
-| 特殊硬直 | 半成品 | TryStagger / ActionStaggerStart 链路已接通，表现不足 |
-| 设置菜单 | 基础可用 | 只有 Load / Reset，真正的模块设置页几乎没做 |
-| NPC 战技逻辑 | 未完成 | 玩家侧优先，NPC 尚未真正落地 |
-| 多种族处决 | 未完成 | 框架有，实际可用组合很少 |
-| 伤害类型 / 抗性 | 占位 | Damage.h 仍是占位接口 |
+	这一项现在更适合按“替换入口设计”来做，而不是继续修旧角度判定细节。当前需要收口的是：
+
+	- 新的触发入口是什么。
+	- 旧的 `FindExecutableTarget` 路径是删除还是保留为回退路径。
+	- 新触发方式下是否还需要前后角判定。
+	- 无论触发方式怎么改，动画发送失败时仍要统一清理 aggressor / victim 的 `RimCombat_ExecutionFlag`。
+	- `executionStartListeners` 目前只有注册，没有实际触发点，接口仍然悬空。
 
 ---
 
-## 当前目录与运行时产物
+## P1：当前主线未完成的功能
 
-### 源码结构
+1. 完成 NPC 战技 AI。
 
-- include/Combat：战斗模块头文件
-- src/Combat：战斗模块实现
-- include/Core、src/Core：Hook、事件、序列化、设置
-- include/GUI、src/GUI：PrismaUI / TrueHUD / MenuFramework 相关 UI 层
-- dist：当前运行时资源与打包产物
+	这一项是当前主线缺口里最重要的一个。
 
-### 当前 dist 产物
+	需要补全的不是单一函数，而是一整条行为链：
 
-- dist/SKSE/Plugins/RimCombat.dll
-- dist/SKSE/Plugins/BehaviorDataInjector/RimCombat_BDI.json
-- dist/Meshes/Actors/Character/Animations/OpenAnimationReplacer/...
-- dist/PrismaUI/...
-- dist/RimCombat.7z
+	- NPC 如何获得或分配战技。
+	- NPC 如何判断当前武器是否有可用战技。
+	- 何时切换到 `Prepare` / `Enable`。
+	- 何时判定释放。
+	- 魔力、耐力、距离、角度、状态是否足够。
+	- 释放失败时如何回退到普通攻击，不让 AI 卡死在战技状态。
 
-### 当前构建方式
+2. 继续打磨生物数值与命中基线。
 
-- 构建命令：rtk xmake build
-- 当前仓库没有项目内自动化测试目标
-- 当前最可靠的验证方式仍然是：构建通过 + 游戏内链路测试 + 日志核对
+	当前接口已经接通，剩下的问题不再是“有没有入口”，而是数值和内容标定：
 
----
+	- 生物本身的基础韧性和基础架势是否合理。
+	- 生物攻击命中时造成的韧性伤害和架势伤害是否合理。
+	- 空手、爪击、撕咬、撞击、重压这类攻击应该落到什么级别。
+	- 哪些生物需要独立规则，而不是长期套用 `Unarm` 的近似值。
 
-## 当前扩展约定
+3. 收口架势崩溃后的完整反馈。
 
-### 动画事件
+	当前破防链路已经通了，但体验还不完整。
 
-BehaviorDataInjector 当前注册了以下事件：
+	还缺：
 
-| 事件名 | 当前用途 |
-| --- | --- |
-| RimStamina | 战技或特殊动作的耐力消耗 |
-| RimPosture | 架势伤害倍率、是否可破防 |
-| RimWeaponArt | 战技状态切换 |
-| RimExecution | 处决伤害与处决结束 |
-| RimStagger | 特殊硬直等级、免疫、目标修正 |
+	- 破防瞬间的视觉和音效反馈。
+	- 破防后的状态提示。
+	- AI 对破防目标的反应。
+	- 与特殊硬直、战技、处决入口之间的优先级关系。
 
-### Payload 约定
+4. 继续完成特殊硬直系统。
 
-#### RimStamina
+	当前框架和部分等级已经接通，但还缺真正稳定的落地规则：
 
-- attack|left|倍率
-- attack|right|倍率
-- attack|auto|倍率
-- powerattack|left|倍率
-- powerattack|right|倍率
-- powerattack|auto|倍率
+	- 恢复时间和连段叠加规则。
+	- 击倒、挑飞、击飞的动作表现。
+	- 与免疫、格挡、限时格挡、战技 perform 状态的交互。
+	- 更安全的收尾逻辑，避免动画与状态错位。
 
-说明：
+5. 扩充战技内容池。
 
-- 事件处理时会把 payload 转成小写。
-- attackType 目前只有 powerattack 会进入额外倍率逻辑；其他值都会走普通攻击分支。
-- side 只接受 left、right、auto。
+	当前系统层已经能跑，但内容层仍然偏样例化。
 
-#### RimPosture
+	真正缺的是足够多的战技内容，去验证：
 
-- breakable|true
-- breakable|false
-- damage|倍率
-- end
-
-说明：
-
-- damage|x 用于缓存本次攻击的架势伤害倍率。
-- end 当前只会清理 damage cache，不会统一重置 breakable 状态。
-
-#### RimWeaponArt
-
-- start
-- end
-- prepareend
-- toprepare
-- cast|spellname
-
-说明：
-
-- 这里负责战技状态切换，以及基于当前战技配置表触发预解析法术特效。
-- `cast|spellname` 会在当前战技的 `spells` 配置中查找对应法术。
-- spell key 在配置加载时和事件分发时都会统一转成小写后 hash。
-- 法术强度使用 `stdMagnitude` 作为 25 级标准强度，再乘常驻/临时技能百分比和技能等级曲线。
-- 当前技能倍率公式为：`stdMagnitude * (1 + (SkillMod + SkillPower) / 100) * pow(skillLevel / 25, factor / (factor + 10))`。
-- `factor` 当前要求非负。
-- `CastSpellImmediate` 实测不会再次应用同一套技能倍率，因此倍率需要在插件侧显式计算。
-
-#### RimExecution
-
-- damage|倍率
-- end
-
-#### RimStagger
-
-- immune|等级
-- immuneend
-- targetset|等级
-- targetmodify|偏移
-- targetend
-- end
-
-说明：
-
-- targetset / targetmodify 的缓存键是攻击者 Actor。
-- 真正应用发生在 TryStagger detour 中。
-- end 目前只会清理 RimCombat_StaggerLevel，不会清理免疫；免疫要走 immuneend。
-
-### 图变量
-
-| 变量名 | 类型 | 用途 |
-| --- | --- | --- |
-| RimCombat_WeaponArtID | Int | 当前武器对应战技 ID |
-| RimCombat_WeaponArtState | Int | 战技状态，0禁用 / 1准备中 / 2启用 |
-| RimCombat_Executable | Bool | 当前是否可处决 |
-| RimCombat_ExecutionFlag | Int | OAR 处决组合标志 |
-| RimCombat_StaggerLevel | Int | 额外硬直等级 |
-| RimCombat_StaggerImmune | Int | 当前硬直免疫等级 |
+	- 不同武器家族的差异。
+	- prepare 型战技和 instant 型战技的平衡。
+	- spell 派生与 payload 派生混用时的边界。
+	- NPC 战技 AI 接入后的内容复用。
 
 ---
 
-## 当前明确存在或高度可疑的问题
+## P2：结构性欠缺与收尾项
 
-### 1. Posture 的 breakable 缺少统一 reset
+1. 决定设置菜单是否继续推进。
 
-当前 RimPosture 的 end 只清理 damageCache，不恢复 RimCombat_PostureBreakable。  
-这意味着某个动作只要把 breakable 改成 false，而后续动作没有显式再发 breakable|true，就可能把“不可破防”状态带到下一段动作里。
+	当前 `Menu.cpp` 中：
 
-建议优先级：最高
+	- `Stamina()`
+	- `Posture()`
+	- `Block()`
+	- `WeaponArt()`
+	- `Execution()`
 
-### 2. NormalAttackConsumeStamina 配置项没有接入行为路径
+	仍然是空实现，实际注册的只有 `General` 和 `Debug`。
 
-Settings 里有 NormalAttackConsumeStamina，但当前攻击耐力路径没有使用它。  
-结果是：
+	这部分需要明确方向：
 
-- 配置可读可写
-- 但用户改了以后不会影响实际普通攻击耗耐
+	- 如果短期仍以 JSON 调参为主，就不要把它误当成当前主线。
+	- 如果后续调参复杂度已经开始拖慢测试效率，就要把它拉回优先级。
 
-这类“配置与行为不一致”的问题比单纯缺功能更难排查。
+2. 清理死接口、旧注释和半停用分支。
 
-建议优先级：高
+	目前仓库里已经出现几类会误导后续开发的残留：
 
-### 3. Execution::TryExecute 的角度判定缺少绝对值
+	- 只注册不触发的回调接口。
+	- 语义已变但兼容分支还在的旧 payload。
+	- 已经暂停，但入口仍然在主循环里的系统。
+	- 注释描述和当前实现已经不完全一致的路径。
 
-代码注释已经说明 GetHeadingAngle 返回 -180 到 180，绝对值才表示偏角。  
-但当前正面判定用的是：
+3. 清理默认配置与运行时样例数据。
 
-- aggressorHeadingToVictim > 60
+	当前 `dist` 里的样例设置和实际 loader 之间仍存在轻微漂移。
 
-而不是对绝对值比较。这样左偏大角度的情况可能会错误通过判定。
+	需要继续把：
 
-建议优先级：高
+	- `Settings.h`
+	- `Settings.cpp`
+	- `Settings.json`
+	- `SettingsDefault.json`
 
-### 4. Execution 动画发送失败时 flag 清理不完整
+	保持同一份口径，避免“字段还在文件里，但代码已经不读”的情况反复出现。
 
-TryExecute 在发送动画前会写入 RimCombat_ExecutionFlag。  
-如果 NotifyAnimationGraph 失败，当前只会 UnlockActor(victim) 然后返回，但没有在失败路径里统一清理 aggressor / victim 的 execution flag。
+4. 补一个最小可用的回归验证面。
 
-结果是 OAR 条件可能保留脏状态。
+	当前项目仍然没有项目内自动化测试目标，这本身可以接受。
 
-建议优先级：高
-
-### 5. 处决系统目前实际上只接通了人类目标组合
-
-虽然 Race 枚举和分类已经铺开了很多种族，但当前 availableExcutions 只在构造时插入了 Race::Human 对应组合，GetAnimEvent 也只有 Human 返回可用事件。
-
-因此当前“多种族处决支持”更准确的说法是：
-
-- 识别框架已经铺开
-- 实际可用内容目前几乎只有人类目标
-
-建议优先级：中
-
-### 6. 游戏内设置菜单几乎还是空壳
-
-Menu.cpp 里 Stamina/Posture/Block/WeaponArt/Execution 五个渲染函数还是空实现，当前只真正挂了 General 和 Debug。
-
-这意味着：
-
-- 设置菜单在架构上存在
-- 但绝大多数设置仍只能改 Settings.json
-
-建议优先级：中
-
-### 7. src/Core/Hooks.cpp 的 clang diagnostic push 没有 pop
-
-这不是运行时 bug，但会把这个文件后续新增的 microsoft-cast 警告一起吞掉，降低静态检查价值。
-
-建议优先级：低
+	但至少需要把关键改动的人工回归路径收口成固定流程，否则后面 NPC 战技 AI、特殊硬直和生物数值接进来之后，回归成本会继续上升。
 
 ---
 
-## 对外说明时应该坚持的真实表述
+## P3：暂缓项与后置项
 
-后续无论是 README、发布页还是对外说明，建议坚持以下表述，不要再写回旧状态：
+1. 处决系统的完整恢复与正式收尾。
 
-- “核心战斗循环已经接通”是对的。
-- “处决系统可用，但仍是原型级”是对的。
-- “特殊硬直已经有基础链路，不再只是设计概念”是对的。
-- “NPC 战技逻辑未完成”是对的。
-- “多种族处决目前只是预留框架，不应表述成已支持”是对的。
-- “游戏内设置菜单仍不完整，主调参方式仍是 Settings.json”是对的。
+	这部分仍然受 OAR 侧联动条件影响，不适合作为当前主线推进。
 
----
+2. 多种族处决支持。
 
-## 开发优先级 TODO
+	当前 Race 框架已经铺开，但实际动画内容和安全锁定还远远不够。
 
-### P0：应优先修掉的行为问题
+	这项应该放在处决系统重新恢复以后再做，而不是现在就继续扩入口。
 
-1. 为 breakable 增加统一 reset 路径，至少要在 RimPosture end 或状态退出时恢复默认值。
-2. 在 Execution::TryExecute 中对角度判定使用绝对值。
-3. 在处决动画发送失败路径里统一清理 aggressor / victim 的 RimCombat_ExecutionFlag。
-4. 决定 NormalAttackConsumeStamina 这个设置项是要真正接入，还是从设置中删除。
+3. 反击系统。
 
-### P1：下一阶段系统完整性
-
-1. 完成 NPC 战技分配与 NPC 使用战技逻辑。
-2. 补完整个设置菜单，让 Stamina/Posture/Block/WeaponArt/Execution 页真正可编辑。
-3. 继续扩展 payload 类型，把更多战技效果迁移到事件驱动。
-4. 明确 breakable、stagger immune、targetmodify 这类规则在动画中的标准使用方式。
-5. 给特殊硬直补齐默认动作表现与安全收尾。
-
-### P2：内容与表现层
-
-1. 完善处决系统的位移锁定、旋转锁定、镜头与安全收尾。
-2. 补充更多种族、体型和武器组合下的处决支持。
-3. 完善限时格挡的特效、音效和反馈。
-4. 补齐架势崩溃后的反馈、动画和 AI 反应。
-5. 为战技菜单补齐筛选、分类和大列表性能优化。
-
-### P3：开发体验与验证体系
-
-1. 增加一份明确的人工回归清单，覆盖耐力、架势、格挡、处决、战技、特殊硬直。
-2. 为关键行为链路补更稳定的日志开关，而不是长期保留大量散日志。
-3. 继续收拢与统一模块注释，避免注释还停留在旧行为。
-4. 明确 Damage 模块未来是否继续保留；如果短期不用，建议删掉占位接口避免误导。
+	当前代码和项目方向都不支持把它当成主线，继续保持搁置即可。
 
 ---
 
-## 建议的人工回归清单
+## 当前最缺的东西
 
-每次改动以下系统之一后，建议至少手动测一轮：
+如果只压缩成几句话，当前项目最缺的是：
 
-1. 普通攻击、重击、空手攻击的耐力消耗是否符合设置。
-2. 0 耐力、力竭进入、力竭退出是否符合预期。
-3. 架势伤害、恢复、破韧、处决进入 / 退出是否稳定。
-4. 普通格挡与限时格挡的耐力交换、减伤、返架势是否稳定。
-5. 战技准备态、启用态、执行中状态与普通攻击边界是否稳定。
-6. RimStamina / RimPosture / RimExecution / RimStagger payload 是否按预期工作。
-7. TryStagger 覆写后，staggerMagnitude 与 ActionStaggerStart 的等级识别是否一致。
-8. 处决动画发送失败或中断时，flag 和角色状态是否能正确回收。
+1. NPC 侧真正能跑起来的战技行为。
+2. 非人型敌人的完整韧性、架势和命中伤害定义。
+3. 架势崩溃和特殊硬直的完整反馈表现。
+4. 对现有半暂停、半兼容代码分支的持续收口。
 
 ---
 
-## 给基于本项目继续做内容的作者的建议
+## 当前最值得优先修的 bug
 
-如果你是基于 Rim Combat 做动画包、战技包或规则扩展，当前最安全的切入方式是：
+1. 可处决状态已经会进入主循环，但主动处决入口仍被 `FindExecutableTarget` 硬禁用。
+2. 处决失败路径仍然没有完整回收 flag，且 `executionStartListeners` 仍未真正接入。
 
-1. 不要假设所有内容都应该写进 WeaponArt 类字段；优先走 payload。
-2. 把普通受击和韧性基础继续交给 Maxsu Poise / Modern Stagger Lock，Rim Combat 侧只处理例外规则和特殊硬直。
-3. 使用 RimPosture / RimStagger 时，把开始、结束、复位事件成对写完整，不要只写 start 不写 end。
-4. 在还没有统一 reset 机制前，谨慎使用 breakable|false 这类会改变持续状态的 payload。
-5. 处决扩展目前最缺的是动画和安全锁定，不是再加更多条件判断。
+## 旧触发方式后置问题
 
----
+如果后续仍保留当前基于前后角的旧处决触发方案，再补处理这些细节：
 
-## 当前一句话总结
-
-Rim Combat 现在最像一套“已经接通核心机制、但还在补边界和表现层的战斗框架”。  
-继续开发时，优先级应该是修正状态类 bug、收口配置与行为一致性、再扩内容，而不是继续堆新入口。
+1. `aggressorHeadingToVictim` 的偏角比较需要绝对值归一。
+2. `victimHeadingToAggressor` 的正面 / 背刺判定也需要按绝对角度重算。

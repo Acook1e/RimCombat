@@ -1,11 +1,14 @@
 #include "Data/Weapon.h"
 
 #include "Core/Settings.h"
+#include "Data/Race.h"
 
 #include "magic_enum/magic_enum.hpp"
 
 namespace Weapon
 {
+
+using RaceType = Race::Type;
 
 inline Type DebugInfo(RE::TESObjectWEAP* weapon, Type type)
 {
@@ -24,9 +27,6 @@ inline Type DebugInfo(RE::TESObjectWEAP* weapon, Type type)
 
 // 原版
 static RE::BGSKeyword* warhammerKeyword = nullptr;
-static RE::TESRace* werewolfRace        = nullptr;
-static RE::TESRace* werebearRace        = nullptr;
-static RE::TESRace* vampireLordRace     = nullptr;
 
 // 直接基于OCF框架
 bool OCF_Installed = false;
@@ -100,12 +100,6 @@ void Initialize()
     return;
   }
 
-  // 原版内容不做检查，因为它们的存在是毋庸置疑的
-  // 三种特殊变身的种族，分别对应狼人、熊人和吸血鬼领主的空手类型
-  werewolfRace    = RE::TESForm::LookupByID<RE::TESRace>(0xCDD84);
-  werebearRace    = dataHandler->LookupForm<RE::TESRace>(0x1E17B, "Dragonborn.esm");
-  vampireLordRace = dataHandler->LookupForm<RE::TESRace>(0x283A, "Dawnguard.esm");
-
   // 原版双手斧和双手锤都使用了同一个WEAPON_TYPE，因此需要通过关键字来区分重型斧和重型锤
   warhammerKeyword = RE::TESForm::LookupByID<RE::BGSKeyword>(0x6D930);
 
@@ -165,12 +159,6 @@ void Initialize()
   OCF_Halberd2H = dataHandler->LookupForm<RE::BGSKeyword>(0x844, "OCF.esp");
 }
 
-bool IsUnarmed(Type type)
-{
-  return type == Type::Unarm || type == Type::Werewolf || type == Type::Werebear ||
-         type == Type::VampireLord;
-}
-
 Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
 {
   if (!actor)
@@ -188,30 +176,22 @@ Type GetActorEquipmentType(RE::Actor* actor, bool leftHand)
     return Type::Torch;
 
   if (equipment->IsWeapon())
-    return GetWeaponType(actor, equipment->As<RE::TESObjectWEAP>());
+    return GetWeaponType(equipment->As<RE::TESObjectWEAP>());
 
   logger::warn("Weapon::GetActorEquipmentType: Unsupported equipment type: {}",
                equipment->GetName());
   return Type::None;
 }
 
-Type GetWeaponType(RE::Actor* actor, RE::TESObjectWEAP* weapon)
+Type GetWeaponType(RE::TESObjectWEAP* weapon)
 {
   if (!weapon)
     return Type::None;
 
-  const auto OCF_Fallback = [actor, weapon]() -> Type {
+  const auto OCF_Fallback = [weapon]() -> Type {
     switch (weapon->GetWeaponType()) {
-    case RE::WEAPON_TYPE::kHandToHandMelee: {
-      auto race = actor->GetRace();
-      if (race == werewolfRace)
-        return Type::Werewolf;
-      else if (race == werebearRace)
-        return Type::Werebear;
-      else if (race == vampireLordRace)
-        return Type::VampireLord;
+    case RE::WEAPON_TYPE::kHandToHandMelee:
       return Type::Unarm;
-    }
     case RE::WEAPON_TYPE::kOneHandSword:
       return Type::Sword;
     case RE::WEAPON_TYPE::kOneHandDagger:
@@ -244,17 +224,10 @@ Type GetWeaponType(RE::Actor* actor, RE::TESObjectWEAP* weapon)
   if (!OCF_Installed)
     return OCF_Fallback();
 
-  const auto DetectUnarmed = [actor, weapon]() -> Type {
+  const auto DetectUnarmed = [weapon]() -> Type {
     if (!weapon->HasKeyword(OCF_Unarmed))
       return DebugInfo(weapon, Type::None);
 
-    auto race = actor->GetRace();
-    if (race == werewolfRace)
-      return Type::Werewolf;
-    else if (race == werebearRace)
-      return Type::Werebear;
-    else if (race == vampireLordRace)
-      return Type::VampireLord;
     return Type::Unarm;
   };
 
@@ -405,11 +378,11 @@ Type GetBlockType(RE::Actor* actor)
     return left;
 
   // 如果左手是空手或特殊空手类型，返回右手的类型
-  if (IsUnarmed(left))
+  if (left == Type::Unarm)
     return right;
 
   // 如果右手是空手或特殊空手类型，返回左手的类型
-  if (IsUnarmed(right))
+  if (right == Type::Unarm)
     return left;
 
   // 其他类型的格挡动作都用右手武器的类型来判断

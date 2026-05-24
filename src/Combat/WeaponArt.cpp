@@ -4,6 +4,7 @@
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
+#include "Data/Race.h"
 #include "GUI/UI.h"
 
 #include "magic_enum/magic_enum_flags.hpp"
@@ -139,9 +140,6 @@ AvailableWeapon WeaponTypeMapping(Weapon::Type type)
   // ── 不参与通用战技 ──
   case Weapon::Type::None:
   case Weapon::Type::Unarm:
-  case Weapon::Type::Werewolf:
-  case Weapon::Type::Werebear:
-  case Weapon::Type::VampireLord:
     return AW::None;
 
   // ── 单手小型刃器 ──
@@ -239,8 +237,7 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
     return std::find(weapons.begin(), weapons.end(), weapon->GetFormID()) != weapons.end();
 
   // 武器类型
-  auto player     = RE::PlayerCharacter::GetSingleton();
-  auto weaponType = WeaponTypeMapping(Weapon::GetWeaponType(player, weapon));
+  auto weaponType = WeaponTypeMapping(Weapon::GetWeaponType(weapon));
 
   auto aviailableAttack = availableWeapon & attackMask;
 
@@ -657,15 +654,15 @@ std::int32_t Manager::GetActorWeaponArtID(RE::Actor* actor)
     return 0;
 
   // 到这里说明两只手均为空
-  auto type = Weapon::GetActorEquipmentType(actor, false);
-  switch (type) {
-  case Weapon::Type::Unarm:
+  auto race = Race::GetRace(actor);
+  switch (race) {
+  case Race::Type::Human:
     return "Unarm"_h;  // 人类空手战技ID
-  case Weapon::Type::Werewolf:
+  case Race::Type::Werewolf:
     return "Werewolf"_h;  // 狼人空手战技ID
-  case Weapon::Type::Werebear:
+  case Race::Type::Werebear:
     return "Werebear"_h;  // 熊人空手战技ID
-  case Weapon::Type::VampireLord:
+  case Race::Type::VampireLord:
     return "VampireLord"_h;  // 吸血鬼领主空手战技ID
   default:
     return 0;

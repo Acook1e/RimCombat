@@ -448,6 +448,7 @@ void Install()
   // Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnGetMeleeDamage::Install();
+  Hook_OnWeaponHit::Install();
   Hook_OnPlayIdle::Install();
   Hook_OnPerformAction::Install();
   Hook_OnModActorValue::Install();

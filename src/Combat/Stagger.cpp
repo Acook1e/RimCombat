@@ -277,7 +277,7 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
       targetLevel = it->second;
   }
 
-  if (targetLevel != Level::None || currentLevel < targetLevel)
+  if (targetLevel > currentLevel && targetLevel != Level::None)
     currentLevel = targetLevel;
 
   SetStaggerLevel(victim, currentLevel);
@@ -333,13 +333,17 @@ void Stagger::StaggerStart(RE::Actor* victim)
       auto [lastLevel, lastTime] = staggerRecoverTime[victim];
 
       // 如果在大硬直期间受到小硬直，则忽略这次硬直
-      if (lastLevel < level)
+      if (lastLevel > level)
         return;
 
       auto delta = lastTime - now;
       // TODO：找一个比相加乘以0.2更合理的算法
       recoverTime                = (delta + recoverTime) * 0.2f;
       staggerRecoverTime[victim] = {lastLevel, now + recoverTime};
+
+      // 受到同级别的硬直时，不再进入硬直动画
+      if (lastLevel == level)
+        return;
     }
   }
 
@@ -391,7 +395,9 @@ void Stagger::Immune(RE::Actor* actor, const std::string& payload)
   auto immuneLevel = static_cast<Level>(Utils::toInt(split[0]));
   auto duration    = Utils::toInt(split[1]);
 
-  if (immuneLevel == Level::None || immuneLevel > Level::Largest || duration <= 0)
+  // 允许免疫特殊等级，但处决硬直是无法被免疫的
+  // 因此仍然允许设置处决硬直的免疫状态以实现特定敌人完全免疫硬直的效果
+  if (immuneLevel == Level::None || duration <= 0)
     return;
 
   std::lock_guard lock(mtx_immuneCache);

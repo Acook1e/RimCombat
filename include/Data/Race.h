@@ -70,6 +70,10 @@ enum class Type : EnumType
 };
 
 [[nodiscard]] Type GetRace(RE::Actor* actor);
-[[nodiscard]] float GetBasePostureHealth(RE::Actor* actor);
 [[nodiscard]] float GetBasePoiseHealth(RE::Actor* actor);
+[[nodiscard]] float GetBasePostureHealth(RE::Actor* actor);
+
+[[nodiscard]] float GetBaseStaminaConsumption(Type type);
+[[nodiscard]] float GetBasePoiseDamage(Type type);
+[[nodiscard]] float GetBasePostureDamage(Type type);
 }  // namespace Race

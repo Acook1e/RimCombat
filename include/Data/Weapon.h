@@ -8,15 +8,14 @@ namespace Weapon
 
 using EnumType = Settings::WeaponEnumType;
 
+// 仅针对人类或者可以使用武器的种族
+// 对于生物使用Race判断
 enum class Type : EnumType
 {
   // 无类型，主要用于错误处理
   None = 0,
   // 空手类型
-  Unarm       = 0x01,  // 空手，不等于拳
-  Werewolf    = 0x02,  // 狼人形态空手，特殊处理
-  Werebear    = 0x03,  // 熊人形态空手，特殊处理
-  VampireLord = 0x04,  // 吸血鬼领主形态空手，特殊处理
+  Unarm = 0x01,  // 空手，不等于拳
 
   // 近战类型
   // 基于大类和OCF子类型划分
@@ -70,10 +69,9 @@ enum class Type : EnumType
 };
 
 void Initialize();
-[[nodiscard]] bool IsUnarmed(Type type);
 
 [[nodiscard]] Type GetActorEquipmentType(RE::Actor* actor, bool leftHand = false);
-[[nodiscard]] Type GetWeaponType(RE::Actor* actor, RE::TESObjectWEAP* object);
+[[nodiscard]] Type GetWeaponType(RE::TESObjectWEAP* weapon);
 [[nodiscard]] Type GetBlockType(RE::Actor* actor);
 
 [[nodiscard]] float GetBasePostureDamage(Type type);

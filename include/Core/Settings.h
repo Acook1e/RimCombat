@@ -14,8 +14,6 @@ using RaceEnumType   = std::uint8_t;
 inline bool bUseAttackStaminaSystem = true;
 // 是否在战斗外消耗耐力（如奔跑、跳跃等）
 inline bool bConsumeStaminaOutCombat = true;
-// 是否普通攻击消耗耐力
-inline bool bNormalAttackConsumeStamina = true;
 // 是否在耐力为零时禁用攻击
 // 推荐开启，关闭后可能会影响战斗平衡
 inline bool bDisableAttackWhenStaminaZero = true;
@@ -37,6 +35,8 @@ inline float fStaminaRegenMultBlock = 0.5f;
 inline std::unordered_map<WeaponEnumType, float> baseStaminaCostMap{};
 // 每单位质量的额外耐力消耗，适用于所有武器类型
 inline float fNormalAttackStaminaCostPerMass = 0.2f;
+// 非使用武器类型的生物类型的基础耐力消耗
+inline std::unordered_map<RaceEnumType, float> baseCreatureStaminaMap{};
 // 重击耐力消耗倍率，乘以基础耐力消耗
 inline float fPowerAttackStaminaCostMult = 2.5f;
 // 每单位质量的重击额外耐力消耗，适用于所有武器类型
@@ -63,6 +63,9 @@ inline std::unordered_map<RaceEnumType, float> basePostureMap{};
 
 // 每种武器类型的基础架势伤害
 inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
+
+// 非使用武器类型的生物基础架势伤害
+inline std::unordered_map<RaceEnumType, float> baseCreaturePostureDamage{};
 
 // 格挡攻击架势伤害倍率，乘以基础架势伤害
 inline float fBashPostureDamageMult = 2.0f;
@@ -114,6 +117,10 @@ inline std::unordered_map<RaceEnumType, float> basePoiseMap{};
 
 // 每种武器类型的基础韧性伤害
 inline std::unordered_map<WeaponEnumType, float> basePoiseDamageMap{};
+
+// 非使用武器类型的生物基础韧性伤害
+inline std::unordered_map<RaceEnumType, float> baseCreaturePoiseDamage{};
+
 #pragma endregion
 
 #pragma region Stagger

@@ -190,7 +190,6 @@ namespace
 
     json stamina = {{"UseAttackStaminaSystem", bUseAttackStaminaSystem},
                     {"ConsumeStaminaOutCombat", bConsumeStaminaOutCombat},
-                    {"NormalAttackConsumeStamina", bNormalAttackConsumeStamina},
                     {"DisableAttackWhenStaminaZero", bDisableAttackWhenStaminaZero},
                     {"StaminaRegenMult", fStaminaRegenMult},
                     {"StaminaRegenMin", fStaminaRegenMin},
@@ -369,7 +368,6 @@ void LoadSettings()
     const auto& stamina = *it;
     LoadSetting(stamina, "Stamina", "UseAttackStaminaSystem", bUseAttackStaminaSystem);
     LoadSetting(stamina, "Stamina", "ConsumeStaminaOutCombat", bConsumeStaminaOutCombat);
-    LoadSetting(stamina, "Stamina", "NormalAttackConsumeStamina", bNormalAttackConsumeStamina);
     LoadSetting(stamina, "Stamina", "DisableAttackWhenStaminaZero", bDisableAttackWhenStaminaZero);
     LoadSetting(stamina, "Stamina", "StaminaRegenMult", fStaminaRegenMult);
     LoadSetting(stamina, "Stamina", "StaminaRegenMin", fStaminaRegenMin);

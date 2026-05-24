@@ -126,6 +126,8 @@ Poise::Poise()
       poiseMultSelf.clear();
     }
   });
+
+  logger::info("Poise system initialized");
 }
 
 void Poise::Update(std::uint64_t deltaTime)
@@ -199,27 +201,31 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
   if (auto* left = aggressor->GetEquippedObject(true); left)
     shield = left->IsArmor();
 
-  auto type = Weapon::Type::None;
-  if (bash) {
-    if (shield)
-      type = Weapon::Type::Shield;
-    else
-      type = Weapon::GetActorEquipmentType(aggressor, false);
-  } else
-    type = Weapon::GetWeaponType(aggressor, attackWeapon);
+  float base = 0.0f;
 
-  float base = Weapon::GetBasePoiseDamage(type);
+  if (!attackWeapon) {
+    if (bash) {
+      auto type = Weapon::Type::None;
+      if (shield)
+        type = Weapon::Type::Shield;
+      else
+        type = Weapon::GetActorEquipmentType(aggressor, false);
+      base = Weapon::GetBasePoiseDamage(type) * Settings::fBashPoiseDamageMult;
+    } else {
+      // 武器为空且不是Bash，说明攻击来源于生物
+      auto race = Race::GetRace(aggressor);
+      base      = Race::GetBasePoiseDamage(race);
+    }
+  } else {
+    auto type = Weapon::GetWeaponType(attackWeapon);
+    base      = Weapon::GetBasePoiseDamage(type);
+  }
 
   auto aggressorEntry = RE::BGSEntryPoint::ENTRY_POINTS::kModTargetStagger;
   auto victimEntry    = RE::BGSEntryPoint::ENTRY_POINTS::kModIncomingStagger;
 
-  float aggressorMult = 0.5f;
-  float victimMult    = 0.5f;
-
-  RE::BGSEntryPoint::HandleEntryPoint(aggressorEntry, aggressor, &aggressorMult, &aggressorMult);
-  RE::BGSEntryPoint::HandleEntryPoint(victimEntry, aggressor, &victimMult, &victimMult);
-
-  logger::info("aggressor mult: {}, victim mult: {}", aggressorMult, victimMult);
+  // 暂时不使用任何原版的entry
+  // 因为无法判断是乘法还是加法
 
   // 根据类型应用不同的韧性伤害倍率
   float poiseDamage = base;

@@ -129,14 +129,8 @@ bool Execution::IsExecutable(RE::Actor* actor)
 
 void Execution::EnterExecutable(RE::Actor* actor)
 {
-  // 暂时禁用处决
-  return;
-
   if (!actor || !Settings::bUseExecutionSystem)
     return;
-
-  // 对不同的种族应该具有不同的处决状态硬直
-  // 考虑将Race单独出来并且让RimCombat的Stagger系统分类处理
 
   std::lock_guard<std::mutex> lock(mtx_executable);
   Stagger::SetStaggerLevel(actor, Stagger::Level::Execution);

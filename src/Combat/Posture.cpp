@@ -99,6 +99,8 @@ Posture::Posture()
       unbreakableActors.clear();
     }
   });
+
+  logger::info("Posture system initialized");
 }
 
 void Posture::Update(std::uint64_t deltaTime)
@@ -185,17 +187,26 @@ void Posture::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitD
   if (auto* left = aggressor->GetEquippedObject(true); left)
     shield = left->IsArmor();
 
-  auto type = Weapon::Type::None;
-  // 在bash发生的时候，attackWeapon是空的，使用右手武器类型来判断攻击类型
-  if (bash) {
-    if (shield)
-      type = Weapon::Type::Shield;
-    else
-      type = Weapon::GetActorEquipmentType(aggressor, false);
-  } else
-    type = Weapon::GetWeaponType(aggressor, attackWeapon);
+  float postureDamage = 0.0f;
 
-  float postureDamage = Weapon::GetBasePostureDamage(type);
+  if (!attackWeapon) {
+    // 在bash发生的时候，attackWeapon是空的，使用右手武器类型来判断攻击类型
+    if (bash) {
+      auto type = Weapon::Type::None;
+      if (shield)
+        type = Weapon::Type::Shield;
+      else
+        type = Weapon::GetActorEquipmentType(aggressor, false);
+      postureDamage = Weapon::GetBasePostureDamage(type) * Settings::fBashPostureDamageMult;
+    } else {
+      // 武器为空且不是Bash，说明攻击来源于生物
+      auto race     = Race::GetRace(aggressor);
+      postureDamage = Race::GetBasePostureDamage(race);
+    }
+  } else {
+    auto type     = Weapon::GetWeaponType(attackWeapon);
+    postureDamage = Weapon::GetBasePostureDamage(type);
+  }
 
   // Process Power Attack
   if (hitFlags.any(RE::HitData::Flag::kPowerAttack)) {
@@ -329,8 +340,6 @@ void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
 
   if (payload.starts_with("unbreakable|"))
     Unbreakable(actor, payload.substr(12));
-  else if (payload.starts_with("breakable|"))
-    Unbreakable(actor, payload.substr(10));
   else if (payload.starts_with("damage|"))
     Damage(actor, payload.substr(7));
   else if (payload == "end")

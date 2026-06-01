@@ -129,9 +129,6 @@ void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   if (!victim || !aggressor || victim->IsDead())
     return _ProcessHit(victim, hitData);
 
-  bool blocked = hitData.flags.any(RE::HitData::Flag::kBlocked);
-  bool bash    = hitData.flags.any(RE::HitData::Flag::kBash);
-
   // 第一部分：根据状态修正数值
 
   // 处决状态增伤
@@ -142,8 +139,11 @@ void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     victim->NotifyAnimationGraph("staggerStop");
   }
 
-  // 力竭状态增伤
-  if (Settings::bExitExhaustedOnHit && Exhausted::IsActorExhausted(victim))
+  // 力竭状态伤害变动
+  if (Settings::fAttackDamageMultWhenExhausted > 0.0f && Exhausted::IsActorExhausted(aggressor))
+    hitData.totalDamage *= Settings::fAttackDamageMultWhenExhausted;
+
+  if (Settings::fOnHitDamageMultWhenExhausted > 0.0f && Exhausted::IsActorExhausted(victim))
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExhausted;
 
   // 战技经验应该是根据最终伤害来计算的，放在第一部分最后处理
@@ -153,18 +153,15 @@ void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   // 第二部分：处理会直接修改HitData的状态和数值变更
 
-  if (blocked) {
-    Block::ProcessBlock(victim);
-    Block::ProcessDamage(victim, hitData);
-  }
-
   // 如果使用Rim Combat的硬直系统，则在这里将原版的硬直数值清零，避免被原版的硬直系统再次处理
   if (Settings::bUseStaggerSystem)
     hitData.stagger = 0.0f;
 
+  Block::ProcessBlock(aggressor, victim, hitData);
+
   // 在架势之前处理，处决级别的硬直入口在架势
   // 如果攻击被格挡了，则不处理硬直和韧性
-  if (!blocked)
+  if (!hitData.flags.any(RE::HitData::Flag::kBlocked))
     Poise::ProcessWeaponHit(aggressor, victim, hitData);
 
   Posture::ProcessWeaponHit(aggressor, victim, hitData);
@@ -299,25 +296,7 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
       return false;
     break;
   case 0x138D2:  // ActionStaggerStart
-  {
-    auto level  = Stagger::GetStaggerLevel(sourceActor);
-    bool immune = false;
-
-    // 限时格挡只能免疫最大硬直以下的硬直
-    if (Block::IsTimedBlocking(sourceActor) && level < Stagger::Level::Largest)
-      immune = true;
-
-    if (Stagger::IsImmune(sourceActor))
-      immune = true;
-
-    if (immune) {
-      Stagger::SetStaggerLevel(sourceActor, Stagger::Level::None);
-      Stagger::SetStaggerMagnitude(sourceActor, Stagger::Level::None);
-      return false;
-    }
-
     break;
-  }
   case 0x13002:  // ActionIdle
     // 对于idle，转交给PlayIdle的hook来处理
     break;
@@ -364,6 +343,7 @@ float Hook_OnModActorValue::ModMaxActorValue(RE::Actor* actor, RE::ActorValue ak
   switch (akValue) {
   case RE::ActorValue::kHealth:
     Posture::UpdateMaxPosture(actor);
+    break;
   case RE::ActorValue::kStamina:
     Posture::UpdateMaxPosture(actor);
     Poise::UpdateMaxPoise(actor);

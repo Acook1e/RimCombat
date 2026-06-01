@@ -216,19 +216,16 @@ public:
   static bool IsValidWeaponArtID(std::int32_t artID);
 
   static std::vector<const WeaponArtInfo*> GetAllWeaponArts();
-
   static const WeaponArtInfo* GetWeaponArtInfo(std::int32_t artID);
 
   static void SetWeaponArtInfo(RE::TESObjectWEAP* weapon, std::int32_t artID);
 
   static std::int32_t GetWeaponArtID(const RE::TESObjectWEAP* weapon);
-
   static std::int32_t GetActorWeaponArtID(RE::Actor* actor);
 
   static void UpdateWeaponArt(RE::Actor* actor);
 
   static Perform GetPerform(RE::Actor* actor);
-
   static State GetState(RE::Actor* actor);
   static void SetState(RE::Actor* actor, State state);
 

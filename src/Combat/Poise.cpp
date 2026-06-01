@@ -1,5 +1,6 @@
 #include "Combat/Poise.h"
 
+#include "Combat/Execution.h"
 #include "Combat/Stagger.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
@@ -25,7 +26,18 @@ float Poise::CalculateMaxPoise(RE::Actor* actor)
   if (!actor)
     return 0.0f;
 
-  float base       = Race::GetBasePoiseHealth(actor);
+  float base = Race::GetBasePoiseHealth(actor);
+
+  auto race = actor->GetRace()->GetFormID();
+  if (racePoiseOverrideMap.contains(race))
+    base = racePoiseOverrideMap[race];
+
+  auto actorFormID = actor->GetFormID();
+  if (!actor->GetActorBase()->IsUnique())
+    actorFormID = actor->GetActorBase()->GetFormID();
+  if (actorPoiseOverrideMap.contains(actorFormID))
+    base = actorPoiseOverrideMap[actorFormID];
+
   float mass       = actor->GetRace()->data.baseMass;
   float maxStamina = Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kStamina);
   float armorBonus = 0.0f;
@@ -192,6 +204,8 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
     return;
   if (victim->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
+  if (hitData.totalDamage <= 0.0f)
+    return;
 
   auto hitFlags     = hitData.flags;
   auto attackWeapon = hitData.weapon;
@@ -255,8 +269,6 @@ void Poise::DamagePoiseHealth(RE::Actor* actor, float value)
   if (!actor || value <= 0.0f || !Settings::bUsePoiseSystem)
     return;
 
-  auto state = actor->GetAttackState();
-
   // 处理韧性伤害
   // 保证锁的连贯性，避免多次伤害导致的硬直等级计算时序问题
   std::lock_guard<std::mutex> lock(mtx_poiseData);
@@ -264,8 +276,21 @@ void Poise::DamagePoiseHealth(RE::Actor* actor, float value)
   data.current -= value;
   data.regenResumeTime = Utils::GetTime<std::chrono::milliseconds>() + Settings::uPoiseRegenDelay;
 
-  logger::info("{} takes {} poise damage, current poise: {}/{}", actor->GetDisplayFullName(), value,
-               data.current, data.max);
+  // 对于处于处决状态的目标，直接根据伤害值触发对应等级更高一级的硬直
+  if (Execution::IsExecutable(actor)) {
+    auto level = CalculateStaggerLevel(value);
+    if (level < Stagger::Level::Large) {
+      auto newLevel     = static_cast<Stagger::Level>(static_cast<std::uint8_t>(level) + 1);
+      auto currentLevel = Stagger::GetStaggerLevel(actor);
+      if (newLevel > currentLevel)
+        Stagger::SetStaggerLevel(actor, newLevel);
+    } else
+      Stagger::SetStaggerLevel(actor, Stagger::Level::Knockaway);
+
+    // 重置韧性值，避免重复触发硬直
+    data.current = data.max;
+    return;
+  }
 
   // 硬直补偿机制，如果一次削韧够大但又没有削到0，触发低一级别的硬直以补偿玩家的打击感
   bool staggerCompensation = value / data.max >= Settings::fStaggerCompensationPercent;

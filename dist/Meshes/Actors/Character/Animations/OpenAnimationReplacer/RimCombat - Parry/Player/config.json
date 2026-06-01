@@ -1,0 +1,16 @@
+{
+    "name": "Generalm Parry",
+    "description": "None",
+    "priority": 1086001,
+    "triggersFromAnnotationsOnly": true,
+    "conditions": [
+        {
+            "condition": "IsActorBase",
+            "requiredVersion": "1.0.0.0",
+            "Actor base": {
+                "pluginName": "Skyrim.esm",
+                "formID": "7"
+            }
+        }
+    ]
+}

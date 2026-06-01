@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Settings.h"
+#include "Core/Settings.h"
 
 namespace Hooks
 {

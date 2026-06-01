@@ -1,0 +1,16 @@
+{
+    "Race": [
+        {
+            "mod": "Example.esp",
+            "form": "0x12345",
+            "poise": 1000
+        }
+    ],
+    "Actor": [
+        {
+            "mod": "Example.esp",
+            "form": "0xABCDE",
+            "poise": 1000
+        }
+    ]
+}

@@ -1,6 +1,7 @@
 #include "Combat/WeaponArt.h"
 
 #include "Combat/Damage.h"
+#include "Combat/Poise.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
@@ -553,11 +554,13 @@ Manager::Manager()
     }
   });
 
-  // 反转时直接清空数据
+  // 重置时直接清空数据
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     std::lock_guard<std::mutex> lock(mtx_infoMap);
     infoMap.clear();
   });
+
+  logger::info("WeaponArt: Loaded {} Weapon Arts.", artMap.size());
 }
 
 bool Manager::IsValidWeaponArtID(std::int32_t artID)
@@ -776,9 +779,11 @@ void Manager::End(RE::Actor* actor)
 
   // Payload优化
   Damage::End(actor);
+  Poise::End(actor);
+  Poise::TargetEnd(actor);
+  Posture::End(actor);
   Stagger::TargetEnd(actor);
   Stamina::End(actor);
-  Posture::End(actor);
 }
 
 void Manager::Cast(RE::Actor* actor, const std::string& payload)

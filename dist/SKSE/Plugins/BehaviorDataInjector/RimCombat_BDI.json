@@ -2,6 +2,11 @@
     {
         "projectPath": "Actors",
         "type": "kEvent",
+        "name": "RimBlock"
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kEvent",
         "name": "RimDamage"
     },
     {

@@ -1,6 +1,7 @@
 CompileFlags:
+  CompilationDatabase: .
   Add: [-ferror-limit=0]
-  Remove: []
+  Remove: [/Yu*, -Yu*, /Fp*, -Fp*, /FI*, -Fo*]
 
 Diagnostics:
   Suppress: ["-Wc++17-extensions"]

@@ -24,7 +24,24 @@ float Posture::InitPosture(RE::Actor* actor)
 
 float Posture::CalculateMaxPosture(RE::Actor* actor)
 {
-  float base       = Race::GetBasePostureHealth(actor);
+  if (!actor)
+    return 0.0f;
+
+  float base = Race::GetBasePostureHealth(actor);
+
+  auto race = actor->GetRace()->GetFormID();
+  if (racePostureOverride.contains(race))
+    base = racePostureOverride[race];
+
+  auto actorFormID = actor->GetFormID();
+  // 对于非独特NPC，获取到的FormID为临时生成的
+  // 因此需要使用ActorBase的FormID来获取覆盖值
+  if (!actor->GetActorBase()->IsUnique())
+    actorFormID = actor->GetActorBase()->GetFormID();
+  // 对于特定NPC的覆盖优先级高于种族覆盖
+  if (actorPostureOverride.contains(actorFormID))
+    base = actorPostureOverride[actorFormID];
+
   float maxHealth  = Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kHealth);
   float maxStamina = Utils::GetCurrentMaxActorValue(actor, RE::ActorValue::kStamina);
   float maxPosture = base + maxHealth * Settings::fMaxPostureHealthMult +
@@ -114,9 +131,9 @@ void Posture::Update(std::uint64_t deltaTime)
       if (data.current < data.max) {
         if (Execution::IsExecutable(actor)) {
           // 作为平衡性和视觉表现上的优化
-          // 进入处决状态默认恢复到一半的最大值，并在处决状态内以一半的速度恢复
+          // 进入处决状态默认恢复到一半的最大值，并在处决状态内以0.2倍速度恢复
           data.current +=
-              (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 2000.0f);
+              data.max * (Settings::fPostureRegenPercentPerSecond / 100.0f) * (deltaTime / 5000.0f);
           data.current = std::clamp(data.current, 0.0f, data.max);
         } else if (now >= data.regenResumeTime) {
           data.current +=
@@ -164,19 +181,22 @@ float Posture::GetMaxPosture(RE::Actor* actor)
 
 Posture::PostureData Posture::GetPostureData(RE::Actor* actor)
 {
-  PostureData data{0, 0, 0};
   {
     std::shared_lock lock(mtx_postureData);
     if (postureMap.contains(actor))
-      data = postureMap[actor];
-    InitPosture(actor);
-    return postureMap[actor];
+      return postureMap[actor];
   }
+  std::unique_lock lock(mtx_postureData);
+  if (!postureMap.contains(actor))
+    InitPosture(actor);
+  return postureMap[actor];
 }
 
 void Posture::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData)
 {
   if (!aggressor || !victim || !Settings::bUsePostureSystem)
+    return;
+  if (hitData.totalDamage <= 0.0f)
     return;
 
   auto hitFlags     = hitData.flags;

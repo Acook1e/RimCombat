@@ -61,11 +61,11 @@ inline float fPostureRegenPercentPerSecond = 3.0f;
 // 各个种族的基础架势值
 inline std::unordered_map<RaceEnumType, float> basePostureMap{};
 
-// 每种武器类型的基础架势伤害
-inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
-
 // 非使用武器类型的生物基础架势伤害
 inline std::unordered_map<RaceEnumType, float> baseCreaturePostureDamage{};
+
+// 每种武器类型的基础架势伤害
+inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
 
 // 格挡攻击架势伤害倍率，乘以基础架势伤害
 inline float fBashPostureDamageMult = 2.0f;

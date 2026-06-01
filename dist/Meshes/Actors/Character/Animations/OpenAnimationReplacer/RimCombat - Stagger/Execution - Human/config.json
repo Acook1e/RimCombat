@@ -1,7 +1,7 @@
 {
-  "name": "Strikefly",
+  "name": "Execution - Human",
   "description": "None",
-  "priority": 2064143102,
+  "priority": 2064143255,
   "conditions": [
     {
       "condition": "CompareValues",
@@ -12,7 +12,7 @@
       },
       "Comparison": "==",
       "Value B": {
-        "value": 102
+        "value": 255
       }
     }
   ]

@@ -39,8 +39,6 @@ private:
   constexpr static inline std::string_view EXECUTION_FLAG = "RimCombat_ExecutionFlag";
   // 行为事件
   // 其payload表示处决相关的的事件
-  // VictimEnd表示受害者退出处决状态，一般在受害者的架势崩溃硬直结束的时候触发
-  // 可处决的时限现在仅和动画的时长和其中End注释有关
   // Damage|Multiplier 表示进行一次真实伤害结算，Multiplier为一个数字，表示伤害的倍率
   // End表示结束处决状态，触发受害者退出处决状态的逻辑
   constexpr static inline std::string_view EXECUTION_END = "RimExecution";

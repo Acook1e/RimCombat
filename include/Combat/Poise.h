@@ -59,8 +59,8 @@ private:
 
   // 无锁，仅初始化时写入，之后只读取
   // 来源于设置的对种族或者Actor的基础韧性覆盖
-  static inline std::unordered_map<RE::TESRace*, float> racePoiseOverrideMap;
-  static inline std::unordered_map<RE::Actor*, float> actorPoiseOverrideMap;
+  static inline std::unordered_map<RE::FormID, float> racePoiseOverrideMap;
+  static inline std::unordered_map<RE::FormID, float> actorPoiseOverrideMap;
 
   // 需要锁和序列化
   // Actor的韧性数据

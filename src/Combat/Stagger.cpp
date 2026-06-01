@@ -5,6 +5,10 @@
 #include "Core/Settings.h"
 #include "Utils.h"
 
+// 对于uint8的枚举类型，magic_enum默认会将其转换为int进行处理，导致无法正确转换回枚举值
+// 因此需要在包含magic_enum之前定义MAGIC_ENUM_RANGE_MIN和MAGIC_ENUM_RANGE_MAX来指定枚举的范围
+#define MAGIC_ENUM_RANGE_MIN 0
+#define MAGIC_ENUM_RANGE_MAX 256
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
@@ -50,8 +54,8 @@ Stagger::Stagger()
           }
           auto form = dataHandle->LookupFormID(formID, mod);
           if (!form) {
-            logger::warn("Invalid form ID '{}' for stagger settings in file {}. Skipping.",
-                         formIDStr, entry.path().string());
+            logger::warn("Invalid form ID '{}|{}' for stagger settings in file {}. Skipping.",
+                         formIDStr, mod, entry.path().string());
             continue;
           }
           projectileStagger[form] = staggerLevel;
@@ -142,7 +146,7 @@ void Stagger::Update()
   {
     std::scoped_lock lock(mtx_immuneCache);
     for (auto it = immuneActors.begin(); it != immuneActors.end();) {
-      if (it->second.second <= now)
+      if (it->second <= now)
         it = immuneActors.erase(it);
       else
         ++it;
@@ -151,14 +155,17 @@ void Stagger::Update()
 
   // 更新恢复时间缓存
   {
-    std::scoped_lock lock(mtx_recoverTime);
-    for (auto it = staggerRecoverTime.begin(); it != staggerRecoverTime.end();) {
-      auto victim      = it->first;
-      auto recoverTime = it->second.second;
+    std::scoped_lock lock(mtx_recover);
+    for (auto it = staggerRecovery.begin(); it != staggerRecovery.end();) {
+      auto victim               = it->first;
+      auto [recoverTime, level] = it->second;
+      // 特殊硬直的恢复时间有Recoverable事件来控制
+      if (level < Level::Largest)
+        continue;
       if (recoverTime <= now) {
         if (victim)
           victim->SetGraphVariableBool(STAGGER_RECOVERABLE, true);
-        it = staggerRecoverTime.erase(it);
+        it = staggerRecovery.erase(it);
       } else
         ++it;
     }
@@ -219,11 +226,11 @@ Level Stagger::GetStaggerLevel(RE::Actor* actor)
   if (!actor->GetGraphVariableInt(STAGGER_LEVEL, level))
     return Level::None;
 
-  if (level < static_cast<std::int32_t>(Level::None) ||
-      level >= static_cast<std::int32_t>(Level::Total))
+  auto staggerLevel = magic_enum::enum_cast<Level>(level);
+  if (!staggerLevel.has_value())
     return Level::None;
 
-  return static_cast<Level>(level);
+  return staggerLevel.value();
 }
 
 void Stagger::SetStaggerLevel(RE::Actor* actor, Level level)
@@ -231,7 +238,7 @@ void Stagger::SetStaggerLevel(RE::Actor* actor, Level level)
   if (!actor)
     return;
 
-  actor->SetGraphVariableInt(STAGGER_LEVEL, static_cast<std::int8_t>(level));
+  actor->SetGraphVariableInt(STAGGER_LEVEL, static_cast<std::int32_t>(level));
 }
 
 bool Stagger::IsImmune(RE::Actor* actor)
@@ -239,26 +246,8 @@ bool Stagger::IsImmune(RE::Actor* actor)
   if (!actor)
     return false;
 
-  auto immune    = GetImmuneLevel(actor);
-  auto magnitude = GetStaggerMagnitude(actor);
-  auto stagger   = MagnitudeToLevel(magnitude);
-
-  if (immune >= stagger)
-    return true;
-
-  return false;
-}
-
-Level Stagger::GetImmuneLevel(RE::Actor* actor)
-{
-  if (!actor)
-    return Level::None;
-
-  std::lock_guard lock(mtx_immuneCache);
-  if (auto it = immuneActors.find(actor); it != immuneActors.end())
-    return it->second.first;
-
-  return Level::None;
+  std::lock_guard<std::mutex> lock(mtx_immuneCache);
+  return immuneActors.contains(actor);
 }
 
 void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
@@ -266,6 +255,7 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
   if (!aggressor || !victim || !Settings::bUseStaggerSystem)
     return;
 
+  // 处理受击者硬直
   Level currentLevel = GetStaggerLevel(victim);
 
   // 处理外源硬直
@@ -277,7 +267,8 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
       targetLevel = it->second;
   }
 
-  if (targetLevel > currentLevel && targetLevel != Level::None)
+  // 基础硬直等级会被高等级的外源硬直覆盖
+  if (targetLevel > Level::None && targetLevel < Level::Largest && targetLevel > currentLevel)
     currentLevel = targetLevel;
 
   SetStaggerLevel(victim, currentLevel);
@@ -309,6 +300,10 @@ void Stagger::StaggerStart(RE::Actor* victim)
   if (level == Level::None)
     return;
 
+  // 免疫GuardBreak以下的硬直等级
+  if (level < Level::GuardBreak && IsImmune(victim))
+    return;
+
   std::uint64_t recoverTime = 0;
   switch (level) {
   case Level::Small:
@@ -326,11 +321,11 @@ void Stagger::StaggerStart(RE::Actor* victim)
 
   if (recoverTime > 0) {
     auto now = Utils::GetTime<std::chrono::milliseconds>();
-    std::scoped_lock<std::mutex> lock(mtx_recoverTime);
-    if (!staggerRecoverTime.contains(victim))
-      staggerRecoverTime[victim] = {level, now + recoverTime};
+    std::scoped_lock<std::mutex> lock(mtx_recover);
+    if (!staggerRecovery.contains(victim))
+      staggerRecovery[victim] = {now + recoverTime, level};
     else {
-      auto [lastLevel, lastTime] = staggerRecoverTime[victim];
+      auto [lastTime, lastLevel] = staggerRecovery[victim];
 
       // 如果在大硬直期间受到小硬直，则忽略这次硬直
       if (lastLevel > level)
@@ -338,8 +333,11 @@ void Stagger::StaggerStart(RE::Actor* victim)
 
       auto delta = lastTime - now;
       // TODO：找一个比相加乘以0.2更合理的算法
-      recoverTime                = (delta + recoverTime) * 0.2f;
-      staggerRecoverTime[victim] = {lastLevel, now + recoverTime};
+      recoverTime = (delta + recoverTime) * 0.2f;
+      if (recoverTime < 100 || recoverTime > delta)
+        recoverTime = 100;
+
+      staggerRecovery[victim] = {now + recoverTime, level};
 
       // 受到同级别的硬直时，不再进入硬直动画
       if (lastLevel == level)
@@ -401,7 +399,17 @@ void Stagger::Immune(RE::Actor* actor, const std::string& payload)
     return;
 
   std::lock_guard lock(mtx_immuneCache);
-  immuneActors[actor] = {immuneLevel, Utils::GetTime<std::chrono::milliseconds>() + duration};
+  immuneActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration;
+}
+
+void Stagger::Recoverable(RE::Actor* actor)
+{
+  if (!actor)
+    return;
+
+  std::lock_guard lock(mtx_recover);
+  staggerRecovery.erase(actor);
+  actor->SetGraphVariableBool(STAGGER_RECOVERABLE, true);
 }
 
 void Stagger::PayloadParse(RE::Actor* actor, const std::string& payload)
@@ -412,4 +420,6 @@ void Stagger::PayloadParse(RE::Actor* actor, const std::string& payload)
     TargetEnd(actor);
   else if (payload.starts_with("immune|"))
     Immune(actor, payload.substr(7));
+  else if (payload == "recoverable")
+    Recoverable(actor);
 }

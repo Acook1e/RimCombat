@@ -72,12 +72,12 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "attackstop"_h:
   case "staggerstart"_h:
     Damage::End(actor);
-    Stagger::TargetEnd(actor);
-    Stamina::End(actor);
-    Stamina::PrecisionEnd(actor);
     Poise::End(actor);
     Poise::TargetEnd(actor);
     Posture::End(actor);
+    Stagger::TargetEnd(actor);
+    Stamina::End(actor);
+    Stamina::PrecisionEnd(actor);
     WeaponArt::Manager::Interrupt(actor);
     break;
 
@@ -98,6 +98,9 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "tkdr_iframeend"_h:
     break;
   case "dodge"_h:
+    break;
+  case "rimblock"_h:
+    Block::ParsePayload(actor, payload);
     break;
   case "rimdamage"_h:
     Damage::PayloadParse(actor, payload);

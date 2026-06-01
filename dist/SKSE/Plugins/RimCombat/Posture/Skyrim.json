@@ -1,0 +1,16 @@
+{
+    "Race": [
+        {
+            "mod": "Example.esp",
+            "form": "0x12345",
+            "posture": 1000
+        }
+    ],
+    "Actor": [
+        {
+            "mod": "Example.esp",
+            "form": "0xABCDE",
+            "posture": 1000
+        }
+    ]
+}

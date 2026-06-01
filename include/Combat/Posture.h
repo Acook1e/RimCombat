@@ -55,6 +55,11 @@ private:
   // Rim Combat Posture Data
   constexpr static inline std::uint32_t serialType = 'RCPD';
 
+  // 无锁，仅初始化时写入，之后只读
+  // 保存特定种族或者NPC的基础架势值
+  static inline std::unordered_map<RE::FormID, float> racePostureOverride;
+  static inline std::unordered_map<RE::FormID, float> actorPostureOverride;
+
   // 读取频繁，使用共享锁和序列化
   static inline std::shared_mutex mtx_postureData;
   static inline std::unordered_map<RE::Actor*, PostureData> postureMap;

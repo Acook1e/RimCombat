@@ -12,17 +12,23 @@ public:
     Medium,
     Large,
 
-    // Largest 等级，默认情况下是架势崩溃状态专用的硬直
+    // Largest 等级，在这个等级之上的均是特殊硬直等级
     Largest,
-    Execution = Largest,
 
-    // 根据攻击类型， RimCombat补充的额外级别
+    // RimCombat硬直系统的额外等级，单次只生效最初的触发的等级，不会覆盖
+    // 若位于格挡状态，则不会触发这些硬直等级，但会根据硬直等级产生额外的耐力消耗
 
-    Knockdown,  // 砸趴
-    Strikefly,  // 挑飞
-    Knockaway,  // 击飞
+    Knockaway = 100,  // 击飞
+    Knockdown = 101,  // 砸趴
+    Strikefly = 102,  // 挑飞
 
-    Total
+    // 无法被任何状态免疫的特殊等级，通常用于特定敌人或特定攻击的特殊效果
+
+    GuardBreak = 200,  // 破防
+
+    // 默认处决为最高优先级的硬直，会覆盖其他所有硬直等级，且无法被免疫
+
+    Execution = 255,  // 处决
   };
 
   // Int图变量
@@ -33,9 +39,11 @@ public:
   // RimCombat中调用这个变量来传递是否可以恢复硬直
   constexpr static std::string_view STAGGER_RECOVERABLE = "MSL_IsStaggerRecovery";
   // 图事件，padload用于传递信息
-  // TargetSet|level用于设置击中目标的硬直等级为level，level为Level对应的数值
-  // TargetEnd用于结束对目标的硬直等级设置和修改，通常在此次攻击命中帧结束时触发
-  // Immune|level|Duration用于设置当前的硬直免疫等级为level，level为Level对应的数值，Duration为持续时间，单位为毫秒
+  // TargetSet|level 用于设置击中目标的硬直等级为level，level为Level对应的数值
+  // TargetEnd 用于结束对目标的硬直等级设置和修改，通常在此次攻击命中帧结束时触发
+  // Immune|Duration 用于设置硬直免疫
+  // 在此期间可以免疫任何可被免疫的硬直等级，Duration为持续时间，单位为毫秒
+  // Recoverable用于设置在这个时间后可以从硬直中恢复，通常在硬直动画末尾触发
   constexpr static std::string_view RIMSTAGGER = "RimStagger";
 
   static Stagger& GetSingleton()
@@ -56,8 +64,6 @@ public:
   static void SetStaggerLevel(RE::Actor* actor, Level level);
 
   static bool IsImmune(RE::Actor* actor);
-  static Level GetImmuneLevel(RE::Actor* actor);
-  static void SetImmuneLevel(RE::Actor* actor, Level level);
 
   static void ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim);
   static void ProcessProjectileStagger(RE::Actor* victim, RE::FormID formID);
@@ -67,6 +73,7 @@ public:
   static void TargetSet(RE::Actor* actor, const std::string& payload);
   static void TargetEnd(RE::Actor* actor);
   static void Immune(RE::Actor* actor, const std::string& payload);
+  static void Recoverable(RE::Actor* actor);
 
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
 
@@ -95,9 +102,14 @@ private:
 
   // 缓存免疫硬直时间
   static inline std::mutex mtx_immuneCache;
-  static inline std::unordered_map<RE::Actor*, std::pair<Level, std::uint64_t>> immuneActors;
+  static inline std::unordered_map<RE::Actor*, std::uint64_t> immuneActors;
 
   // 缓存受击恢复时间
-  static inline std::mutex mtx_recoverTime;
-  static inline std::unordered_map<RE::Actor*, std::pair<Level, std::uint64_t>> staggerRecoverTime;
+  static inline std::mutex mtx_recover;
+  struct RecoveryData
+  {
+    std::uint64_t recoverTime;  // 恢复时间点，单位为毫秒时间戳
+    Level current;              // 当前的硬直等级，用于恢复时判断是否需要设置图变量
+  };
+  static inline std::unordered_map<RE::Actor*, RecoveryData> staggerRecovery;
 };

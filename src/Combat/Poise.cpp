@@ -207,10 +207,13 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
   if (hitData.totalDamage <= 0.0f)
     return;
 
-  auto hitFlags     = hitData.flags;
+  // 如果攻击被格挡了，则不处理韧性
+  if (hitData.flags.any(RE::HitData::Flag::kBlocked))
+    return;
+
   auto attackWeapon = hitData.weapon;
 
-  auto bash   = hitFlags.any(RE::HitData::Flag::kBash);
+  auto bash   = hitData.flags.any(RE::HitData::Flag::kBash);
   auto shield = false;
   if (auto* left = aggressor->GetEquippedObject(true); left)
     shield = left->IsArmor();
@@ -224,7 +227,7 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
         type = Weapon::Type::Shield;
       else
         type = Weapon::GetActorEquipmentType(aggressor, false);
-      base = Weapon::GetBasePoiseDamage(type) * Settings::fBashPoiseDamageMult;
+      base = Weapon::GetBasePoiseDamage(type);
     } else {
       // 武器为空且不是Bash，说明攻击来源于生物
       auto race = Race::GetRace(aggressor);
@@ -243,7 +246,7 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
 
   // 根据类型应用不同的韧性伤害倍率
   float poiseDamage = base;
-  if (hitFlags.any(RE::HitData::Flag::kPowerAttack)) {
+  if (hitData.flags.any(RE::HitData::Flag::kPowerAttack)) {
     if (bash)
       poiseDamage *= Settings::fPowerBashPoiseDamageMult;
     else

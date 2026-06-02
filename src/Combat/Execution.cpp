@@ -133,7 +133,6 @@ void Execution::EnterExecutable(RE::Actor* actor)
     return;
 
   std::lock_guard<std::mutex> lock(mtx_executable);
-  Stagger::SetStaggerLevel(actor, Stagger::Level::Execution);
   executableActors.insert(actor);
 }
 
@@ -148,9 +147,6 @@ void Execution::ExitExecutable(RE::Actor* actor)
 
 RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
 {
-  // 暂时禁用处决
-  return nullptr;
-
   if (!aggressor || !Settings::bUseExecutionSystem)
     return nullptr;
 

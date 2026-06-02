@@ -160,9 +160,8 @@ void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
   Block::ProcessBlock(aggressor, victim, hitData);
 
   // 在架势之前处理，处决级别的硬直入口在架势
-  // 如果攻击被格挡了，则不处理硬直和韧性
-  if (!hitData.flags.any(RE::HitData::Flag::kBlocked))
-    Poise::ProcessWeaponHit(aggressor, victim, hitData);
+  // 格挡命中不处理韧性，0伤害命中不处理韧性/架势
+  Poise::ProcessWeaponHit(aggressor, victim, hitData);
 
   Posture::ProcessWeaponHit(aggressor, victim, hitData);
 

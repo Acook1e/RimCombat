@@ -217,7 +217,7 @@ void Posture::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitD
         type = Weapon::Type::Shield;
       else
         type = Weapon::GetActorEquipmentType(aggressor, false);
-      postureDamage = Weapon::GetBasePostureDamage(type) * Settings::fBashPostureDamageMult;
+      postureDamage = Weapon::GetBasePostureDamage(type);
     } else {
       // 武器为空且不是Bash，说明攻击来源于生物
       auto race     = Race::GetRace(aggressor);
@@ -303,7 +303,8 @@ void Posture::DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBrea
 
   // 破防处理
   if (postureData.current <= 0.0f) {
-    Execution::EnterExecutable(actor);
+    Stagger::SetStaggerLevel(actor, Stagger::Level::PostureBreak);
+    // Execution::EnterExecutable(actor);
     postureData.current = 0.5f * postureData.max;  // 进入处决状态后默认恢复到一半的最大值
   }
 }

@@ -24,12 +24,21 @@ namespace
 {
   constexpr std::uint64_t kWeaponArtMenuRefreshInterval = 200;
 
+  const Localization::Entry& ResolveEntry(std::string_view key)
+  {
+    static const Localization::Entry emptyEntry{};
+    if (key.empty())
+      return emptyEntry;
+
+    return Localization::GetLocalization(Utils::hash(std::string(key)));
+  }
+
   std::string ResolveLabel(std::string_view key, std::string_view fallback = "")
   {
     if (key.empty())
       return std::string(fallback);
 
-    auto& entry = Localization::GetLocalization(Utils::hash(std::string(key)));
+    auto& entry = ResolveEntry(key);
     if (!entry.label.empty() && entry.label != "null")
       return entry.label;
 
@@ -69,6 +78,116 @@ namespace
       return art->GetName();
 
     return ResolveLabel("WeaponArtUnknown", "Unknown Weapon Art");
+  }
+
+  json BuildWeaponArtMenuStrings()
+  {
+    return json{
+        {"brand", ResolveLabel("RimCombat", "RimCombat")},
+        {"title", ResolveLabel("WeaponArt", "Weapon Arts")},
+        {"level", ResolveLabel("WeaponArtMenuLevel", "Weapon Art Level")},
+        {"points", ResolveLabel("WeaponArtMenuPoints", "Weapon Art Points")},
+        {"close", ResolveLabel("WeaponArtMenuClose", "Close")},
+        {"catalog", ResolveLabel("WeaponArtMenuCatalog", "Catalog")},
+        {"catalogTitle", ResolveLabel("WeaponArtMenuCatalogTitle", "All Weapon Arts")},
+        {"catalogNote", ResolveLabel("WeaponArtMenuCatalogNote",
+                                     "Select a weapon art below. The upper panels show the "
+                                     "selected weapon and the highlighted art.")},
+        {"artCount", ResolveLabel("WeaponArtMenuArtCount", "{} Arts")},
+        {"noDescription", ResolveLabel("WeaponArtMenuNoDescription", "No description available.")},
+        {"noArtsTitle", ResolveLabel("WeaponArtMenuNoArtsTitle", "No weapon arts loaded")},
+        {"noArtsBody",
+         ResolveLabel(
+             "WeaponArtMenuNoArtsBody",
+             "The menu is ready, but no weapon art data was received from the plugin yet.")},
+        {"currentWeapon", ResolveLabel("WeaponArtMenuCurrentWeapon", "Current Weapon")},
+        {"noWeaponSelected", ResolveLabel("WeaponArtMenuNoWeaponSelected", "No weapon selected")},
+        {"inventorySelectionRequired",
+         ResolveLabel("WeaponArtMenuInventorySelectionRequired", "Inventory selection required")},
+        {"selectWeaponTitle",
+         ResolveLabel("WeaponArtMenuSelectWeaponTitle", "Select a weapon in the inventory")},
+        {"selectWeaponBody", ResolveLabel("WeaponArtMenuSelectWeaponBody",
+                                          "The upper-left panel shows the selected weapon, its "
+                                          "equipped art, and the bind state.")},
+        {"boundArt", ResolveLabel("WeaponArtMenuBoundArt", "Bound Art")},
+        {"weaponType", ResolveLabel("WeaponArtMenuWeaponType", "Weapon Type")},
+        {"unassigned", ResolveLabel("WeaponArtUnassigned", "Unassigned")},
+        {"unknown", ResolveLabel("Unknown", "Unknown")},
+        {"weaponBody",
+         ResolveLabel("WeaponArtMenuWeaponBody", "The highlighted weapon art can be bound to this "
+                                                 "weapon if it is unlocked and compatible.")},
+        {"noWeaponArtSelected",
+         ResolveLabel("WeaponArtMenuNoWeaponArtSelected", "No Weapon Art Selected")},
+        {"selectedArtAlreadyBound",
+         ResolveLabel("WeaponArtMenuSelectedArtAlreadyBound", "Selected Art Already Bound")},
+        {"bindAction", ResolveLabel("WeaponArtMenuBindAction", "Bind {}")},
+        {"unbindCurrent", ResolveLabel("WeaponArtMenuUnbindCurrent", "Unbind Current Weapon Art")},
+        {"noWeaponArtBound", ResolveLabel("WeaponArtMenuNoWeaponArtBound", "No Weapon Art Bound")},
+        {"selectedArt", ResolveLabel("WeaponArtMenuSelectedArt", "Selected Art")},
+        {"noArtSelected", ResolveLabel("WeaponArtMenuNoArtSelected", "No art selected")},
+        {"waitingTitle", ResolveLabel("WeaponArtMenuWaitingTitle", "Waiting for weapon art data")},
+        {"waitingBody",
+         ResolveLabel("WeaponArtMenuWaitingBody",
+                      "Once the plugin sends the catalog, the selected entry will appear here.")},
+        {"unlockLevel", ResolveLabel("WeaponArtMenuUnlockLevel", "Unlock Level")},
+        {"pointCost", ResolveLabel("WeaponArtMenuPointCost", "Point Cost")},
+        {"activation", ResolveLabel("WeaponArtMenuActivation", "Activation")},
+        {"assignment", ResolveLabel("WeaponArtMenuAssignment", "Assignment")},
+        {"available", ResolveLabel("WeaponArtMenuAvailable", "Available")},
+        {"currentlyAssigned", ResolveLabel("WeaponArtMenuCurrentlyAssigned", "Currently Assigned")},
+        {"unlocked", ResolveLabel("WeaponArtMenuUnlocked", "Unlocked")},
+        {"locked", ResolveLabel("WeaponArtMenuLocked", "Locked")},
+        {"levelBadge", ResolveLabel("WeaponArtMenuLevelBadge", "Lv {}")},
+        {"costBadge", ResolveLabel("WeaponArtMenuCostBadge", "Cost {}")},
+        {"prepare", ResolveLabel("WeaponArtMenuPrepare", "Prepared")},
+        {"instant", ResolveLabel("WeaponArtMenuInstant", "Instant")},
+        {"compatible", ResolveLabel("WeaponArtMenuCompatible", "Compatible")},
+        {"incompatible", ResolveLabel("WeaponArtMenuIncompatible", "Not compatible")},
+        {"assigned", ResolveLabel("WeaponArtMenuAssigned", "Assigned")},
+        {"alreadyUnlocked", ResolveLabel("WeaponArtMenuAlreadyUnlocked", "Already Unlocked")},
+        {"unlockAction", ResolveLabel("WeaponArtMenuUnlockAction", "Unlock Art ({} pt)")},
+        {"assignedToWeapon", ResolveLabel("WeaponArtMenuAssignedToWeapon", "Assigned to Weapon")},
+        {"assignToSelectedWeapon",
+         ResolveLabel("WeaponArtMenuAssignToSelectedWeapon", "Assign to Selected Weapon")},
+        {"hintSelectArt",
+         ResolveLabel("WeaponArtMenuHintSelectArt",
+                      "Select a weapon art from the grid to bind it to this weapon.")},
+        {"hintCanBind", ResolveLabel("WeaponArtMenuHintCanBind",
+                                     "Bind {} to this weapon, or clear the current binding.")},
+        {"hintHasBinding",
+         ResolveLabel("WeaponArtMenuHintHasBinding",
+                      "This weapon already has a bound weapon art. You can replace it with the "
+                      "highlighted compatible art or clear it.")},
+        {"hintNoBinding",
+         ResolveLabel("WeaponArtMenuHintNoBinding", "Select an unlocked compatible weapon art to "
+                                                    "bind it, or leave this weapon unassigned.")},
+        {"hintUnlockBlocked", ResolveLabel("WeaponArtMenuHintUnlockBlocked",
+                                           "Requires level {} and {} available point(s).")},
+        {"hintNeedWeapon",
+         ResolveLabel("WeaponArtMenuHintNeedWeapon",
+                      "Select a weapon in the inventory to enable weapon-specific assignment.")},
+        {"hintIncompatible",
+         ResolveLabel("WeaponArtMenuHintIncompatible",
+                      "The selected weapon does not meet this art's weapon requirements.")},
+        {"hintAlreadyAssigned", ResolveLabel("WeaponArtMenuHintAlreadyAssigned",
+                                             "This weapon is already using the highlighted art.")},
+        {"hintReadyToAssign",
+         ResolveLabel("WeaponArtMenuHintReadyToAssign",
+                      "This art is ready to be assigned to the currently selected weapon.")},
+        {"hintUnlockFirst",
+         ResolveLabel("WeaponArtMenuHintUnlockFirst",
+                      "Unlock this art first, then it can be assigned to the selected weapon.")},
+        {"hintStateUpdated",
+         ResolveLabel("WeaponArtMenuHintStateUpdated", "Weapon art state updated.")}};
+  }
+
+  json BuildWeaponArtHUDStrings()
+  {
+    return json{{"label", ResolveLabel("WeaponArtHUDLabel", "Weapon Art")},
+                {"defaultName", ResolveLabel("WeaponArtUnassigned", "Unassigned")},
+                {"disabled", ResolveLabel("WeaponArtHUDStateDisable", "Disabled")},
+                {"preparing", ResolveLabel("WeaponArtHUDStatePrepare", "Preparing")},
+                {"enabled", ResolveLabel("WeaponArtHUDStateEnable", "Enabled")}};
   }
 
   std::optional<std::int32_t> ParseArtID(const char* arg)
@@ -246,7 +365,8 @@ void WeaponArtMenu::SyncViewConfig()
   if (!prisma || !prisma->IsValid(view) || !domReady)
     return;
 
-  json payload = {{"startPercent", Settings::fWeaponArtMenuStartPercent}};
+  json payload = {{"startPercent", Settings::fWeaponArtMenuStartPercent},
+                  {"strings", BuildWeaponArtMenuStrings()}};
 
   auto data = payload.dump();
   prisma->InteropCall(view, "setMenuConfig", data.c_str());
@@ -475,6 +595,7 @@ void WeaponArtHUD::SyncViewConfig()
   json payload = {{"x", Settings::fWeaponArtHUDPosX},
                   {"y", Settings::fWeaponArtHUDPosY},
                   {"scale", Settings::fWeaponArtHUDScale},
+                  {"strings", BuildWeaponArtHUDStrings()},
                   {"label", ResolveLabel("WeaponArtHUDLabel", "Weapon Art")},
                   {"defaultName", ResolveLabel("WeaponArtUnassigned", "Unassigned")}};
 

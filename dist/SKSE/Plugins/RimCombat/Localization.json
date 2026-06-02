@@ -1,158 +1,746 @@
 {
     "RimCombat": {
         "label": "RimCombat",
-        "description": ""
+        "desc": "RimCombat 的设置菜单。"
     },
     "General": {
-        "label": "General",
-        "description": ""
+        "label": "通用",
+        "desc": "读取、保存和重置设置。"
     },
-    "LoadSettings": {
-        "label": "Load Settings",
-        "description": "Reload settings from file. This will overwrite any unsaved changes in the current session."
+    "Stamina": {
+        "label": "耐力",
+        "desc": "攻击耐力和耐力回复相关设置。"
     },
-    "ResetSettings": {
-        "label": "Reset Settings",
-        "description": "Reset all settings to their default values. This will overwrite any unsaved changes in the current session."
+    "Posture": {
+        "label": "架势",
+        "desc": "架势值、架势回复和破防相关设置。"
+    },
+    "Poise": {
+        "label": "韧性",
+        "desc": "韧性值、韧性回复和韧性伤害相关设置。"
+    },
+    "Stagger": {
+        "label": "硬直",
+        "desc": "硬直系统与恢复时间设置。"
+    },
+    "Exhausted": {
+        "label": "力竭",
+        "desc": "力竭进出、惩罚和限制相关设置。"
+    },
+    "Block": {
+        "label": "格挡",
+        "desc": "格挡、限时格挡和格挡耗耐相关设置。"
+    },
+    "WeaponArt": {
+        "label": "战技",
+        "desc": "战技系统、战技 HUD 和战技菜单位置设置。"
+    },
+    "Execution": {
+        "label": "处决",
+        "desc": "当前暂停中的处决模块预留设置。"
     },
     "Debug": {
-        "label": "Debug",
-        "description": ""
+        "label": "调试",
+        "desc": "当前仅保留少量调试信息。"
+    },
+    "None": {
+        "label": "无",
+        "desc": ""
+    },
+    "Unknown": {
+        "label": "未知",
+        "desc": ""
+    },
+    "LoadSettings": {
+        "label": "重新读取设置",
+        "desc": "从 Settings.json 重新载入设置，会覆盖当前尚未保存的临时修改。"
+    },
+    "SaveSettings": {
+        "label": "保存设置",
+        "desc": "将当前菜单中的数值立即写回 Settings.json。"
+    },
+    "ResetSettings": {
+        "label": "重置设置",
+        "desc": "用默认设置覆盖当前设置文件，并重新载入。"
+    },
+    "MenuGeneralSummary": {
+        "label": "当前菜单只编辑标量配置；武器表和种族表仍然在 Settings.json 中维护。",
+        "desc": ""
+    },
+    "MenuStaminaSummary": {
+        "label": "基础武器耐力表与生物耐力表仍然在 Settings.json 中维护。",
+        "desc": ""
+    },
+    "MenuPostureSummary": {
+        "label": "基础架势值与基础架势伤害表仍然在 Settings.json 中维护。",
+        "desc": ""
+    },
+    "MenuPoiseSummary": {
+        "label": "基础韧性值与基础韧性伤害表仍然在 Settings.json 中维护。",
+        "desc": ""
+    },
+    "MenuBlockSummary": {
+        "label": "按武器类型区分的格挡强度仍然在 Settings.json 中维护。",
+        "desc": ""
+    },
+    "MenuExecutionSummary": {
+        "label": "处决入口当前暂停，架势崩溃会直接转成 PostureBreak 硬直。",
+        "desc": "保留的是处决模块的预留入口，不代表当前会从架势崩溃进入处决状态。"
+    },
+    "DebugCrosshairTarget": {
+        "label": "准星目标：{}",
+        "desc": "当前准星选中的目标。"
+    },
+    "UseAttackStaminaSystem": {
+        "label": "启用攻击耐力系统",
+        "desc": "控制 RimCombat 是否接管普通攻击、重击、Swing 和 Precision 命中的耐力消耗。"
+    },
+    "ConsumeStaminaOutCombat": {
+        "label": "战斗外也消耗耐力",
+        "desc": "允许在非战斗状态下仍按 RimCombat 的规则消耗耐力。"
+    },
+    "DisableAttackWhenStaminaZero": {
+        "label": "耐力为零时禁用攻击",
+        "desc": "开启后，耐力耗尽时无法继续攻击。"
+    },
+    "StaminaRegenMult": {
+        "label": "全局耐力回复倍率",
+        "desc": "统一缩放各个种族的耐力回复速度。"
+    },
+    "StaminaRegenMin": {
+        "label": "耐力回复最小值",
+        "desc": "对修改后的种族耐力回复做下限钳制。"
+    },
+    "StaminaRegenMax": {
+        "label": "耐力回复最大值",
+        "desc": "对修改后的种族耐力回复做上限钳制。"
+    },
+    "StaminaRegenDelay": {
+        "label": "耐力回复延迟",
+        "desc": "受击后再次开始回复耐力前的延迟时间。"
+    },
+    "StaminaRegenMultCombat": {
+        "label": "战斗中耐力回复倍率",
+        "desc": "战斗状态下的耐力回复倍率。"
+    },
+    "StaminaRegenMultBlock": {
+        "label": "格挡中耐力回复倍率",
+        "desc": "维持格挡状态时的耐力回复倍率。"
+    },
+    "NormalAttackStaminaCostPerMass": {
+        "label": "普通攻击每单位质量耐力消耗",
+        "desc": "普通攻击时，每单位武器质量额外附加的耐力消耗。"
+    },
+    "PowerAttackStaminaCostMult": {
+        "label": "重击耐力消耗倍率",
+        "desc": "重击基础耐力消耗的倍率。"
+    },
+    "PowerAttackStaminaCostPerMass": {
+        "label": "重击每单位质量耐力消耗",
+        "desc": "重击时，每单位武器质量额外附加的耐力消耗。"
+    },
+    "UsePostureSystem": {
+        "label": "启用架势系统",
+        "desc": "控制架势值、架势伤害、破防与相关 HUD 是否生效。"
+    },
+    "UsePostureHUD": {
+        "label": "启用架势 HUD",
+        "desc": "在可用时通过 TrueHUD 显示架势条。"
+    },
+    "MaxPostureHealthMult": {
+        "label": "生命转最大架势倍率",
+        "desc": "每点最大生命额外提供多少最大架势值。"
+    },
+    "MaxPostureStaminaMult": {
+        "label": "耐力转最大架势倍率",
+        "desc": "每点最大耐力额外提供多少最大架势值。"
+    },
+    "PostureRegenDelay": {
+        "label": "架势回复延迟",
+        "desc": "受到架势伤害后，开始恢复架势前的延迟时间，单位毫秒。"
+    },
+    "PostureRegenPercentPerSecond": {
+        "label": "每秒架势回复百分比",
+        "desc": "每秒回复的最大架势百分比。"
+    },
+    "BashPostureDamageMult": {
+        "label": "盾击架势伤害倍率",
+        "desc": "盾击命中时的架势伤害倍率。"
+    },
+    "PowerAttackPostureDamageMult": {
+        "label": "重击架势伤害倍率",
+        "desc": "重击命中时的架势伤害倍率。"
+    },
+    "PowerBashPostureDamageMult": {
+        "label": "强盾击架势伤害倍率",
+        "desc": "强盾击命中时的架势伤害倍率。"
+    },
+    "ArmorPostureDamageFactor": {
+        "label": "护甲减架势伤害系数",
+        "desc": "护甲值参与减免架势伤害时使用的系数。"
+    },
+    "UsePoiseSystem": {
+        "label": "启用韧性系统",
+        "desc": "控制韧性值、韧性回复和韧性阈值判定是否生效。"
+    },
+    "PoiseStaminaMult": {
+        "label": "耐力转韧性倍率",
+        "desc": "每点最大耐力额外提供多少最大韧性值。"
+    },
+    "PoiseMassMult": {
+        "label": "质量转韧性倍率",
+        "desc": "角色质量对最大韧性的换算倍率。"
+    },
+    "PoiseRegenDelay": {
+        "label": "韧性回复延迟",
+        "desc": "受到韧性伤害后，开始恢复韧性前的延迟时间，单位毫秒。"
+    },
+    "PoiseRegenPercentPerSecond": {
+        "label": "每秒韧性回复百分比",
+        "desc": "每秒回复的最大韧性百分比。"
+    },
+    "StaggerLevelSmall": {
+        "label": "小硬直阈值",
+        "desc": "达到该韧性伤害后，判定为小硬直。"
+    },
+    "StaggerLevelMedium": {
+        "label": "中硬直阈值",
+        "desc": "达到该韧性伤害后，判定为中硬直。"
+    },
+    "StaggerLevelLarge": {
+        "label": "大硬直阈值",
+        "desc": "达到该韧性伤害后，判定为大硬直。"
+    },
+    "LightArmorHeadMaxPoiseBonus": {
+        "label": "轻甲头部最大韧性加成",
+        "desc": "装备轻甲头盔时获得的最大韧性加成。"
+    },
+    "LightArmorBodyMaxPoiseBonus": {
+        "label": "轻甲胸部最大韧性加成",
+        "desc": "装备轻甲胸甲时获得的最大韧性加成。"
+    },
+    "LightArmorHandMaxPoiseBonus": {
+        "label": "轻甲手部最大韧性加成",
+        "desc": "装备轻甲手部护具时获得的最大韧性加成。"
+    },
+    "LightArmorFeetMaxPoiseBonus": {
+        "label": "轻甲脚部最大韧性加成",
+        "desc": "装备轻甲脚部护具时获得的最大韧性加成。"
+    },
+    "HeavyArmorHeadMaxPoiseBonus": {
+        "label": "重甲头部最大韧性加成",
+        "desc": "装备重甲头盔时获得的最大韧性加成。"
+    },
+    "HeavyArmorBodyMaxPoiseBonus": {
+        "label": "重甲胸部最大韧性加成",
+        "desc": "装备重甲胸甲时获得的最大韧性加成。"
+    },
+    "HeavyArmorHandMaxPoiseBonus": {
+        "label": "重甲手部最大韧性加成",
+        "desc": "装备重甲手部护具时获得的最大韧性加成。"
+    },
+    "HeavyArmorFeetMaxPoiseBonus": {
+        "label": "重甲脚部最大韧性加成",
+        "desc": "装备重甲脚部护具时获得的最大韧性加成。"
+    },
+    "BashPoiseDamageMult": {
+        "label": "盾击韧性伤害倍率",
+        "desc": "盾击命中时的韧性伤害倍率。"
+    },
+    "PowerAttackPoiseDamageMult": {
+        "label": "重击韧性伤害倍率",
+        "desc": "重击命中时的韧性伤害倍率。"
+    },
+    "PowerBashPoiseDamageMult": {
+        "label": "强盾击韧性伤害倍率",
+        "desc": "强盾击命中时的韧性伤害倍率。"
+    },
+    "UseStaggerSystem": {
+        "label": "启用硬直系统",
+        "desc": "控制 RimCombat 是否接管硬直等级与恢复时间。"
+    },
+    "StaggerRecoveryTimeSmall": {
+        "label": "小硬直恢复时间",
+        "desc": "小硬直的恢复时间，单位毫秒。"
+    },
+    "StaggerRecoveryTimeMedium": {
+        "label": "中硬直恢复时间",
+        "desc": "中硬直的恢复时间，单位毫秒。"
+    },
+    "StaggerRecoveryTimeLarge": {
+        "label": "大硬直恢复时间",
+        "desc": "大硬直的恢复时间，单位毫秒。"
+    },
+    "UseExhaustedSystem": {
+        "label": "启用力竭系统",
+        "desc": "控制力竭状态及其攻防惩罚是否生效。"
+    },
+    "DisablePlayerAttackWhenExhausted": {
+        "label": "玩家力竭时禁攻",
+        "desc": "开启后，玩家在力竭状态下无法攻击。"
+    },
+    "DisableNPCAttackWhenExhausted": {
+        "label": "NPC 力竭时禁攻",
+        "desc": "开启后，NPC 在力竭状态下无法攻击。"
+    },
+    "ExitExhaustedOnHit": {
+        "label": "受击时退出力竭",
+        "desc": "开启后，受击会帮助角色退出力竭状态。"
+    },
+    "ExhaustedExitPercent": {
+        "label": "退出力竭耐力百分比",
+        "desc": "退出力竭时恢复到的耐力百分比。"
+    },
+    "AttackDamageMultWhenExhausted": {
+        "label": "力竭时攻击伤害倍率",
+        "desc": "力竭状态下造成伤害时的倍率。"
+    },
+    "AttackPostureDamageMultWhenExhausted": {
+        "label": "力竭时攻击架势伤害倍率",
+        "desc": "力竭状态下造成架势伤害时的倍率。"
+    },
+    "OnHitDamageMultWhenExhausted": {
+        "label": "力竭时受击伤害倍率",
+        "desc": "力竭状态下受到普通伤害时的倍率。"
+    },
+    "OnHitPostureDamageMultWhenExhausted": {
+        "label": "力竭时受击架势伤害倍率",
+        "desc": "力竭状态下受到架势伤害时的倍率。"
+    },
+    "UseBlockSystem": {
+        "label": "启用格挡系统",
+        "desc": "控制 RimCombat 是否接管格挡伤害减免与格挡耗耐。"
+    },
+    "TimedBlockEnabled": {
+        "label": "启用限时格挡",
+        "desc": "控制限时格挡窗口与限时格挡收益是否生效。"
+    },
+    "TimedBlockNeverPostureBreak": {
+        "label": "限时格挡免疫破防",
+        "desc": "成功触发限时格挡时，不会被这一击直接破防。"
+    },
+    "TimedBlockLimit": {
+        "label": "限时格挡判定窗口",
+        "desc": "从开始格挡到仍算限时格挡的时间，单位毫秒。"
+    },
+    "TimedBlockDuration": {
+        "label": "限时格挡持续时长",
+        "desc": "限时格挡触发后，后续强化效果持续的时间，单位毫秒。"
+    },
+    "BlockMaxStaminaConsumePercent": {
+        "label": "单次格挡最大耗耐百分比",
+        "desc": "一次格挡最多可消耗最大耐力的百分比。"
+    },
+    "BlockMinStaminaConsume": {
+        "label": "格挡最小附加耗耐",
+        "desc": "耐力不足完全格挡时，额外保底消耗的耐力值。"
+    },
+    "TimedBlockBlockStrengthMult": {
+        "label": "限时格挡强度倍率",
+        "desc": "限时格挡状态下，对格挡强度施加的额外倍率。"
+    },
+    "UseWeaponArtSystem": {
+        "label": "启用战技系统",
+        "desc": "控制新战技系统、战技状态机和 payload 处理是否生效。"
+    },
+    "UseWeaponArtHUD": {
+        "label": "启用战技 HUD",
+        "desc": "控制 PrismaUI 战技 HUD 是否显示。"
+    },
+    "WeaponArtHUDPosX": {
+        "label": "战技 HUD 横向位置",
+        "desc": "战技 HUD 的横向屏幕百分比位置。"
+    },
+    "WeaponArtHUDPosY": {
+        "label": "战技 HUD 纵向位置",
+        "desc": "战技 HUD 的纵向屏幕百分比位置。"
+    },
+    "WeaponArtHUDScale": {
+        "label": "战技 HUD 缩放",
+        "desc": "战技 HUD 的整体缩放倍率。"
+    },
+    "WeaponArtMenuStartPercent": {
+        "label": "战技菜单起始位置",
+        "desc": "战技菜单的横向起始屏幕百分比位置。"
+    },
+    "SwitchWeaponArtMenu_Purpose": {
+        "label": "切换战技菜单",
+        "desc": "在物品栏打开时显示或隐藏战技菜单。"
+    },
+    "SwitchWeaponArtHUD_Purpose": {
+        "label": "切换战技状态",
+        "desc": "切换当前战技的启用与关闭状态。"
+    },
+    "WeaponArtMenuLevel": {
+        "label": "战技等级",
+        "desc": "战技系统的当前等级显示。"
+    },
+    "WeaponArtMenuPoints": {
+        "label": "战技点数",
+        "desc": "当前可用的战技点数。"
+    },
+    "WeaponArtMenuClose": {
+        "label": "关闭",
+        "desc": "关闭战技菜单。"
+    },
+    "WeaponArtMenuCatalog": {
+        "label": "图录",
+        "desc": "战技列表区域的标题。"
+    },
+    "WeaponArtMenuCatalogTitle": {
+        "label": "全部战技",
+        "desc": "战技总览标题。"
+    },
+    "WeaponArtMenuCatalogNote": {
+        "label": "从下方选择战技。上方区域会分别显示当前武器和当前选中的战技。",
+        "desc": "战技菜单的说明文字。"
+    },
+    "WeaponArtMenuArtCount": {
+        "label": "共 {} 项",
+        "desc": "战技数量统计。"
+    },
+    "WeaponArtMenuNoDescription": {
+        "label": "暂无描述。",
+        "desc": "缺少战技描述时的占位文本。"
+    },
+    "WeaponArtMenuNoArtsTitle": {
+        "label": "未加载任何战技",
+        "desc": "战技列表为空时的标题。"
+    },
+    "WeaponArtMenuNoArtsBody": {
+        "label": "菜单已就绪，但插件暂时还没有传来任何战技数据。",
+        "desc": "战技列表为空时的说明。"
+    },
+    "WeaponArtMenuCurrentWeapon": {
+        "label": "当前武器",
+        "desc": "当前武器面板的标题。"
+    },
+    "WeaponArtMenuNoWeaponSelected": {
+        "label": "未选中武器",
+        "desc": "物品栏没有选中武器时显示。"
+    },
+    "WeaponArtMenuInventorySelectionRequired": {
+        "label": "需要在物品栏中选中武器",
+        "desc": "提醒玩家先选中武器。"
+    },
+    "WeaponArtMenuSelectWeaponTitle": {
+        "label": "请先在物品栏中选择一把武器",
+        "desc": "当前武器面板空状态标题。"
+    },
+    "WeaponArtMenuSelectWeaponBody": {
+        "label": "左上区域会显示当前选中武器、已装配战技和装配状态。",
+        "desc": "当前武器面板空状态说明。"
+    },
+    "WeaponArtMenuBoundArt": {
+        "label": "已装配战技",
+        "desc": "当前武器面板中的字段名。"
+    },
+    "WeaponArtMenuWeaponType": {
+        "label": "武器类型",
+        "desc": "当前武器面板中的字段名。"
+    },
+    "WeaponArtMenuWeaponBody": {
+        "label": "若当前高亮战技已解锁且武器条件匹配，就可以装配到这把武器上。",
+        "desc": "当前武器面板的说明。"
+    },
+    "WeaponArtMenuNoWeaponArtSelected": {
+        "label": "未选中战技",
+        "desc": "没有高亮战技时的按钮文本。"
+    },
+    "WeaponArtMenuSelectedArtAlreadyBound": {
+        "label": "该战技已装配",
+        "desc": "当前高亮战技已经装配到武器时的按钮文本。"
+    },
+    "WeaponArtMenuBindAction": {
+        "label": "装配 {}",
+        "desc": "将某个战技装配到武器时的按钮文本。"
+    },
+    "WeaponArtMenuUnbindCurrent": {
+        "label": "解除当前战技",
+        "desc": "移除当前武器上的战技。"
+    },
+    "WeaponArtMenuNoWeaponArtBound": {
+        "label": "当前没有装配战技",
+        "desc": "当前武器没有装配战技时的按钮文本。"
+    },
+    "WeaponArtMenuSelectedArt": {
+        "label": "当前战技",
+        "desc": "右上区域的标题。"
+    },
+    "WeaponArtMenuNoArtSelected": {
+        "label": "未选中战技",
+        "desc": "当前没有高亮战技时显示。"
+    },
+    "WeaponArtMenuWaitingTitle": {
+        "label": "等待战技数据",
+        "desc": "战技详情空状态标题。"
+    },
+    "WeaponArtMenuWaitingBody": {
+        "label": "等插件把战技列表传过来后，当前选中的条目就会显示在这里。",
+        "desc": "战技详情空状态说明。"
+    },
+    "WeaponArtMenuUnlockLevel": {
+        "label": "解锁等级",
+        "desc": "战技详情中的字段名。"
+    },
+    "WeaponArtMenuPointCost": {
+        "label": "点数消耗",
+        "desc": "战技详情中的字段名。"
+    },
+    "WeaponArtMenuActivation": {
+        "label": "发动方式",
+        "desc": "战技详情中的字段名。"
+    },
+    "WeaponArtMenuAssignment": {
+        "label": "装配状态",
+        "desc": "战技详情中的字段名。"
+    },
+    "WeaponArtMenuAvailable": {
+        "label": "可装配",
+        "desc": "当前战技可装配时的显示。"
+    },
+    "WeaponArtMenuCurrentlyAssigned": {
+        "label": "当前已装配",
+        "desc": "当前战技已经装配时的徽章文本。"
+    },
+    "WeaponArtMenuUnlocked": {
+        "label": "已解锁",
+        "desc": "战技已解锁时的徽章文本。"
+    },
+    "WeaponArtMenuLocked": {
+        "label": "未解锁",
+        "desc": "战技未解锁时的徽章文本。"
+    },
+    "WeaponArtMenuLevelBadge": {
+        "label": "等级 {}",
+        "desc": "战技卡片上的等级标记。"
+    },
+    "WeaponArtMenuCostBadge": {
+        "label": "消耗 {}",
+        "desc": "战技卡片上的点数消耗标记。"
+    },
+    "WeaponArtMenuPrepare": {
+        "label": "预备",
+        "desc": "需要预备的战技类型。"
+    },
+    "WeaponArtMenuInstant": {
+        "label": "即发",
+        "desc": "可直接发动的战技类型。"
+    },
+    "WeaponArtMenuCompatible": {
+        "label": "可用",
+        "desc": "当前武器可使用该战技。"
+    },
+    "WeaponArtMenuIncompatible": {
+        "label": "不兼容",
+        "desc": "当前武器无法使用该战技。"
+    },
+    "WeaponArtMenuAssigned": {
+        "label": "已装配",
+        "desc": "战技已经被当前武器装配。"
+    },
+    "WeaponArtMenuAlreadyUnlocked": {
+        "label": "已解锁",
+        "desc": "战技解锁按钮的已解锁文本。"
+    },
+    "WeaponArtMenuUnlockAction": {
+        "label": "解锁战技（{} 点）",
+        "desc": "解锁战技按钮文本。"
+    },
+    "WeaponArtMenuAssignedToWeapon": {
+        "label": "已装配到武器",
+        "desc": "当前战技已装配时的按钮文本。"
+    },
+    "WeaponArtMenuAssignToSelectedWeapon": {
+        "label": "装配到当前武器",
+        "desc": "将战技装配到选中武器的按钮文本。"
+    },
+    "WeaponArtMenuHintSelectArt": {
+        "label": "先从下方网格里选择一个战技，再决定是否装配到这把武器。",
+        "desc": "未选中战技时的提示。"
+    },
+    "WeaponArtMenuHintCanBind": {
+        "label": "可以把 {} 装配到这把武器上，也可以先解除当前装配。",
+        "desc": "当前战技可装配时的提示。"
+    },
+    "WeaponArtMenuHintHasBinding": {
+        "label": "这把武器已经装配了一个战技。你可以换成当前高亮的兼容战技，或者先解除装配。",
+        "desc": "武器已有装配时的提示。"
+    },
+    "WeaponArtMenuHintNoBinding": {
+        "label": "选择一个已解锁且兼容的战技进行装配，或者保持这把武器不装配战技。",
+        "desc": "武器未装配战技时的提示。"
+    },
+    "WeaponArtMenuHintUnlockBlocked": {
+        "label": "需要等级 {}，并至少保留 {} 点可用战技点数。",
+        "desc": "解锁条件不足时的提示。"
+    },
+    "WeaponArtMenuHintNeedWeapon": {
+        "label": "请先在物品栏中选中一把武器，才能进行与武器相关的装配。",
+        "desc": "未选中武器时的提示。"
+    },
+    "WeaponArtMenuHintIncompatible": {
+        "label": "当前武器不满足这个战技的武器条件。",
+        "desc": "武器不兼容时的提示。"
+    },
+    "WeaponArtMenuHintAlreadyAssigned": {
+        "label": "当前武器已经装配了这个高亮战技。",
+        "desc": "战技已装配时的提示。"
+    },
+    "WeaponArtMenuHintReadyToAssign": {
+        "label": "这个战技已经可以装配到当前选中的武器上。",
+        "desc": "战技可装配时的提示。"
+    },
+    "WeaponArtMenuHintUnlockFirst": {
+        "label": "先解锁这个战技，之后才能把它装配到武器上。",
+        "desc": "战技未解锁时的提示。"
+    },
+    "WeaponArtMenuHintStateUpdated": {
+        "label": "战技状态已更新。",
+        "desc": "默认提示文本。"
+    },
+    "UseExecutionSystem": {
+        "label": "启用处决系统",
+        "desc": "当前仅作为预留开关；Posture 侧的处决入口已经暂停。"
+    },
+    "OnHitDamageMultWhenExecutable": {
+        "label": "可处决状态受击伤害倍率",
+        "desc": "保留给未来处决系统恢复时使用的倍率。"
     },
     "UnknownWeaponType": {
-        "label": "Unknown",
-        "description": ""
+        "label": "未知",
+        "desc": ""
     },
     "WeaponArtUnassigned": {
-        "label": "Unassigned",
-        "description": ""
+        "label": "未分配",
+        "desc": ""
     },
     "WeaponArtUnknown": {
-        "label": "Unknown Weapon Art",
-        "description": ""
+        "label": "未知战技",
+        "desc": ""
     },
     "WeaponArtHUDLabel": {
-        "label": "Weapon Art",
-        "description": ""
+        "label": "战技",
+        "desc": ""
     },
     "WeaponArtHUDStateDisable": {
-        "label": "Disabled",
-        "description": ""
+        "label": "关闭",
+        "desc": ""
     },
     "WeaponArtHUDStatePrepare": {
-        "label": "Preparing",
-        "description": ""
+        "label": "准备中",
+        "desc": ""
     },
     "WeaponArtHUDStateEnable": {
-        "label": "Enabled",
-        "description": ""
+        "label": "已启用",
+        "desc": ""
     },
     "Unarm": {
-        "label": "Unarmed",
-        "description": ""
+        "label": "空手",
+        "desc": ""
     },
     "Werewolf": {
-        "label": "Werewolf",
-        "description": ""
+        "label": "狼人",
+        "desc": ""
     },
     "Werebear": {
-        "label": "Werebear",
-        "description": ""
+        "label": "熊人",
+        "desc": ""
     },
     "VampireLord": {
-        "label": "Vampire Lord",
-        "description": ""
+        "label": "吸血鬼领主",
+        "desc": ""
     },
     "Dagger": {
-        "label": "Dagger",
-        "description": ""
+        "label": "匕首",
+        "desc": ""
     },
     "Claw": {
-        "label": "Claw",
-        "description": ""
+        "label": "爪套",
+        "desc": ""
     },
     "Sword": {
-        "label": "Sword",
-        "description": ""
+        "label": "单手剑",
+        "desc": ""
     },
     "Rapier": {
-        "label": "Rapier",
-        "description": ""
+        "label": "刺剑",
+        "desc": ""
     },
     "Katana": {
-        "label": "Katana",
-        "description": ""
+        "label": "武士刀",
+        "desc": ""
     },
     "WarAxe": {
-        "label": "War Axe",
-        "description": ""
+        "label": "单手斧",
+        "desc": ""
     },
     "Mace": {
-        "label": "Mace",
-        "description": ""
+        "label": "单手锤",
+        "desc": ""
     },
     "Cestus": {
-        "label": "Cestus",
-        "description": ""
+        "label": "拳套",
+        "desc": ""
     },
     "Whip": {
-        "label": "Whip",
-        "description": ""
+        "label": "鞭",
+        "desc": ""
     },
     "ShortSpear": {
-        "label": "Short Spear",
-        "description": ""
+        "label": "短枪",
+        "desc": ""
     },
     "GreatSword": {
-        "label": "Great Sword",
-        "description": ""
+        "label": "双手剑",
+        "desc": ""
     },
     "GreatKatana": {
-        "label": "Great Katana",
-        "description": ""
+        "label": "大太刀",
+        "desc": ""
     },
     "BattleAxe": {
-        "label": "Battle Axe",
-        "description": ""
+        "label": "双手斧",
+        "desc": ""
     },
     "WarHammer": {
-        "label": "War Hammer",
-        "description": ""
+        "label": "战锤",
+        "desc": ""
     },
     "Quarterstaff": {
-        "label": "Quarterstaff",
-        "description": ""
+        "label": "长棍",
+        "desc": ""
     },
     "Glaive": {
-        "label": "Glaive",
-        "description": ""
+        "label": "关刀",
+        "desc": ""
     },
     "Pike": {
-        "label": "Pike",
-        "description": ""
+        "label": "长枪",
+        "desc": ""
     },
     "Halberd": {
-        "label": "Halberd",
-        "description": ""
+        "label": "戟",
+        "desc": ""
     },
     "Bow": {
-        "label": "Bow",
-        "description": ""
+        "label": "弓",
+        "desc": ""
     },
     "Crossbow": {
-        "label": "Crossbow",
-        "description": ""
+        "label": "弩",
+        "desc": ""
     },
     "Staff": {
-        "label": "Staff",
-        "description": ""
+        "label": "法杖",
+        "desc": ""
     },
     "Shield": {
-        "label": "Shield",
-        "description": ""
+        "label": "盾",
+        "desc": ""
     },
     "Torch": {
-        "label": "Torch",
-        "description": ""
+        "label": "火把",
+        "desc": ""
     }
 }

@@ -14,20 +14,41 @@ const hudText = {
     enabled: "Enabled",
 };
 
+const hudState = {
+    mode: 0,
+    name: "",
+    statusText: "",
+};
+
+function resolveStatusText(mode) {
+    if (mode === 2) {
+        return hudText.enabled;
+    }
+    if (mode === 1) {
+        return hudText.preparing;
+    }
+    return hudText.disabled;
+}
+
+function renderHud() {
+    const isDisabled = hudState.mode === 0;
+    const isPrepare = hudState.mode === 1;
+    const isEnabled = hudState.mode === 2;
+
+    elements.label.textContent = hudText.label;
+    elements.name.textContent = hudState.name || hudText.defaultName;
+    elements.status.textContent = hudState.statusText || resolveStatusText(hudState.mode);
+    elements.shell.classList.toggle("is-enabled", isEnabled);
+    elements.shell.classList.toggle("is-prepare", isPrepare);
+    elements.shell.classList.toggle("is-disabled", isDisabled);
+}
+
 function setHudState(payload) {
     try {
         const data = JSON.parse(payload);
-        const state = Number(data.state ?? 0);
-
-        const isDisabled = state === 0;
-        const isPrepare = state === 1;
-        const isEnabled = state === 2;
-
-        elements.status.textContent =
-            data.text || (isEnabled ? hudText.enabled : isPrepare ? hudText.preparing : hudText.disabled);
-        elements.shell.classList.toggle("is-enabled", isEnabled);
-        elements.shell.classList.toggle("is-prepare", isPrepare);
-        elements.shell.classList.toggle("is-disabled", isDisabled);
+        hudState.mode = Number(data.state ?? 0);
+        hudState.statusText = typeof data.text === "string" ? data.text : "";
+        renderHud();
     } catch (error) {
         console.error("WeaponArtHUD: failed to parse state", error, payload);
     }
@@ -36,7 +57,8 @@ function setHudState(payload) {
 function setHudName(payload) {
     try {
         const data = JSON.parse(payload);
-        elements.name.textContent = data.name || hudText.defaultName;
+        hudState.name = typeof data.name === "string" ? data.name : "";
+        renderHud();
     } catch (error) {
         console.error("WeaponArtHUD: failed to parse name", error, payload);
     }
@@ -55,16 +77,16 @@ function setHudConfig(payload) {
         if (typeof data.scale === "number") {
             document.documentElement.style.setProperty("--hud-scale", String(data.scale));
         }
+        if (data.strings && typeof data.strings === "object") {
+            Object.assign(hudText, data.strings);
+        }
         if (typeof data.label === "string" && data.label) {
             hudText.label = data.label;
-            elements.label.textContent = data.label;
         }
         if (typeof data.defaultName === "string" && data.defaultName) {
             hudText.defaultName = data.defaultName;
-            if (!elements.name.textContent) {
-                elements.name.textContent = data.defaultName;
-            }
         }
+        renderHud();
     } catch (error) {
         console.error("WeaponArtHUD: failed to parse config", error, payload);
     }
@@ -73,3 +95,5 @@ function setHudConfig(payload) {
 window.setHudState = setHudState;
 window.setHudName = setHudName;
 window.setHudConfig = setHudConfig;
+
+renderHud();

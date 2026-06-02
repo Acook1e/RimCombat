@@ -406,18 +406,9 @@ void LoadSettings()
     LoadSetting(poise, "Poise", "PoiseMassMult", fPoiseMassMult);
     LoadSetting(poise, "Poise", "PoiseRegenDelay", uPoiseRegenDelay);
     LoadSetting(poise, "Poise", "PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond);
-    if (poise.contains("StaggerLevelSmall"))
-      LoadSetting(poise, "Poise", "StaggerLevelSmall", fStaggerLevelSmall);
-    else
-      LoadSetting(poise, "Poise", "ImpactLevelSmall", fStaggerLevelSmall);
-    if (poise.contains("StaggerLevelMedium"))
-      LoadSetting(poise, "Poise", "StaggerLevelMedium", fStaggerLevelMedium);
-    else
-      LoadSetting(poise, "Poise", "ImpactLevelMedium", fStaggerLevelMedium);
-    if (poise.contains("StaggerLevelLarge"))
-      LoadSetting(poise, "Poise", "StaggerLevelLarge", fStaggerLevelLarge);
-    else
-      LoadSetting(poise, "Poise", "ImpactLevelLarge", fStaggerLevelLarge);
+    LoadSetting(poise, "Poise", "StaggerLevelSmall", fStaggerLevelSmall);
+    LoadSetting(poise, "Poise", "StaggerLevelMedium", fStaggerLevelMedium);
+    LoadSetting(poise, "Poise", "StaggerLevelLarge", fStaggerLevelLarge);
     LoadSetting(poise, "Poise", "LightArmorHeadMaxPoiseBonus", fLightArmorHeadMaxPoiseBonus);
     LoadSetting(poise, "Poise", "LightArmorBodyMaxPoiseBonus", fLightArmorBodyMaxPoiseBonus);
     LoadSetting(poise, "Poise", "LightArmorHandMaxPoiseBonus", fLightArmorHandMaxPoiseBonus);

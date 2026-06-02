@@ -77,23 +77,36 @@ public:
                RE::BSTEventSource<RE::MenuOpenCloseEvent>* eventSource) override;
 };
 
-// 按键事件监听
-class InputEvent
+// Mod事件回调
+class ModEvent : public RE::BSTEventSink<SKSE::ModCallbackEvent>
 {
 public:
+  static ModEvent* GetSingleton()
+  {
+    static ModEvent singleton;
+    return &singleton;
+  }
   static void Install()
   {
-    const REL::Relocation<uintptr_t> addr{REL::VariantID(67315, 68617, 0xC519E0)};
-    auto& trampoline = SKSE::GetTrampoline();
-    SKSE::AllocTrampoline(14);
-    _ProcessEvent = trampoline.write_call<5>(
-        addr.address() + REL::VariantOffset(0x7B, 0x7B, 0x81).offset(), ProcessEvent);
+    RegisterWeaponArtHUDInput();
+    RegisterWeaponArtMenuInput();
+
+    auto source = SKSE::GetModCallbackEventSource();
+    if (source)
+      source->AddEventSink(GetSingleton());
+    logger::info("ModEvent: Installing event hook");
   }
 
+  static void RegisterWeaponArtHUDInput();
+  static void RegisterWeaponArtMenuInput();
+
+  RE::BSEventNotifyControl
+  ProcessEvent(const SKSE::ModCallbackEvent* event,
+               RE::BSTEventSource<SKSE::ModCallbackEvent>* eventSource) override;
+
 private:
-  static void ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
-                           RE::InputEvent* const* a_events);
-  static inline REL::Relocation<decltype(ProcessEvent)> _ProcessEvent;
+  static inline std::int32_t id_WeaponArtHUD;
+  static inline std::int32_t id_WeaponArtMenu;
 };
 
 inline void Install()
@@ -101,6 +114,6 @@ inline void Install()
   AnimEvent::Install();
   HitEvent::Install();
   MenuEvent::Install();
-  InputEvent::Install();
+  ModEvent::Install();
 }
 }  // namespace Events

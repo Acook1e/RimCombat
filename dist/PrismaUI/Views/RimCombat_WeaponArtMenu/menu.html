@@ -10,66 +10,49 @@
 
 <body>
     <main class="shell">
-        <div class="bg-orbit orbit-a"></div>
-        <div class="bg-orbit orbit-b"></div>
-        <header class="topbar panel-cut">
-            <div>
-                <p class="eyebrow">Rim Combat</p>
-                <h1>Weapon Arts</h1>
-                <p class="subtitle">
-                    Opened alongside the inventory. Browse arts on the right and bind
-                    them to the currently selected inventory entry.
-                </p>
+        <div class="mist mist-top"></div>
+        <div class="mist mist-bottom"></div>
+
+        <header class="status-bar panel-frame">
+            <div class="title-cluster">
+                <p class="section-kicker" id="menu-brand">RimCombat</p>
+                <h1 id="menu-title">Weapon Arts</h1>
             </div>
-            <div class="topbar-actions">
-                <div class="stats-grid">
-                    <article class="stat-card">
-                        <span class="stat-label">Level</span>
-                        <strong id="player-level">1</strong>
-                    </article>
-                    <article class="stat-card">
-                        <span class="stat-label">Points</span>
-                        <strong id="player-points">0</strong>
-                    </article>
-                </div>
-                <button id="close-button" class="ghost-button" type="button">
-                    Close
-                </button>
+
+            <div class="resource-strip">
+                <article class="resource-card">
+                    <span class="resource-label" id="level-label">Level</span>
+                    <strong id="player-level">1</strong>
+                </article>
+                <article class="resource-card">
+                    <span class="resource-label" id="points-label">Points</span>
+                    <strong id="player-points">0</strong>
+                </article>
             </div>
+
+            <button id="close-button" class="close-button" type="button">
+                Close
+            </button>
         </header>
 
-        <section class="layout">
-            <section class="art-column">
-                <article class="detail-panel panel-cut" id="detail-panel"></article>
-                <aside class="list-panel panel-cut">
-                    <div class="section-heading">
-                        <div>
-                            <p class="eyebrow">Catalog</p>
-                            <h2>All Weapon Arts</h2>
-                        </div>
-                        <span id="art-count" class="counter-pill">0 Arts</span>
-                    </div>
-
-                    <label class="filter-box" aria-label="Filter weapon arts">
-                        <span>Filter</span>
-                        <input id="filter-input" type="text" placeholder="Reserved for a later update" disabled />
-                    </label>
-                    <p class="filter-note">Filter UI is reserved. List rendering and unlock flow are active.</p>
-
-                    <div id="art-list" class="art-list"></div>
-                </aside>
-            </section>
-
-            <article class="weapon-panel panel-cut" id="weapon-panel"></article>
+        <section class="summary-row">
+            <article class="summary-panel panel-frame" id="weapon-panel"></article>
+            <article class="summary-panel panel-frame" id="detail-panel"></article>
         </section>
 
-        <footer class="footer-hint panel-cut">
-            <span>Tip</span>
-            <p>
-                Keep the inventory open and move the cursor across entries. The panel refreshes the selected item
-                automatically.
+        <section class="catalog-panel panel-frame">
+            <div class="catalog-header">
+                <div>
+                    <p class="section-kicker" id="catalog-kicker">Catalog</p>
+                    <h2 id="catalog-title">All Weapon Arts</h2>
+                </div>
+                <span id="art-count" class="count-badge">0 Arts</span>
+            </div>
+            <p class="catalog-note" id="catalog-note">
+                Select a weapon art below. The upper panels show the selected weapon and the highlighted art.
             </p>
-        </footer>
+            <div id="art-list" class="art-grid"></div>
+        </section>
     </main>
 
     <script src="menu.js"></script>

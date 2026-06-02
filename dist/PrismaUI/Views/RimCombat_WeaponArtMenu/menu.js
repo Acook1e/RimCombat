@@ -6,6 +6,70 @@ const state = {
     filterEnabled: false,
 };
 
+const strings = {
+    brand: "RimCombat",
+    title: "Weapon Arts",
+    level: "Weapon Art Level",
+    points: "Weapon Art Points",
+    close: "Close",
+    catalog: "Catalog",
+    catalogTitle: "All Weapon Arts",
+    catalogNote: "Select a weapon art below. The upper panels show the selected weapon and the highlighted art.",
+    artCount: "{} Arts",
+    noDescription: "No description available.",
+    noArtsTitle: "No weapon arts loaded",
+    noArtsBody: "The menu is ready, but no weapon art data was received from the plugin yet.",
+    currentWeapon: "Current Weapon",
+    noWeaponSelected: "No weapon selected",
+    inventorySelectionRequired: "Inventory selection required",
+    selectWeaponTitle: "Select a weapon in the inventory",
+    selectWeaponBody: "The upper-left panel shows the selected weapon, its equipped art, and the bind state.",
+    boundArt: "Bound Art",
+    weaponType: "Weapon Type",
+    unassigned: "Unassigned",
+    unknown: "Unknown",
+    weaponBody: "The highlighted weapon art can be bound to this weapon if it is unlocked and compatible.",
+    noWeaponArtSelected: "No Weapon Art Selected",
+    selectedArtAlreadyBound: "Selected Art Already Bound",
+    bindAction: "Bind {}",
+    unbindCurrent: "Unbind Current Weapon Art",
+    noWeaponArtBound: "No Weapon Art Bound",
+    selectedArt: "Selected Art",
+    noArtSelected: "No art selected",
+    waitingTitle: "Waiting for weapon art data",
+    waitingBody: "Once the plugin sends the catalog, the selected entry will appear here.",
+    unlockLevel: "Unlock Level",
+    pointCost: "Point Cost",
+    activation: "Activation",
+    assignment: "Assignment",
+    available: "Available",
+    currentlyAssigned: "Currently Assigned",
+    unlocked: "Unlocked",
+    locked: "Locked",
+    levelBadge: "Lv {}",
+    costBadge: "Cost {}",
+    prepare: "Prepared",
+    instant: "Instant",
+    compatible: "Compatible",
+    incompatible: "Not compatible",
+    assigned: "Assigned",
+    alreadyUnlocked: "Already Unlocked",
+    unlockAction: "Unlock Art ({} pt)",
+    assignedToWeapon: "Assigned to Weapon",
+    assignToSelectedWeapon: "Assign to Selected Weapon",
+    hintSelectArt: "Select a weapon art from the grid to bind it to this weapon.",
+    hintCanBind: "Bind {} to this weapon, or clear the current binding.",
+    hintHasBinding: "This weapon already has a bound weapon art. You can replace it with the highlighted compatible art or clear it.",
+    hintNoBinding: "Select an unlocked compatible weapon art to bind it, or leave this weapon unassigned.",
+    hintUnlockBlocked: "Requires level {} and {} available point(s).",
+    hintNeedWeapon: "Select a weapon in the inventory to enable weapon-specific assignment.",
+    hintIncompatible: "The selected weapon does not meet this art's weapon requirements.",
+    hintAlreadyAssigned: "This weapon is already using the highlighted art.",
+    hintReadyToAssign: "This art is ready to be assigned to the currently selected weapon.",
+    hintUnlockFirst: "Unlock this art first, then it can be assigned to the selected weapon.",
+    hintStateUpdated: "Weapon art state updated.",
+};
+
 const elements = {
     artList: document.getElementById("art-list"),
     artCount: document.getElementById("art-count"),
@@ -14,9 +78,38 @@ const elements = {
     weaponPanel: document.getElementById("weapon-panel"),
     detailPanel: document.getElementById("detail-panel"),
     closeButton: document.getElementById("close-button"),
+    menuBrand: document.getElementById("menu-brand"),
+    menuTitle: document.getElementById("menu-title"),
+    levelLabel: document.getElementById("level-label"),
+    pointsLabel: document.getElementById("points-label"),
+    catalogKicker: document.getElementById("catalog-kicker"),
+    catalogTitle: document.getElementById("catalog-title"),
+    catalogNote: document.getElementById("catalog-note"),
 };
 
 let selectedArtId = null;
+
+function formatText(template, ...values) {
+    let result = String(template ?? "");
+    values.forEach((value) => {
+        result = result.replace("{}", String(value ?? ""));
+    });
+    return result;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+function describe(value) {
+    const text = String(value ?? "").trim();
+    return text || strings.noDescription;
+}
 
 function callPrismaListener(name, payload = "") {
     const listener = window[name];
@@ -28,11 +121,11 @@ function callPrismaListener(name, payload = "") {
 }
 
 function badge(label, tone = "warn") {
-    return `<span class="badge ${tone}">${label}</span>`;
+    return `<span class="badge ${tone}">${escapeHtml(label)}</span>`;
 }
 
-function metricCard(label, value) {
-    return `<article class="metric-card"><span>${label}</span><strong>${value}</strong></article>`;
+function infoCard(label, value) {
+    return `<article class="info-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`;
 }
 
 function normalizeState(nextState) {
@@ -78,58 +171,73 @@ function syncSelection() {
     selectedArtId = state.arts[0].id;
 }
 
+function applyStaticText() {
+    elements.menuBrand.textContent = strings.brand;
+    elements.menuTitle.textContent = strings.title;
+    elements.levelLabel.textContent = strings.level;
+    elements.pointsLabel.textContent = strings.points;
+    elements.closeButton.textContent = strings.close;
+    elements.catalogKicker.textContent = strings.catalog;
+    elements.catalogTitle.textContent = strings.catalogTitle;
+    elements.catalogNote.textContent = strings.catalogNote;
+}
+
 function renderHeader() {
     elements.playerLevel.textContent = String(state.playerLevel);
     elements.playerPoints.textContent = String(state.playerPoint);
-    elements.artCount.textContent = `${state.arts.length} Arts`;
+    elements.artCount.textContent = formatText(strings.artCount, state.arts.length);
 }
 
 function renderList() {
     if (!state.arts.length) {
         elements.artList.innerHTML = `
-			<div class="empty-state">
-				<div>
-					<h3>No weapon arts loaded</h3>
-					<p class="empty-copy">The menu is ready, but no weapon art data was received from the plugin yet.</p>
-				</div>
-			</div>`;
+            <div class="empty-state">
+                <div>
+                    <h3>${escapeHtml(strings.noArtsTitle)}</h3>
+                    <p class="empty-copy">${escapeHtml(strings.noArtsBody)}</p>
+                </div>
+            </div>`;
         return;
     }
 
     elements.artList.innerHTML = state.arts
         .map((art, index) => {
             const tags = [
-                art.unlocked ? badge("Unlocked", "ok") : badge("Locked", "bad"),
-                badge(`Lv ${art.unlockLevel}`, "warn"),
-                badge(`Cost ${art.consumePoint}`, "warn"),
-                badge(art.needPrepare ? "Prepare" : "Instant", "warn"),
+                art.unlocked ? badge(strings.unlocked, "ok") : badge(strings.locked, "bad"),
+                badge(formatText(strings.levelBadge, art.unlockLevel), "warn"),
+                badge(formatText(strings.costBadge, art.consumePoint), "warn"),
+                badge(art.needPrepare ? strings.prepare : strings.instant, "warn"),
             ];
 
             if (state.selectedWeapon) {
                 tags.push(
                     art.weaponAllowed
-                        ? badge("Compatible", "ok")
-                        : badge("Not compatible", "bad")
+                        ? badge(strings.compatible, "ok")
+                        : badge(strings.incompatible, "bad")
                 );
             }
 
             if (art.isAssigned) {
-                tags.push(badge("Assigned", "ok"));
+                tags.push(badge(strings.assigned, "ok"));
             }
 
             return `
-				<button
-					class="art-item ${art.id === selectedArtId ? "active" : ""}"
-					type="button"
-					data-art-id="${art.id}"
-					style="animation-delay:${index * 28}ms"
-				>
-					<div class="art-item-title">
-                        <strong>${art.name}</strong>
-					</div>
-					<div class="art-item-meta">${tags.join("")}</div>
-					<p class="art-item-copy">${art.description}</p>
-				</button>`;
+                <button
+                    class="art-card ${art.id === selectedArtId ? "active" : ""}"
+                    type="button"
+                    data-art-id="${art.id}"
+                    style="animation-delay:${index * 24}ms"
+                >
+                    <div class="art-card-top">
+                        <div>
+                            <p class="section-kicker">${escapeHtml(art.needPrepare ? strings.prepare : strings.instant)}</p>
+                            <h3 class="art-card-name">${escapeHtml(art.name)}</h3>
+                        </div>
+                        <span class="card-index">${String(index + 1).padStart(2, "0")}</span>
+                    </div>
+                    <div class="badge-row">${tags.join("")}</div>
+                    <p class="art-card-copy">${escapeHtml(describe(art.description))}</p>
+                </button>`;
         })
         .join("");
 
@@ -144,61 +252,70 @@ function renderList() {
 function renderWeaponPanel() {
     if (!state.selectedWeapon) {
         elements.weaponPanel.innerHTML = `
-			<div class="panel-title">
-				<div>
-					<p class="eyebrow">Current Weapon</p>
-					<h2>No weapon selected</h2>
-				</div>
-				${badge("Inventory selection required", "bad")}
-			</div>
-			<div class="empty-state">
-				<div>
-					<h3>Select a weapon in the inventory</h3>
-					<p class="empty-copy">The right panel will show the selected weapon, its current art, and whether the highlighted art can be assigned.</p>
-				</div>
-			</div>`;
+            <div class="panel-header">
+                <div>
+                    <p class="section-kicker">${escapeHtml(strings.currentWeapon)}</p>
+                    <h2 class="panel-name">${escapeHtml(strings.noWeaponSelected)}</h2>
+                </div>
+                ${badge(strings.inventorySelectionRequired, "bad")}
+            </div>
+            <div class="empty-state">
+                <div>
+                    <h3>${escapeHtml(strings.selectWeaponTitle)}</h3>
+                    <p class="empty-copy">${escapeHtml(strings.selectWeaponBody)}</p>
+                </div>
+            </div>`;
         return;
     }
 
     const art = getSelectedArt();
+    const currentArtName = state.selectedWeapon.currentArtName || strings.unassigned;
+    const weaponType = state.selectedWeapon.type || strings.unknown;
     const hasAssignedArt = Boolean(state.selectedWeapon.currentArtId);
     const canAssign = Boolean(
         art && state.selectedWeapon && art.unlocked && art.weaponAllowed && !art.isAssigned
     );
     const assignLabel = !art
-        ? "No Weapon Art Selected"
+        ? strings.noWeaponArtSelected
         : art.isAssigned
-            ? "Selected Art Already Bound"
-            : `Bind ${art.name}`;
+            ? strings.selectedArtAlreadyBound
+            : formatText(strings.bindAction, art.name);
     const weaponHint = !art
-        ? "Select a weapon art from the catalog to bind it to this weapon."
+        ? strings.hintSelectArt
         : canAssign
-            ? `Bind ${art.name} to this weapon, or clear the current binding without assigning a replacement.`
+            ? formatText(strings.hintCanBind, art.name)
             : hasAssignedArt
-                ? "This weapon already has a bound weapon art. You can bind the highlighted compatible art or clear the current binding."
-                : "Select an unlocked compatible weapon art to bind it, or leave this weapon unassigned.";
+                ? strings.hintHasBinding
+                : strings.hintNoBinding;
+
+    const weaponBadges = [badge(weaponType, "warn")];
+    if (art) {
+        weaponBadges.push(art.weaponAllowed ? badge(strings.compatible, "ok") : badge(strings.incompatible, "bad"));
+    }
 
     elements.weaponPanel.innerHTML = `
-		<div class="panel-title">
-			<div>
-				<p class="eyebrow">Current Weapon</p>
-				<h2 class="weapon-name">${state.selectedWeapon.name}</h2>
-			</div>
-			${badge(state.selectedWeapon.currentArtName || "Unassigned", state.selectedWeapon.currentArtId ? "ok" : "warn")}
-		</div>
-		<div class="weapon-meta">
-            ${badge(state.selectedWeapon.type || "Unknown", "warn")}
-		</div>
-        <p class="weapon-description">The highlighted weapon art can be bound to this weapon if it is unlocked and compatible.</p>
+        <div class="panel-header">
+            <div>
+                <p class="section-kicker">${escapeHtml(strings.currentWeapon)}</p>
+                <h2 class="panel-name">${escapeHtml(state.selectedWeapon.name)}</h2>
+            </div>
+            ${badge(currentArtName, hasAssignedArt ? "ok" : "warn")}
+        </div>
+        <div class="badge-row">${weaponBadges.join("")}</div>
+        <div class="info-grid">
+            ${infoCard(strings.boundArt, currentArtName)}
+            ${infoCard(strings.weaponType, weaponType)}
+        </div>
+        <p class="panel-copy">${escapeHtml(strings.weaponBody)}</p>
         <div class="action-row">
             <button class="action-button primary" id="weapon-assign-button" type="button" ${canAssign ? "" : "disabled"}>
-                ${assignLabel}
+                ${escapeHtml(assignLabel)}
             </button>
             <button class="action-button secondary" id="unbind-button" type="button" ${hasAssignedArt ? "" : "disabled"}>
-                ${hasAssignedArt ? "Unbind Current Weapon Art" : "No Weapon Art Bound"}
+                ${escapeHtml(hasAssignedArt ? strings.unbindCurrent : strings.noWeaponArtBound)}
             </button>
         </div>
-        <p class="action-hint">${weaponHint}</p>`;
+        <p class="hint-line">${escapeHtml(weaponHint)}</p>`;
 
     const weaponAssignButton = document.getElementById("weapon-assign-button");
     if (weaponAssignButton) {
@@ -224,18 +341,18 @@ function renderDetail() {
 
     if (!art) {
         elements.detailPanel.innerHTML = `
-			<div class="panel-title">
-				<div>
-					<p class="eyebrow">Selection</p>
-					<h2>No art selected</h2>
-				</div>
-			</div>
-			<div class="empty-state">
-				<div>
-					<h3>Waiting for weapon art data</h3>
-					<p class="empty-copy">Once the plugin sends the full weapon art catalog, the selected entry will appear here.</p>
-				</div>
-			</div>`;
+            <div class="panel-header">
+                <div>
+                    <p class="section-kicker">${escapeHtml(strings.selectedArt)}</p>
+                    <h2 class="panel-name">${escapeHtml(strings.noArtSelected)}</h2>
+                </div>
+            </div>
+            <div class="empty-state">
+                <div>
+                    <h3>${escapeHtml(strings.waitingTitle)}</h3>
+                    <p class="empty-copy">${escapeHtml(strings.waitingBody)}</p>
+                </div>
+            </div>`;
         return;
     }
 
@@ -247,46 +364,44 @@ function renderDetail() {
     );
 
     const statusBadges = [
-        badge(art.unlocked ? "Unlocked" : "Locked", art.unlocked ? "ok" : "bad"),
-        badge(`Lv ${art.unlockLevel}`, "warn"),
-        badge(`Cost ${art.consumePoint}`, "warn"),
-        badge(art.needPrepare ? "Prepare" : "Instant", "warn"),
+        badge(art.unlocked ? strings.unlocked : strings.locked, art.unlocked ? "ok" : "bad"),
+        badge(formatText(strings.levelBadge, art.unlockLevel), "warn"),
+        badge(formatText(strings.costBadge, art.consumePoint), "warn"),
+        badge(art.needPrepare ? strings.prepare : strings.instant, "warn"),
     ];
 
     if (state.selectedWeapon) {
-        statusBadges.push(
-            art.weaponAllowed ? badge("Compatible", "ok") : badge("Not compatible", "bad")
-        );
+        statusBadges.push(art.weaponAllowed ? badge(strings.compatible, "ok") : badge(strings.incompatible, "bad"));
     }
 
     if (art.isAssigned) {
-        statusBadges.push(badge("Currently assigned", "ok"));
+        statusBadges.push(badge(strings.currentlyAssigned, "ok"));
     }
 
     elements.detailPanel.innerHTML = `
-		<div class="panel-title">
-			<div>
-				<p class="eyebrow">Selected Art</p>
-				<h2 class="detail-name">${art.name}</h2>
-			</div>
-		</div>
-		<div class="tag-row">${statusBadges.join("")}</div>
-		<p class="detail-description">${art.description}</p>
-		<div class="detail-grid">
-            ${metricCard("Unlock Level", String(art.unlockLevel))}
-            ${metricCard("Point Cost", String(art.consumePoint))}
-            ${metricCard("Activation", art.needPrepare ? "Prepare" : "Instant")}
-            ${metricCard("Assignment", art.isAssigned ? "Assigned" : "Available")}
-		</div>
-		<div class="action-row">
-			<button class="action-button primary" id="unlock-button" type="button" ${art.unlocked || unlockBlocked ? "disabled" : ""}>
-				${art.unlocked ? "Already Unlocked" : `Unlock Art (${art.consumePoint} pt)`}
-			</button>
-			<button class="action-button secondary" id="assign-button" type="button" ${canAssign ? "" : "disabled"}>
-				${art.isAssigned ? "Assigned to Weapon" : "Assign to Selected Weapon"}
-			</button>
-		</div>
-		<p class="action-hint">${buildActionHint(art, unlockBlocked, canAssign)}</p>`;
+        <div class="panel-header">
+            <div>
+                <p class="section-kicker">${escapeHtml(strings.selectedArt)}</p>
+                <h2 class="panel-name">${escapeHtml(art.name)}</h2>
+            </div>
+        </div>
+        <div class="badge-row">${statusBadges.join("")}</div>
+        <p class="panel-copy">${escapeHtml(describe(art.description))}</p>
+        <div class="info-grid">
+            ${infoCard(strings.unlockLevel, art.unlockLevel)}
+            ${infoCard(strings.pointCost, art.consumePoint)}
+            ${infoCard(strings.activation, art.needPrepare ? strings.prepare : strings.instant)}
+            ${infoCard(strings.assignment, art.isAssigned ? strings.assigned : strings.available)}
+        </div>
+        <div class="action-row">
+            <button class="action-button primary" id="unlock-button" type="button" ${art.unlocked || unlockBlocked ? "disabled" : ""}>
+                ${escapeHtml(art.unlocked ? strings.alreadyUnlocked : formatText(strings.unlockAction, art.consumePoint))}
+            </button>
+            <button class="action-button secondary" id="assign-button" type="button" ${canAssign ? "" : "disabled"}>
+                ${escapeHtml(art.isAssigned ? strings.assignedToWeapon : strings.assignToSelectedWeapon)}
+            </button>
+        </div>
+        <p class="hint-line">${escapeHtml(buildActionHint(art, unlockBlocked, canAssign))}</p>`;
 
     const unlockButton = document.getElementById("unlock-button");
     const assignButton = document.getElementById("assign-button");
@@ -308,33 +423,34 @@ function renderDetail() {
 
 function buildActionHint(art, unlockBlocked, canAssign) {
     if (!art.unlocked && unlockBlocked) {
-        return `Requires level ${art.unlockLevel} and ${art.consumePoint} available point(s).`;
+        return formatText(strings.hintUnlockBlocked, art.unlockLevel, art.consumePoint);
     }
 
     if (!state.selectedWeapon) {
-        return "Select a weapon in the inventory to enable weapon-specific assignment.";
+        return strings.hintNeedWeapon;
     }
 
     if (!art.weaponAllowed) {
-        return "The selected weapon does not meet this art's weapon requirements.";
+        return strings.hintIncompatible;
     }
 
     if (art.isAssigned) {
-        return "This weapon is already using the highlighted art.";
+        return strings.hintAlreadyAssigned;
     }
 
     if (canAssign) {
-        return "This art is ready to be assigned to the currently selected weapon.";
+        return strings.hintReadyToAssign;
     }
 
     if (!art.unlocked) {
-        return "Unlock this art first, then it can be assigned to the selected weapon.";
+        return strings.hintUnlockFirst;
     }
 
-    return "Weapon art state updated.";
+    return strings.hintStateUpdated;
 }
 
 function renderAll() {
+    applyStaticText();
     renderHeader();
     renderWeaponPanel();
     renderDetail();
@@ -347,6 +463,10 @@ window.setMenuConfig = function setMenuConfig(payload) {
         if (typeof data.startPercent === "number") {
             document.documentElement.style.setProperty("--menu-start", `${data.startPercent}%`);
         }
+        if (data.strings && typeof data.strings === "object") {
+            Object.assign(strings, data.strings);
+        }
+        renderAll();
     } catch (error) {
         console.error("Failed to apply weapon art menu config", error, payload);
     }

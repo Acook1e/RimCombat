@@ -9,8 +9,11 @@
 #include "Combat/Stamina.h"
 #include "Combat/WeaponArt.h"
 #include "Core/Settings.h"
+#include "GUI/Localization.h"
 #include "GUI/UI.h"
 #include "Utils.h"
+
+#include "API/InputManagerAPI.h"
 
 #include "magic_enum/magic_enum.hpp"
 
@@ -195,28 +198,78 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
   return RE::BSEventNotifyControl::kContinue;
 }
 
-void InputEvent::ProcessEvent(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher,
-                              RE::InputEvent* const* a_events)
+void ModEvent::RegisterWeaponArtHUDInput()
 {
-  constexpr RE::InputEvent* const dummy[] = {nullptr};
+  if (!InputManagerAPI::_API)
+    return;
 
-  if (a_events && *a_events) {
-    auto event = *a_events;
-    if (event->GetEventType() == RE::INPUT_EVENT_TYPE::kButton) {
-      auto buttonEvent = event->AsButtonEvent();
-      if (buttonEvent && buttonEvent->IsDown()) {
-        // Letter T
-        if (UI::WeaponArtMenu::IsInventoryMenuShow() && buttonEvent->GetIDCode() == 20)
-          UI::WeaponArtMenu::Toggle();
-        // Left Alt key code
-        else if (auto player = RE::PlayerCharacter::GetSingleton();
-                 buttonEvent->GetIDCode() == 56 && player) {
-          auto state = WeaponArt::Manager::GetState(player);
-          WeaponArt::Manager::SwitchWeaponArt(player, state == WeaponArt::Manager::State::Disable);
-        }
-      }
-    }
+  auto* API = InputManagerAPI::_API;
+
+  constexpr std::int32_t inputType     = 0;
+  constexpr std::string_view inputName = "SwitchWeaponArtHUD";
+  const auto& purpose = Localization::GetLocalization("SwitchWeaponArtHUD_Purpose");
+
+  auto inputId = API->CreateInput(inputType, inputName.data());
+  if (inputId == -1) {
+    auto size = API->GetInputCount(inputType);
+    for (std::size_t i = 0; i < size; ++i)
+      if (API->GetInputName(inputType, i) == inputName)
+        inputId = i;
+  } else {
+    // 左Alt按键 按下一次
+    const InputManagerAPI::ActionInfo defaultInfo = {inputId, inputName.data(), 56, 1, 1};
+    API->UpdateActionMapping(inputId, defaultInfo);
   }
-  _ProcessEvent(a_dispatcher, a_events);
+  API->UpdateListener(inputType, inputId, PLUGIN_NAME.data(), purpose.label.data(), true);
+  id_WeaponArtHUD = inputId;
+}
+void ModEvent::RegisterWeaponArtMenuInput()
+{
+  if (!InputManagerAPI::_API)
+    return;
+
+  auto* API = InputManagerAPI::_API;
+
+  constexpr std::int32_t inputType     = 0;
+  constexpr std::string_view inputName = "SwitchWeaponArtMenu";
+  const auto& purpose = Localization::GetLocalization("SwitchWeaponArtMenu_Purpose");
+
+  auto inputId = API->CreateInput(inputType, inputName.data());
+  if (inputId == -1) {
+    auto size = API->GetInputCount(inputType);
+    for (std::size_t i = 0; i < size; ++i)
+      if (API->GetInputName(inputType, i) == inputName)
+        inputId = i;
+  } else {
+    // T按键 按下一次
+    const InputManagerAPI::ActionInfo defaultInfo = {inputId, inputName.data(), 20, 1, 1};
+    API->UpdateActionMapping(inputId, defaultInfo);
+  }
+  API->UpdateListener(inputType, inputId, PLUGIN_NAME.data(), purpose.label.data(), true);
+  id_WeaponArtMenu = inputId;
+}
+RE::BSEventNotifyControl
+ModEvent::ProcessEvent(const SKSE::ModCallbackEvent* event,
+                       RE::BSTEventSource<SKSE::ModCallbackEvent>* eventSource)
+{
+  if (!event || !eventSource)
+    return RE::BSEventNotifyControl::kContinue;
+  if (event->eventName != "InputManager_ActionTriggered")
+    return RE::BSEventNotifyControl::kContinue;
+
+  auto inputID = static_cast<std::int32_t>(event->numArg);
+
+  if (inputID == id_WeaponArtHUD) {
+    auto player = RE::PlayerCharacter::GetSingleton();
+    if (player) {
+      auto state = WeaponArt::Manager::GetState(player);
+      WeaponArt::Manager::SwitchWeaponArt(player, state == WeaponArt::Manager::State::Disable);
+    }
+  } else if (inputID == id_WeaponArtMenu) {
+    if (UI::WeaponArtMenu::IsInventoryMenuShow())
+      UI::WeaponArtMenu::Toggle();
+  }
+
+  return RE::BSEventNotifyControl::kContinue;
 }
 }  // namespace Events

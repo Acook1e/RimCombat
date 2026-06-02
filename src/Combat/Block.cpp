@@ -116,8 +116,6 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
     std::lock_guard<std::mutex> lock(mtx_parry);
     if (parryEndTimes.contains(victim)) {
       hitData.totalDamage = 0.0f;
-      logger::info("Parry successful: {} parried an attack from {}", victim->GetDisplayFullName(),
-                   aggressor->GetDisplayFullName());
       Stagger::SetStaggerLevel(aggressor, Stagger::Level::GuardBreak);
       Stagger::SetStaggerMagnitude(aggressor, Stagger::Level::GuardBreak);
       Stagger::StaggerStart(aggressor);
@@ -129,12 +127,11 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
   bool timedBlock = false;
   auto now        = Utils::GetTime<std::chrono::milliseconds>();
   {
-    // 设置为格挡，让后续的系统知道这次攻击被格挡了
-    blocked = true;
-    hitData.flags.set(true, RE::HitData::Flag::kBlocked);
-
     std::lock_guard<std::mutex> lock(mtx_gpData);
     if (gpData.contains(victim)) {
+      // GP成功后将本次命中视为格挡
+      blocked = true;
+      hitData.flags.set(true, RE::HitData::Flag::kBlocked);
       {
         // 给予极短的限时格挡，触发后续的格挡强化和反击效果
         std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
@@ -224,6 +221,10 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
   // 如果耐力不足以完全格挡伤害，则至少消耗一定的耐力
   if (staminaConsume > stamina + Settings::fBlockMinStaminaConsume)
     staminaConsume = stamina + Settings::fBlockMinStaminaConsume;
+
+  // 如果耐力消耗超过当前耐力，则触发格挡破防
+  if (staminaConsume > stamina)
+    Stagger::SetStaggerLevel(victim, Stagger::Level::GuardBreak);
 
   damage -= staminaConsume / staminaPerDamage;
   if (damage < 0)

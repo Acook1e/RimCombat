@@ -16,6 +16,8 @@
 #include "GUI/Menu.h"
 #include "GUI/UI.h"
 
+#include "API/InputManagerAPI.h"
+
 // 内部数据初始化与序列化注册
 void onPostLoad()
 {
@@ -39,6 +41,11 @@ void onPostPostLoad()
   // 外部API
   UI::Initialize();
   Menu::GetSingleton();
+  auto API = InputManagerAPI::RequestAPIDirect();
+  if (API)
+    InputManagerAPI::_API = API;
+  else
+    logger::error("Failed to acquire InputManagerAPI");
 
   // 依赖外部API的系统
   UI::TrueHUD::GetSingleton();

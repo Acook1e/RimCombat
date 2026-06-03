@@ -8,16 +8,6 @@
 
 #include "magic_enum/magic_enum.hpp"
 
-float GetBaseStaminaConsumption(RE::Actor* actor, bool leftHand)
-{
-  auto type = Weapon::GetActorEquipmentType(actor, leftHand);
-  if (type != Weapon::Type::None)
-    return Weapon::GetBaseStaminaConsumption(type);
-
-  auto race = Race::GetRace(actor);
-  return Race::GetBaseStaminaConsumption(race);
-}
-
 float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
 {
   if (!actor)
@@ -37,28 +27,18 @@ Stamina::Stamina()
   // 使用序列化重置缓存
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface* serial) {
     {
-      std::scoped_lock lock(mtx_precision);
-      usePrecisionStaminaActors.clear();
-    }
-    {
       std::scoped_lock lock(mtx_rimStamina);
       useRimStaminaActors.clear();
     }
   });
 }
 
-void Stamina::SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
+void Stamina::SwingStaminaConsume(RE::Actor* actor, RE::TESObjectWEAP* weapon)
 {
   if (!actor || !Settings::bUseAttackStaminaSystem)
     return;
   if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
-  {
-    // 使用Precision系统的角色不处理Swing的攻击耐力消耗
-    std::scoped_lock lock(mtx_precision);
-    if (usePrecisionStaminaActors.contains(actor))
-      return;
-  }
   {
     // 使用RimCombat耐力系统的角色不处理Swing的攻击耐力消耗
     std::scoped_lock lock(mtx_rimStamina);
@@ -69,79 +49,89 @@ void Stamina::SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm)
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
-  // 避免重复计算
-  auto type = Weapon::GetActorEquipmentType(actor, leftAttack);
-  if (!unarm && type == Weapon::Type::Unarm)
-    return;
+  auto type         = Weapon::GetWeaponType(weapon);
+  float staminaCost = Weapon::GetBaseStaminaConsumption(type);
 
-  float staminaCost = GetBaseStaminaConsumption(actor, leftAttack);
-
-  auto* equipment   = actor->GetEquippedObject(leftAttack);
-  auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
+  auto weaponWeight = weapon ? weapon->GetWeight() : 0.0f;
   if (actor->IsPowerAttacking()) {
     staminaCost *= Settings::fPowerAttackStaminaCostMult;
     staminaCost += Settings::fPowerAttackStaminaCostPerMass * weaponWeight;
   } else {
-    staminaCost += Settings::fNormalAttackStaminaCostPerMass * weaponWeight;
+    staminaCost += Settings::fAttackStaminaCostPerMass * weaponWeight;
   }
 
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }
 
-void Stamina::PrecisionStart(RE::Actor* actor)
-{
-  if (!actor || !Settings::bUseAttackStaminaSystem)
-    return;
-
-  std::scoped_lock lock(mtx_precision);
-  usePrecisionStaminaActors.insert(actor);
-}
-
-void Stamina::PrecisionEnd(RE::Actor* actor)
-{
-  if (!actor || !Settings::bUseAttackStaminaSystem)
-    return;
-
-  std::scoped_lock lock(mtx_precision);
-  usePrecisionStaminaActors.erase(actor);
-}
-
-void Stamina::CollisionStaminaConsume(RE::Actor* actor, const std::string& payload)
+void Stamina::BashStaminaConsume(RE::Actor* actor)
 {
   if (!actor || !Settings::bUseAttackStaminaSystem)
     return;
   if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
     return;
-  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
-    return;
-
   {
-    // 只有在使用RimCombat耐力系统时忽略基于Collision事件的攻击耐力消耗
+    // 使用RimCombat耐力系统的角色不处理
     std::scoped_lock lock(mtx_rimStamina);
     if (useRimStaminaActors.contains(actor))
       return;
   }
 
-  bool right = payload.find("weapon") != std::string::npos;
-  bool left  = payload.find("shield") != std::string::npos;
-
-  if (!right && !left) {
-    logger::error("Stamina::CollisionStaminaConsume: Invalid payload for collision_add: {}",
-                  payload);
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
+
+  auto leftType  = Weapon::GetActorEquipmentType(actor, true);
+  auto rightType = Weapon::GetActorEquipmentType(actor, false);
+
+  if (leftType == Weapon::Type::None || rightType == Weapon::Type::None)
+    return;
+
+  auto baseCost = 0.0f;
+  auto mass     = 0.0f;
+  if (leftType == Weapon::Type::Shield || leftType == Weapon::Type::Torch) {
+    baseCost = Weapon::GetBaseStaminaConsumption(leftType);
+    auto obj = actor->GetEquippedObject(true);
+    if (obj)
+      mass = obj->GetWeight();
+  } else {
+    baseCost = Weapon::GetBaseStaminaConsumption(rightType);
+    auto obj = actor->GetEquippedObject(false);
+    if (obj)
+      mass = obj->GetWeight();
   }
 
-  auto* equipment   = actor->GetEquippedObject(left);
-  auto weaponWeight = equipment ? equipment->GetWeight() : 0.0f;
-
-  float staminaCost = GetBaseStaminaConsumption(actor, left);
   if (actor->IsPowerAttacking()) {
-    staminaCost *= Settings::fPowerAttackStaminaCostMult;
-    staminaCost += Settings::fPowerAttackStaminaCostPerMass * weaponWeight;
-  } else
-    staminaCost += Settings::fNormalAttackStaminaCostPerMass * weaponWeight;
+    baseCost *= Settings::fPowerBashStaminaCostMult;
+    baseCost += Settings::fPowerBashStaminaCostPerMass * mass;
+  } else {
+    baseCost *= Settings::fBashStaminaCostMult;
+    baseCost += Settings::fBashStaminaCostPerMass * mass;
+  }
 
-  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
+}
+
+void Stamina::UnarmStaminaConsume(RE::Actor* actor)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
+    return;
+  {
+    // 使用RimCombat耐力系统的角色不处理
+    std::scoped_lock lock(mtx_rimStamina);
+    if (useRimStaminaActors.contains(actor))
+      return;
+  }
+
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  auto baseCost = Weapon::GetBaseStaminaConsumption(Weapon::Type::Unarm);
+
+  if (actor->IsPowerAttacking())
+    baseCost *= Settings::fPowerAttackStaminaCostMult;
+
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
 }
 
 void Stamina::Start(RE::Actor* actor)
@@ -199,29 +189,44 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
   bool right = side == "right";
 
   float baseCost = 0.0f;
-  if (left || right)
-    baseCost = GetBaseStaminaConsumption(actor, left);
-  else {
+  auto mass      = 0.0f;
+  if (left || right) {
+    auto type = Weapon::GetActorEquipmentType(actor, left);
+    baseCost  = Weapon::GetBaseStaminaConsumption(type);
+    auto obj  = actor->GetEquippedObject(left);
+    if (obj)
+      mass = obj->GetWeight();
+  } else {
     // Auto的情况
     auto attacking = actor->GetAttackingWeapon();
-    auto obj       = attacking ? attacking->object : nullptr;
-    if (obj && obj->IsWeapon()) {
-      auto type = Weapon::GetWeaponType(obj->As<RE::TESObjectWEAP>());
-      if (type == Weapon::Type::None)
-        baseCost = GetBaseStaminaConsumption(actor, false);
-      else
-        baseCost = Weapon::GetBaseStaminaConsumption(type);
-    } else if (!obj)
-      baseCost = GetBaseStaminaConsumption(actor, false);
+    if (attacking) {
+      auto obj = attacking->object;
+      if (obj && obj->IsWeapon()) {
+        auto type = Weapon::GetWeaponType(obj->As<RE::TESObjectWEAP>());
+        if (type != Weapon::Type::None)
+          baseCost = Weapon::GetBaseStaminaConsumption(type);
+        mass = obj->GetWeight();
+      }
+    } else {
+      // 不存在attackingWeapon，认为是空手攻击
+      baseCost = Weapon::GetBaseStaminaConsumption(Weapon::Type::Unarm);
+    }
   }
 
-  if (attackType == "power")
+  auto power = attackType == "power";
+
+  if (power)
     baseCost *= Settings::fPowerAttackStaminaCostMult;
 
   if (subordinate)
     baseCost *= fallbackMultiplier;
   else
     baseCost *= multiplier;
+
+  if (power)
+    baseCost += Settings::fPowerAttackStaminaCostPerMass * mass;
+  else
+    baseCost += Settings::fAttackStaminaCostPerMass * mass;
 
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
 }

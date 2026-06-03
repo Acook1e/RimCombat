@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Data/Race.h"
+#include "Data/Weapon.h"
+
 class Execution
 {
 public:
@@ -28,25 +31,30 @@ public:
   static void AddExecutionStartListener(ExecutionStartCallback callback);
 
   static void Damage(RE::Actor* victim, const std::string& payload);
+  static void SetDistance(RE::Actor* victim, const std::string& payload);
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
 
 private:
   Execution();
 
   // Int行为图变量
-  // OAR根据这个变量来判断播放哪个处决动画
-  // 为0表示无状态，否则表示当前武器+种族的处决组合ID
-  constexpr static inline std::string_view EXECUTION_FLAG = "RimCombat_ExecutionFlag";
+  // 表示处决者的武器类型，以及受害者对应的受击动画
+  // 为0表示None，表示不处于处决状态
+  constexpr static inline std::string_view EXECUTOR_WEAPON = "RimCombat_ExecutorWeapon";
+  // Int行为图变量
+  // 表示受害者的种族类型，以及处决者对应的处决动画
+  // 为0表示None，表示不处于处决状态
+  constexpr static inline std::string_view VICTIM_RACE = "RimCombat_VictimRace";
   // 行为事件
   // 其payload表示处决相关的的事件
   // Damage|Multiplier 表示进行一次真实伤害结算，Multiplier为一个数字，表示伤害的倍率
+  // SetDistance|Value 表示调整处决双方的距离，Value为一个数字，表示距离的数值
   // End表示结束处决状态，触发受害者退出处决状态的逻辑
   constexpr static inline std::string_view EXECUTION_END = "RimExecution";
 
   // 无锁，处决组合只在初始化时设置一次，且之后不再修改
-  // 可处决的 种族+武器组合 映射初始距离
   // 意味某个种族可被人类使用特定类型的武器处决
-  static inline std::unordered_map<std::uint16_t, float> availableExcutions;
+  static inline std::unordered_map<Race::Type, std::vector<Weapon::Type>> availableExcutions;
 
   // 需要锁
   // 当前处于可被处决状态的Actor列表，值为处决状态到期时间

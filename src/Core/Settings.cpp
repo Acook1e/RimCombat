@@ -57,10 +57,13 @@ namespace
   void ClearSettingMaps()
   {
     baseStaminaCostMap.clear();
+    baseCreatureStaminaMap.clear();
     basePostureMap.clear();
     basePostureDamageMap.clear();
+    baseCreaturePostureDamage.clear();
     basePoiseMap.clear();
     basePoiseDamageMap.clear();
+    baseCreaturePoiseDamage.clear();
     blockStrengthMap.clear();
     executionDamageMultMap.clear();
   }
@@ -188,6 +191,11 @@ namespace
 
     json root;
 
+    root["Damage"] = {{"UseDamageSystem", bUseDamageSystem},
+                      {"DamageMultPowerAttack", fDamageMultPowerAttack},
+                      {"DamageMultBash", fDamageMultBash},
+                      {"DamageMultPowerBash", fDamageMultPowerBash}};
+
     json stamina = {{"UseAttackStaminaSystem", bUseAttackStaminaSystem},
                     {"ConsumeStaminaOutCombat", bConsumeStaminaOutCombat},
                     {"DisableAttackWhenStaminaZero", bDisableAttackWhenStaminaZero},
@@ -197,10 +205,11 @@ namespace
                     {"StaminaRegenDelay", fStaminaRegenDelay},
                     {"StaminaRegenMultCombat", fStaminaRegenMultCombat},
                     {"StaminaRegenMultBlock", fStaminaRegenMultBlock},
-                    {"NormalAttackStaminaCostPerMass", fNormalAttackStaminaCostPerMass},
+                    {"AttackStaminaCostPerMass", fAttackStaminaCostPerMass},
                     {"PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult},
                     {"PowerAttackStaminaCostPerMass", fPowerAttackStaminaCostPerMass}};
     SaveWeaponFloatMap(stamina, "BaseStaminaCost", baseStaminaCostMap);
+    SaveRaceFloatMap(stamina, "BaseCreatureStamina", baseCreatureStaminaMap);
     root["Stamina"] = std::move(stamina);
 
     json posture = {{"UsePostureSystem", bUsePostureSystem},
@@ -215,6 +224,7 @@ namespace
                     {"ArmorPostureDamageFactor", fArmorPostureDamageFactor}};
     SaveRaceFloatMap(posture, "BasePosture", basePostureMap);
     SaveWeaponFloatMap(posture, "BasePostureDamage", basePostureDamageMap);
+    SaveRaceFloatMap(posture, "BaseCreaturePostureDamage", baseCreaturePostureDamage);
     root["Posture"] = std::move(posture);
 
     json poise = {{"UsePoiseSystem", bUsePoiseSystem},
@@ -222,6 +232,7 @@ namespace
                   {"PoiseMassMult", fPoiseMassMult},
                   {"PoiseRegenDelay", uPoiseRegenDelay},
                   {"PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond},
+                  {"StaggerCompensationPercent", fStaggerCompensationPercent},
                   {"StaggerLevelSmall", fStaggerLevelSmall},
                   {"StaggerLevelMedium", fStaggerLevelMedium},
                   {"StaggerLevelLarge", fStaggerLevelLarge},
@@ -238,6 +249,7 @@ namespace
                   {"PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult}};
     SaveRaceFloatMap(poise, "BasePoise", basePoiseMap);
     SaveWeaponFloatMap(poise, "BasePoiseDamage", basePoiseDamageMap);
+    SaveRaceFloatMap(poise, "BaseCreaturePoiseDamage", baseCreaturePoiseDamage);
     root["Poise"] = std::move(poise);
 
     root["Stagger"] = {{"UseStaggerSystem", bUseStaggerSystem},
@@ -364,6 +376,14 @@ void LoadSettings()
     return;
   }
 
+  if (const auto it = root.find("Damage"); it != root.end() && it->is_object()) {
+    const auto& damage = *it;
+    LoadSetting(damage, "Damage", "UseDamageSystem", bUseDamageSystem);
+    LoadSetting(damage, "Damage", "DamageMultPowerAttack", fDamageMultPowerAttack);
+    LoadSetting(damage, "Damage", "DamageMultBash", fDamageMultBash);
+    LoadSetting(damage, "Damage", "DamageMultPowerBash", fDamageMultPowerBash);
+  }
+
   if (const auto it = root.find("Stamina"); it != root.end() && it->is_object()) {
     const auto& stamina = *it;
     LoadSetting(stamina, "Stamina", "UseAttackStaminaSystem", bUseAttackStaminaSystem);
@@ -375,12 +395,12 @@ void LoadSettings()
     LoadSetting(stamina, "Stamina", "StaminaRegenDelay", fStaminaRegenDelay);
     LoadSetting(stamina, "Stamina", "StaminaRegenMultCombat", fStaminaRegenMultCombat);
     LoadSetting(stamina, "Stamina", "StaminaRegenMultBlock", fStaminaRegenMultBlock);
-    LoadSetting(stamina, "Stamina", "NormalAttackStaminaCostPerMass",
-                fNormalAttackStaminaCostPerMass);
+    LoadSetting(stamina, "Stamina", "AttackStaminaCostPerMass", fAttackStaminaCostPerMass);
     LoadSetting(stamina, "Stamina", "PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult);
     LoadSetting(stamina, "Stamina", "PowerAttackStaminaCostPerMass",
                 fPowerAttackStaminaCostPerMass);
     LoadWeaponFloatMap(stamina, "Stamina", "BaseStaminaCost", baseStaminaCostMap);
+    LoadRaceFloatMap(stamina, "Stamina", "BaseCreatureStamina", baseCreatureStaminaMap);
   }
 
   if (const auto it = root.find("Posture"); it != root.end() && it->is_object()) {
@@ -397,6 +417,7 @@ void LoadSettings()
     LoadSetting(posture, "Posture", "ArmorPostureDamageFactor", fArmorPostureDamageFactor);
     LoadRaceFloatMap(posture, "Posture", "BasePosture", basePostureMap);
     LoadWeaponFloatMap(posture, "Posture", "BasePostureDamage", basePostureDamageMap);
+    LoadRaceFloatMap(posture, "Posture", "BaseCreaturePostureDamage", baseCreaturePostureDamage);
   }
 
   if (const auto it = root.find("Poise"); it != root.end() && it->is_object()) {
@@ -406,6 +427,7 @@ void LoadSettings()
     LoadSetting(poise, "Poise", "PoiseMassMult", fPoiseMassMult);
     LoadSetting(poise, "Poise", "PoiseRegenDelay", uPoiseRegenDelay);
     LoadSetting(poise, "Poise", "PoiseRegenPercentPerSecond", fPoiseRegenPercentPerSecond);
+    LoadSetting(poise, "Poise", "StaggerCompensationPercent", fStaggerCompensationPercent);
     LoadSetting(poise, "Poise", "StaggerLevelSmall", fStaggerLevelSmall);
     LoadSetting(poise, "Poise", "StaggerLevelMedium", fStaggerLevelMedium);
     LoadSetting(poise, "Poise", "StaggerLevelLarge", fStaggerLevelLarge);
@@ -422,6 +444,7 @@ void LoadSettings()
     LoadSetting(poise, "Poise", "PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult);
     LoadRaceFloatMap(poise, "Poise", "BasePoise", basePoiseMap);
     LoadWeaponFloatMap(poise, "Poise", "BasePoiseDamage", basePoiseDamageMap);
+    LoadRaceFloatMap(poise, "Poise", "BaseCreaturePoiseDamage", baseCreaturePoiseDamage);
   }
 
   if (const auto it = root.find("Stagger"); it != root.end() && it->is_object()) {

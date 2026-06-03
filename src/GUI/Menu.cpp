@@ -154,8 +154,8 @@ void Stamina()
                    20.0f, "%.2f");
   ImGui::DragFloat("StaminaRegenMultBlock"_h, &Settings::fStaminaRegenMultBlock, 0.05f, 0.0f, 20.0f,
                    "%.2f");
-  ImGui::DragFloat("NormalAttackStaminaCostPerMass"_h, &Settings::fNormalAttackStaminaCostPerMass,
-                   0.01f, 0.0f, 10.0f, "%.2f");
+  ImGui::DragFloat("AttackStaminaCostPerMass"_h, &Settings::fAttackStaminaCostPerMass, 0.01f, 0.0f,
+                   10.0f, "%.2f");
   ImGui::DragFloat("PowerAttackStaminaCostMult"_h, &Settings::fPowerAttackStaminaCostMult, 0.05f,
                    0.0f, 20.0f, "%.2f");
   ImGui::DragFloat("PowerAttackStaminaCostPerMass"_h, &Settings::fPowerAttackStaminaCostPerMass,

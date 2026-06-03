@@ -10,6 +10,7 @@
 #include "Combat/Poise.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
+#include "Combat/Stamina.h"
 #include "Combat/WeaponArt.h"
 #include "GUI/UI.h"
 #include "Utils.h"
@@ -82,6 +83,50 @@ void Hook_OnMainUpdate::MainUpdate()
   Utils::MainUpdate();
 }
 
+void Hook_OnActorUpdate::Update_NPC(RE::Character* character, float delta)
+{
+  _Update_NPC(character, delta);
+  TrackActorUpdate(character);
+}
+
+void Hook_OnActorUpdate::Update_PC(RE::PlayerCharacter* player, float delta)
+{
+  _Update_PC(player, delta);
+  TrackActorUpdate(player);
+}
+
+void Hook_OnActorUpdate::TrackActorUpdate(RE::Actor* actor)
+{
+  static std::unordered_map<RE::Actor*, RE::ATTACK_STATE_ENUM> lastAttackStates{};
+
+  if (!actor || !actor->Is3DLoaded() || actor->IsDead())
+    return;
+
+  auto attackState = actor->AsActorState()->GetAttackState();
+
+  if (!lastAttackStates.contains(actor))
+    lastAttackStates[actor] = attackState;
+  else {
+    auto lastState = lastAttackStates[actor];
+
+    if (attackState != lastState) {
+      if (Race::GetRace(actor) != Race::Type::Human) {
+        logger::info("Race {} AttackState changed: {} -> {}",
+                     magic_enum::enum_name(Race::GetRace(actor)), magic_enum::enum_name(lastState),
+                     magic_enum::enum_name(attackState));
+      } else {
+        if (attackState == RE::ATTACK_STATE_ENUM::kSwing) {
+          auto weapon = actor->GetAttackingWeapon();
+          if (weapon && weapon->object && weapon->object->IsWeapon())
+            Stamina::SwingStaminaConsume(actor, weapon->object->As<RE::TESObjectWEAP>());
+        } else if (attackState == RE::ATTACK_STATE_ENUM::kBash)
+          Stamina::BashStaminaConsume(actor);
+      }
+      lastAttackStates[actor] = attackState;
+    }
+  }
+}
+
 float Hook_OnGetAttackStaminaCost::GetAttackStaminaCost(RE::ActorValueOwner* avOwner,
                                                         RE::BGSAttackData* atkData)
 {
@@ -130,6 +175,8 @@ void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
     return _ProcessHit(victim, hitData);
 
   // 第一部分：根据状态修正数值
+
+  Damage::ProcessWeaponDamage(aggressor, hitData);
 
   // 处决状态增伤
   // 引入处决触发的入口在Posture，退出状态必须在Posture之前
@@ -254,9 +301,6 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
   // 对于Left，一般都是防御动作
   // 对于Dual，是BFCO的特殊攻击
   case 0x13005:  // ActionRightAttack
-  case 0x13383:  // ActionRightPowerAttack
-  case 0x50C96:  // ActionDualAttack
-  case 0x2E2F7:  // ActionDualPowerAttack
 
     if (auto victim = Execution::FindExecutableTarget(sourceActor); victim) {
       // 如果找到了可处决的目标，则强制进入处决处决判断
@@ -270,6 +314,9 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
       return false;
     break;
 
+    // case 0x13383:  // ActionRightPowerAttack
+    // case 0x50C96:  // ActionDualAttack
+    // case 0x2E2F7:  // ActionDualPowerAttack
     // case 0x13004:  // ActionLeftAttack
     // case 0x2E2F6:  // ActionLeftPowerAttack
 
@@ -281,10 +328,6 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
   case 0x959FC:  // ActionTurnLeft
   case 0x959FD:  // ActionTurnRight
   case 0x13006:  // ActionJump
-
-    // 存在卡死的风险，暂时注释掉
-    // if (Execution::IsExecutable(sourceActor))
-    //  return false;  // 处于可处决状态时禁止一切移动
     break;
   case 0x13AF5:  // ActionRecoil
     if (Block::IsBlocking(sourceActor))
@@ -423,8 +466,7 @@ void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::A
 void Install()
 {
   Hook_OnMainUpdate::Install();
-  // 目前用不到
-  // Hook_OnActorUpdate::Install();
+  Hook_OnActorUpdate::Install();
   Hook_OnGetAttackStaminaCost::Install();
   Hook_OnGetMeleeDamage::Install();
   Hook_OnWeaponHit::Install();

@@ -3,8 +3,6 @@
 #include "Combat/Exhausted.h"
 #include "Combat/Stagger.h"
 #include "Core/Settings.h"
-#include "Data/Race.h"
-#include "Data/Weapon.h"
 #include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
@@ -13,106 +11,18 @@
 using WeaponType = Weapon::Type;
 using RaceType   = Race::Type;
 
-std::uint16_t operator|(WeaponType w, RaceType r)
-{
-  return (static_cast<std::uint16_t>(w) << 8) | static_cast<std::uint16_t>(r);
-}
-
-std::pair<std::string_view, std::string_view> GetAnimEvent(RaceType race, bool back)
-{
-  // 处决者调用的均是成对动画的位置1
-  // 受击者调用位置2
-
-  // 除人类外的种族很少具有背刺动画
-  if (back) {
-    switch (race) {
-    case RaceType::Human:
-      // Animations\Paired_1HMKillMoveBackStab.hkx
-      return {"pa_KillMove1HMBackStab", "KillMove1HMBackStab"};
-    default:
-      return {"", ""};
-    }
-  }
-
-  // 部分种族不具有原版的KillMove
-  // 但保留种族的入口以便未来行为图的更新
-  switch (race) {
-  case RaceType::Human:
-    // Animations\Paired_1HMKillMove.hkx
-    return {"pa_KillMove", "KillMove"};
-  case RaceType::Boar:
-  case RaceType::BoarMounted:
-
-  case RaceType::Chaurus:
-  case RaceType::ChaurusReaper:
-
-  case RaceType::Dog:
-  case RaceType::Fox:
-  case RaceType::Wolf:
-
-  case RaceType::Spider:
-  case RaceType::GiantSpider:
-  case RaceType::LargeSpider:
-
-  case RaceType::Werebear:
-  case RaceType::Werewolf:
-
-  case RaceType::AshHopper:
-  case RaceType::Bear:
-  case RaceType::ChaurusHunter:
-  case RaceType::Chicken:
-  case RaceType::Cow:
-  case RaceType::Deer:
-  case RaceType::Dragon:
-  case RaceType::DragonPriest:
-  case RaceType::Draugr:
-  case RaceType::DwarvenBallista:
-  case RaceType::DwarvenCenturion:
-  case RaceType::DwarvenSphere:
-  case RaceType::DwarvenSpider:
-  case RaceType::Falmer:
-  case RaceType::FlameAtronach:
-  case RaceType::FrostAtronach:
-  case RaceType::Gargoyle:
-  case RaceType::Giant:
-  case RaceType::Goat:
-  case RaceType::Hagraven:
-  case RaceType::Hare:
-  case RaceType::Horker:
-  case RaceType::Horse:
-  case RaceType::IceWraith:
-  case RaceType::Lurker:
-  case RaceType::Mammoth:
-  case RaceType::Mudcrab:
-  case RaceType::Netch:
-  case RaceType::Riekling:
-  case RaceType::Sabrecat:
-  case RaceType::Seeker:
-  case RaceType::Skeever:
-  case RaceType::Slaughterfish:
-  case RaceType::Spriggan:
-  case RaceType::StormAtronach:
-  case RaceType::Troll:
-  case RaceType::VampireLord:
-  case RaceType::Wisp:
-  case RaceType::Wispmother:
-  default:
-    return {"", ""};
-  }
-}
-
 Execution::Execution()
 {
   // 从文件加载可用的处决组合
 
-  // 因为调用的是原版的动画，为了保证原版的动画的可用性
-  // 约定0表示原版的动画
-  // 非0状态OAR会根据这个值来判断播放哪个动画
+  if (!availableExcutions.contains(RaceType::Human))
+    availableExcutions[RaceType::Human] = {};
+
   for (const auto& value : magic_enum::enum_values<WeaponType>()) {
     if (value == WeaponType::None)
       continue;
 
-    availableExcutions.insert({value | RaceType::Human, 150.0f});
+    availableExcutions[RaceType::Human].push_back(value);
   }
 }
 
@@ -189,11 +99,17 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
 
   auto weaponType = Weapon::GetActorEquipmentType(aggressor);
   auto race       = Race::GetRace(victim);
-  auto flag       = weaponType | race;
 
   std::lock_guard<std::mutex> lock(mtx_executable);
-  if (!availableExcutions.contains(flag)) {
+  if (!availableExcutions.contains(race)) {
     logger::info("Execution::TryExecute: No available Idle for using Weapon {} to execute Race {}",
+                 magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
+    return false;
+  }
+  auto& availableWeapons = availableExcutions[race];
+  if (std::find(availableWeapons.begin(), availableWeapons.end(), weaponType) ==
+      availableWeapons.end()) {
+    logger::info("Execution::TryExecute: Weapon {} cannot be used to execute Race {}",
                  magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
     return false;
   }
@@ -226,14 +142,6 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   if (front == back)
     return false;
 
-  // 判断是否存在对应的动画事件
-  auto [aggressorAnimEvent, victimAnimEvent] = GetAnimEvent(race, back);
-  if (aggressorAnimEvent.empty() || victimAnimEvent.empty()) {
-    logger::info("Execution::TryExecute: Executing Race {} in the {} is not supported yet",
-                 magic_enum::enum_name(race), back ? "back" : "front");
-    return false;
-  }
-
   // 使用Idle无法做到发送killMove
   // 因此这里手动同步位置和角度
   // 并直接发送动画事件来触发动画
@@ -241,21 +149,17 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   // 可能存在先后不一致和位移没有锁定的bug
 
   // 先设置Flag，给OAR缓冲时间来切换动画
-  aggressor->SetGraphVariableInt(EXECUTION_FLAG, flag);
-  victim->SetGraphVariableInt(EXECUTION_FLAG, flag);
+  aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
+  aggressor->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
+  victim->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
+  victim->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
+  Stagger::SetStaggerLevel(victim, Stagger::Level::Execution);
+  Stagger::SetStaggerMagnitude(victim, Stagger::Level::Execution);
 
   // 放置到同一高度
   float maxZ     = (std::max)(aggressorPos.z, victimPos.z);
   aggressorPos.z = maxZ;
   victimPos.z    = maxZ;
-
-  // 根据不同的动画调整距离
-  auto direction = (victimPos - aggressorPos);
-  direction /= direction.Length();
-  float initDistance = availableExcutions[flag];
-  victimPos          = aggressorPos + direction * initDistance;
-  aggressor->SetPosition(aggressorPos, false);
-  victim->SetPosition(victimPos, false);
 
   // 根据条件设置角度
   auto heading = aggressor->GetAimHeading();
@@ -274,13 +178,8 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   }
 
   // TODO: 位移，旋转锁定
-
-  if (!aggressor->NotifyAnimationGraph(aggressorAnimEvent) ||
-      !victim->NotifyAnimationGraph(victimAnimEvent)) {
-    logger::warn("Execution::TryExecute: Failed to send animation event. Aggressor: {}, Victim: {}",
-                 aggressor->GetDisplayFullName(), victim->GetDisplayFullName());
-    return false;
-  }
+  aggressor->NotifyAnimationGraph("attackStart");
+  Stagger::StaggerStart(aggressor);
 
   executableActors.erase(victim);
 
@@ -310,10 +209,13 @@ void Execution::ExecutionEnd(RE::Actor* victim)
 
   // 处决结束，重置状态
   auto aggressor = GetExecutingAggressor(victim);
-  if (aggressor)
-    aggressor->SetGraphVariableInt(EXECUTION_FLAG, 0);
+  if (aggressor) {
+    aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
+    aggressor->SetGraphVariableInt(VICTIM_RACE, 0);
+  }
 
-  victim->SetGraphVariableInt(EXECUTION_FLAG, 0);
+  victim->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
+  victim->SetGraphVariableInt(VICTIM_RACE, 0);
 
   std::lock_guard<std::mutex> lock(mtx_executing);
   if (executingActors.contains(victim))
@@ -363,11 +265,41 @@ void Execution::Damage(RE::Actor* victim, const std::string& payload)
   victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);
 }
 
+void Execution::SetDistance(RE::Actor* victim, const std::string& payload)
+{
+  if (!victim || !Settings::bUseExecutionSystem)
+    return;
+
+  auto aggressor = GetExecutingAggressor(victim);
+  if (!aggressor)
+    return;
+
+  float distance = 0.0f;
+  try {
+    distance = std::stof(payload);
+  } catch (const std::exception& e) {
+    logger::error("Execution::SetDistance: Invalid distance value in payload: {}", payload);
+    return;
+  }
+
+  if (distance <= 0.0f)
+    return;
+
+  auto aggressorPos = aggressor->GetPosition();
+  auto victimPos    = victim->GetPosition();
+  auto direction    = (victimPos - aggressorPos);
+  direction /= direction.Length();
+  victimPos = aggressorPos + direction * distance;
+  victim->SetPosition(victimPos, false);
+}
+
 void Execution::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
   if (payload == "end")
     Execution::ExecutionEnd(actor);
   else if (payload.starts_with("damage|"))
     Execution::Damage(actor, payload.substr(7));
+  else if (payload.starts_with("setdistance|"))
+    Execution::SetDistance(actor, payload.substr(12));
   // 等待拓展
 }

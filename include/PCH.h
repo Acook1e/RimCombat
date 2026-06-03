@@ -40,4 +40,8 @@ constexpr inline std::uint32_t nexusID        = 180357;
 
 inline REL::Version RUNTIME = SKSE::RUNTIME_SSE_1_6_1170;
 
+// 提前定义魔法枚举的范围，默认范围是-128~127，无法满足本项目枚举的需求
+#define MAGIC_ENUM_RANGE_MIN 0
+#define MAGIC_ENUM_RANGE_MAX 256
+
 namespace logger = SKSE::log;

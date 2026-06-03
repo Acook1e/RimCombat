@@ -1,4 +1,18 @@
 {
+    "EochaidDancingBlade": {
+        "name": "欧赫剑舞",
+        "description": "蓄力后向前方使出御剑，造成多次伤害",
+        "weapons": [],
+        "availableWeapon": [
+            "Light",
+            "Normal",
+            "Slash"
+        ],
+        "consumePoint": 2,
+        "unlockLevel": 10,
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "1"
+    },
     "SpinningSlash": {
         "name": "回旋斩",
         "description": "旋转攻击周围的敌人",
@@ -12,6 +26,19 @@
         "unlockLevel": 0,
         "needPrepare": false,
         "Elden Rim - Weapon Arts ID": "2"
+    },
+    "LionClaw": {
+        "name": "狮子斩",
+        "description": "向空中跃起后向前方斩击",
+        "weapons": [],
+        "availableWeapon": [
+            "Heavy",
+            "Slash"
+        ],
+        "consumePoint": 1,
+        "unlockLevel": 5,
+        "needPrepare": false,
+        "Elden Rim - Weapon Arts ID": "3"
     },
     "Unshethe": {
         "name": "居合",

@@ -9,6 +9,17 @@ const inline std::string SettingsDefaultFile = SettingsDir + "SettingsDefault.js
 using WeaponEnumType = std::uint8_t;
 using RaceEnumType   = std::uint8_t;
 
+#pragma region Damage
+// 是否启用伤害系统
+inline bool bUseDamageSystem = true;
+// 重击伤害倍率，相对于轻攻击
+inline float fDamageMultPowerAttack = 1.8f;
+// 格挡攻击伤害倍率，相对于轻攻击
+inline float fDamageMultBash = 0.25f;
+// 格挡猛击伤害倍率，相对于轻攻击
+inline float fDamageMultPowerBash = 0.45f;
+#pragma endregion
+
 #pragma region Stamina
 // 是否启用攻击耐力系统
 inline bool bUseAttackStaminaSystem = true;
@@ -33,14 +44,22 @@ inline float fStaminaRegenMultBlock = 0.5f;
 
 // 每种武器类型的基础耐力消耗
 inline std::unordered_map<WeaponEnumType, float> baseStaminaCostMap{};
-// 每单位质量的额外耐力消耗，适用于所有武器类型
-inline float fNormalAttackStaminaCostPerMass = 0.2f;
 // 非使用武器类型的生物类型的基础耐力消耗
 inline std::unordered_map<RaceEnumType, float> baseCreatureStaminaMap{};
+// 每单位质量的额外耐力消耗
+inline float fAttackStaminaCostPerMass = 0.2f;
 // 重击耐力消耗倍率，乘以基础耐力消耗
-inline float fPowerAttackStaminaCostMult = 2.5f;
-// 每单位质量的重击额外耐力消耗，适用于所有武器类型
+inline float fPowerAttackStaminaCostMult = 2.3f;
+// 每单位质量的重击额外耐力消耗
 inline float fPowerAttackStaminaCostPerMass = 0.5f;
+// 格挡攻击耐力消耗倍率，乘以基础耐力消耗
+inline float fBashStaminaCostMult = 0.35f;
+// 每单位质量的格挡攻击额外耐力消耗
+inline float fBashStaminaCostPerMass = 0.1f;
+// 格挡猛击耐力消耗倍率，乘以基础耐力消耗
+inline float fPowerBashStaminaCostMult = 0.8f;
+// 每单位质量的格挡猛击额外耐力消耗
+inline float fPowerBashStaminaCostPerMass = 0.25f;
 #pragma endregion
 
 #pragma region Posture
@@ -68,11 +87,11 @@ inline std::unordered_map<RaceEnumType, float> baseCreaturePostureDamage{};
 inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
 
 // 格挡攻击架势伤害倍率，乘以基础架势伤害
-inline float fBashPostureDamageMult = 2.0f;
+inline float fBashPostureDamageMult = 1.75f;
 // 重击架势伤害倍率，乘以基础架势伤害
-inline float fPowerAttackPostureDamageMult = 1.5f;
+inline float fPowerAttackPostureDamageMult = 1.4f;
 // 格挡猛击架势伤害倍率，乘以基础架势伤害
-inline float fPowerBashPostureDamageMult = 2.5f;
+inline float fPowerBashPostureDamageMult = 2.45f;
 
 // 护甲值减少的架势伤害计算因子
 inline float fArmorPostureDamageFactor = 1.1f;
@@ -106,11 +125,11 @@ inline float fHeavyArmorBodyMaxPoiseBonus = 2.5f;
 inline float fHeavyArmorHandMaxPoiseBonus = 0.6f;
 inline float fHeavyArmorFeetMaxPoiseBonus = 0.6f;
 // 格挡攻击韧性伤害倍率，乘以基础韧性伤害
-inline float fBashPoiseDamageMult = 2.0f;
+inline float fBashPoiseDamageMult = 1.75f;
 // 重击的韧性伤害倍率，乘以基础韧性伤害
-inline float fPowerAttackPoiseDamageMult = 1.5f;
+inline float fPowerAttackPoiseDamageMult = 1.4f;
 // 格挡猛击韧性伤害倍率，乘以基础韧性伤害
-inline float fPowerBashPoiseDamageMult = 2.5f;
+inline float fPowerBashPoiseDamageMult = 2.45f;
 
 // 各个种族的基础韧性值
 inline std::unordered_map<RaceEnumType, float> basePoiseMap{};

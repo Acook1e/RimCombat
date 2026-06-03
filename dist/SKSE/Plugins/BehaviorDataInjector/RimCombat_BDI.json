@@ -55,7 +55,13 @@
     {
         "projectPath": "Actors",
         "type": "kInt",
-        "name": "RimCombat_ExecutionFlag",
+        "name": "RimCombat_ExecutorWeapon",
+        "value": 0
+    },
+    {
+        "projectPath": "Actors",
+        "type": "kInt",
+        "name": "RimCombat_VictimRace",
         "value": 0
     },
     {

@@ -29,17 +29,18 @@ class Hook_OnActorUpdate
 public:
   static void Install()
   {
-    REL::Relocation<uintptr_t> vtbl_NPC{RE::VTABLE_Character[0]};
-    REL::Relocation<uintptr_t> vtbl_PC{RE::VTABLE_PlayerCharacter[0]};
+    REL::Relocation<uintptr_t> vtbl_Character{RE::VTABLE_Character[0]};
+    REL::Relocation<uintptr_t> vtbl_Player{RE::VTABLE_PlayerCharacter[0]};
 
-    _Update_NPC = vtbl_NPC.write_vfunc(0xAD, Update_NPC);
-    _Update_PC  = vtbl_PC.write_vfunc(0xAD, Update_PC);
+    _Update_NPC = vtbl_Character.write_vfunc(0xAD, Update_NPC);
+    _Update_PC  = vtbl_Player.write_vfunc(0xAD, Update_PC);
     logger::info("Hooks: OnActorUpdate installed.");
   }
 
 private:
-  static void Update_NPC(RE::Character* character, float delta) { _Update_NPC(character, delta); }
-  static void Update_PC(RE::PlayerCharacter* player, float delta) { _Update_PC(player, delta); }
+  static void Update_NPC(RE::Character* character, float delta);
+  static void Update_PC(RE::PlayerCharacter* player, float delta);
+  static void TrackActorUpdate(RE::Actor* actor);
 
   static inline REL::Relocation<decltype(Update_NPC)> _Update_NPC;
   static inline REL::Relocation<decltype(Update_PC)> _Update_PC;

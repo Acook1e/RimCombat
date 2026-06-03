@@ -35,26 +35,11 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   RE::Actor* actor = const_cast<RE::TESObjectREFR*>(event->holder)->As<RE::Actor>();
 
   switch (Utils::hash(animEvent)) {
-  case "weaponswing"_h:
-    Stamina::SwingStaminaConsume(actor, false);
-    break;
-  case "weaponleftswing"_h:
-    Stamina::SwingStaminaConsume(actor, true);
-    break;
   // 对于空手攻击，swing事件无法保证一定触发
   // 因此使用且仅使用weaponplay.wpnunarmedswing事件来检测空手攻击
   // 以确保在任何情况下都能正确消耗耐力
   case "soundplay.wpnunarmedswing"_h:
-    Stamina::SwingStaminaConsume(actor, false, true);
-    break;
-  case "collision_attackstart"_h:
-    Stamina::PrecisionStart(actor);
-    break;
-  case "collision_attackend"_h:
-    Stamina::PrecisionEnd(actor);
-    break;
-  case "collision_add"_h:
-    Stamina::CollisionStaminaConsume(actor, payload);
+    Stamina::UnarmStaminaConsume(actor);
     break;
   case "blockstart"_h:
   case "blockstartout"_h:
@@ -63,8 +48,13 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "blockstop"_h:
     Block::EndBlock(actor);
     break;
-  // 原版和MCO/BFCO框架下的攻击触发
   case "attackstart"_h:
+    // 如果攻击开始但战技还是已经进行中的状态，说明是End事件触发太晚
+    // 此时强制中断当前战技状态
+    if (WeaponArt::Manager::GetPerform(actor) != WeaponArt::Manager::Perform::None)
+      WeaponArt::Manager::End(actor);
+    break;
+  // MCO/BFCO框架下的攻击触发
   case "mco_attackentry"_h:
   case "mco_powerattackentry"_h:
   case "bfco_playerattackstart"_h:
@@ -80,7 +70,6 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     Posture::End(actor);
     Stagger::TargetEnd(actor);
     Stamina::End(actor);
-    Stamina::PrecisionEnd(actor);
     WeaponArt::Manager::Interrupt(actor);
     break;
 

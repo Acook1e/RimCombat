@@ -22,13 +22,12 @@ public:
     return singleton;
   }
 
-  // 对于使用原版swing事件的攻击，根据swing类型消耗耐力
-  static void SwingStaminaConsume(RE::Actor* actor, bool leftAttack, bool unarm = false);
+  // 由AttackState的切换触发
+  static void SwingStaminaConsume(RE::Actor* actor, RE::TESObjectWEAP* weapon);
+  static void BashStaminaConsume(RE::Actor* actor);
 
-  static void PrecisionStart(RE::Actor* actor);
-  static void PrecisionEnd(RE::Actor* actor);
-  // 对于使用Precion系统的攻击，根据添加的节点判断左右手攻击并消耗耐力
-  static void CollisionStaminaConsume(RE::Actor* actor, const std::string& payload);
+  // AttackState无法正确获取空手攻击，使用图事件触发
+  static void UnarmStaminaConsume(RE::Actor* actor);
 
   // RimCombat的耐力系统具有最高的优先级，Precision系统和原版swing事件都不处理使用RimCombat耐力系统的角色的攻击耐力消耗
 
@@ -42,10 +41,6 @@ private:
   Stamina();
   // Rim Combat Stamina System
   constexpr static std::uint32_t serialType = 'RCSS';
-
-  // 缓存使用Precision系统的角色
-  static inline std::mutex mtx_precision;
-  static inline std::unordered_set<RE::Actor*> usePrecisionStaminaActors;
 
   // 缓存使用RimCombat耐力系统的角色
   static inline std::mutex mtx_rimStamina;

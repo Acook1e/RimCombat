@@ -15,7 +15,7 @@ Damage::Damage()
 
 void Damage::ProcessDamage(RE::Actor* aggressor, float& damage)
 {
-  if (!aggressor)
+  if (!aggressor || !Settings::bUseDamageSystem)
     return;
 
   // 不清除，一次攻击可能有多个对象
@@ -24,9 +24,36 @@ void Damage::ProcessDamage(RE::Actor* aggressor, float& damage)
     damage *= it->second;
 }
 
+void Damage::ProcessWeaponDamage(RE::Actor* aggressor, RE::HitData& hitData)
+{
+  if (!aggressor || !Settings::bUseDamageSystem)
+    return;
+
+  bool powerAttack = hitData.flags.any(RE::HitData::Flag::kPowerAttack);
+  bool bash        = hitData.flags.any(RE::HitData::Flag::kBash);
+
+  // 将伤害归一化到相对于轻攻击的倍率，方便后续基于倍率进行调整
+  if (powerAttack && bash)
+    hitData.totalDamage /= 1.5f;
+  else if (powerAttack) {
+    auto type = Weapon::GetWeaponType(hitData.weapon);
+    if (type != Weapon::Type::Unarm)
+      hitData.totalDamage /= 2.0f;
+  } else if (bash)
+    hitData.totalDamage /= 0.5f;
+
+  // 在这里对伤害进行调整，基于归一化后的倍率提供统一的相对1倍倍率的数值调整
+  if (powerAttack && bash)
+    hitData.totalDamage *= Settings::fDamageMultPowerBash;
+  else if (powerAttack)
+    hitData.totalDamage *= Settings::fDamageMultPowerAttack;
+  else if (bash)
+    hitData.totalDamage *= Settings::fDamageMultBash;
+}
+
 void Damage::SetMult(RE::Actor* actor, const std::string& payload)
 {
-  if (!actor)
+  if (!actor || !Settings::bUseDamageSystem)
     return;
 
   auto split = Utils::split(payload, '|');
@@ -47,7 +74,7 @@ void Damage::SetMult(RE::Actor* actor, const std::string& payload)
 
 void Damage::End(RE::Actor* actor)
 {
-  if (!actor)
+  if (!actor || !Settings::bUseDamageSystem)
     return;
 
   std::lock_guard<std::mutex> lock(mtx_damageCache);

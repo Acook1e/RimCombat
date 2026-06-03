@@ -20,6 +20,13 @@ public:
   // Damage系统作用于近战的初始伤害倍率，而非最终伤害倍率
   static void ProcessDamage(RE::Actor* aggressor, float& damage);
 
+  // 对于MCO/BFCO框架，武器重击的伤害是两倍
+  // Bash具有0.5倍伤害
+  // PowerBash具有1.5倍伤害
+  // 空手重击是1倍伤害
+  // 在这里对伤害进行归一化并提供统一的相对1倍倍率的数值调整
+  static void ProcessWeaponDamage(RE::Actor* aggressor, RE::HitData& hitData);
+
   static void SetMult(RE::Actor* actor, const std::string& payload);
   static void End(RE::Actor* actor);
 

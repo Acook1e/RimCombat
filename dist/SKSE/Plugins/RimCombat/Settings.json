@@ -38,6 +38,12 @@
             "Torch": 4.0
         }
     },
+    "Damage": {
+        "UseDamageSystem": true,
+        "DamageMultPowerAttack": 1.8,
+        "DamageMultBash": 0.25,
+        "DamageMultPowerBash": 0.45
+    },
     "Execution": {
         "UseExecutionSystem": true,
         "ExitExecutionOnHit": true,
@@ -91,9 +97,9 @@
         "MaxPostureStaminaMult": 0.04,
         "PostureRegenDelay": 5000,
         "PostureRegenPercentPerSecond": 3.0,
-        "BashPostureDamageMult": 2.0,
-        "PowerAttackPostureDamageMult": 1.5,
-        "PowerBashPostureDamageMult": 2.5,
+        "BashPostureDamageMult": 1.75,
+        "PowerAttackPostureDamageMult": 1.4,
+        "PowerBashPostureDamageMult": 2.45,
         "ArmorPostureDamageFactor": 1.1,
         "BasePosture": {
             "Human": 40.0,
@@ -248,9 +254,9 @@
         "HeavyArmorBodyMaxPoiseBonus": 2.5,
         "HeavyArmorHandMaxPoiseBonus": 0.6,
         "HeavyArmorFeetMaxPoiseBonus": 0.6,
-        "BashPoiseDamageMult": 2.0,
-        "PowerAttackPoiseDamageMult": 1.5,
-        "PowerBashPoiseDamageMult": 2.5,
+        "BashPoiseDamageMult": 1.75,
+        "PowerAttackPoiseDamageMult": 1.4,
+        "PowerBashPoiseDamageMult": 2.45,
         "BasePoise": {
             "Human": 2.5,
             "AshHopper": 0.4,
@@ -404,7 +410,7 @@
         "StaminaRegenMultCombat": 1.0,
         "StaminaRegenMultBlock": 0.5,
         "NormalAttackStaminaCostPerMass": 0.2,
-        "PowerAttackStaminaCostMult": 2.5,
+        "PowerAttackStaminaCostMult": 2.3,
         "PowerAttackStaminaCostPerMass": 0.5,
         "BaseStaminaCost": {
             "Unarm": 5.0,

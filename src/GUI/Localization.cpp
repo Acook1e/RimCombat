@@ -42,9 +42,21 @@ void Initialize()
 
 Entry& GetLocalization(std::uint32_t hash)
 {
-  static Entry unknown = {"null", "null"};
+  static Entry invalid = {"Invalid", "Invalid"};
   auto it              = entryMaps.find(hash);
-  return (it != entryMaps.end()) ? it->second : unknown;
+  return (it != entryMaps.end()) ? it->second : invalid;
+}
+
+std::string_view GetLocalizationLabel(std::uint32_t hash, std::string_view fallback)
+{
+  auto it = entryMaps.find(hash);
+  return (it != entryMaps.end()) ? it->second.label : fallback;
+}
+
+std::string_view GetLocalizationDesc(std::uint32_t hash, std::string_view fallback)
+{
+  auto it = entryMaps.find(hash);
+  return (it != entryMaps.end()) ? it->second.desc : fallback;
 }
 
 Entry& GetLocalization(std::string key)

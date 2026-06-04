@@ -2,6 +2,7 @@
 
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
+#include "Data/Race.h"
 #include "Utils.h"
 
 Damage::Damage()
@@ -27,6 +28,11 @@ void Damage::ProcessDamage(RE::Actor* aggressor, float& damage)
 void Damage::ProcessWeaponDamage(RE::Actor* aggressor, RE::HitData& hitData)
 {
   if (!aggressor || !Settings::bUseDamageSystem)
+    return;
+
+  // 仅针对可以使用武器的种族
+  auto race = Race::GetRace(aggressor);
+  if (race != Race::Type::Human && race != Race::Type::Draugr && race != Race::Type::Falmer)
     return;
 
   bool powerAttack = hitData.flags.any(RE::HitData::Flag::kPowerAttack);

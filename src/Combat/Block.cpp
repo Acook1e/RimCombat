@@ -162,6 +162,9 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
     }
   }
 
+  if (!blocked)
+    return;
+
   // 普通格挡和限时格挡必须在格挡中
   std::uint64_t startTime = 0;
   if (blocked) {
@@ -190,9 +193,6 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
     for (auto& callback : callbacks)
       callback(victim);
   }
-
-  if (!blocked)
-    return;
 
   float stamina      = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina);
   float maxStamina   = Utils::GetCurrentMaxActorValue(victim, RE::ActorValue::kStamina);

@@ -110,7 +110,7 @@ private:
   struct RecoveryData
   {
     std::uint64_t recoverTime;  // 恢复时间点，单位为毫秒时间戳
-    Level current;              // 当前的硬直等级，用于恢复时判断是否需要设置图变量
+    Level current;              // 当前的硬直等级
   };
   static inline std::unordered_map<RE::Actor*, RecoveryData> staggerRecovery;
 };

@@ -3,7 +3,6 @@
 #include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
-#include "Data/Race.h"
 #include "Data/Weapon.h"
 
 #include "magic_enum/magic_enum.hpp"
@@ -59,6 +58,29 @@ void Stamina::SwingStaminaConsume(RE::Actor* actor, RE::TESObjectWEAP* weapon)
   } else {
     staminaCost += Settings::fAttackStaminaCostPerMass * weaponWeight;
   }
+
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
+}
+
+void Stamina::CreatureStaminaConsume(RE::Actor* actor, Race::Type raceType)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
+    return;
+  {
+    // 使用RimCombat耐力系统的角色不处理Creature的攻击耐力消耗
+    std::scoped_lock lock(mtx_rimStamina);
+    if (useRimStaminaActors.contains(actor))
+      return;
+  }
+
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  float staminaCost = Race::GetBaseStaminaConsumption(raceType);
+  if (actor->IsPowerAttacking())
+    staminaCost *= Settings::fPowerAttackStaminaCostMult;
 
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }

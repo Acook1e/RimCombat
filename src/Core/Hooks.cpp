@@ -110,18 +110,20 @@ void Hook_OnActorUpdate::TrackActorUpdate(RE::Actor* actor)
     auto lastState = lastAttackStates[actor];
 
     if (attackState != lastState) {
-      if (Race::GetRace(actor) != Race::Type::Human) {
-        logger::info("Race {} AttackState changed: {} -> {}",
-                     magic_enum::enum_name(Race::GetRace(actor)), magic_enum::enum_name(lastState),
-                     magic_enum::enum_name(attackState));
-      } else {
-        if (attackState == RE::ATTACK_STATE_ENUM::kSwing) {
-          auto weapon = actor->GetAttackingWeapon();
-          if (weapon && weapon->object && weapon->object->IsWeapon())
-            Stamina::SwingStaminaConsume(actor, weapon->object->As<RE::TESObjectWEAP>());
-        } else if (attackState == RE::ATTACK_STATE_ENUM::kBash)
-          Stamina::BashStaminaConsume(actor);
-      }
+      if (attackState == RE::ATTACK_STATE_ENUM::kSwing) {
+        auto weapon = actor->GetAttackingWeapon();
+        if (weapon && weapon->object && weapon->object->IsWeapon())
+          Stamina::SwingStaminaConsume(actor, weapon->object->As<RE::TESObjectWEAP>());
+        else {
+          auto raceType = Race::GetRace(actor);
+          // 生物攻击仅针对不能使用武器的生物，这里过滤可以使用武器的生物
+          if (raceType != Race::Type::Human && raceType != Race::Type::Draugr &&
+              raceType != Race::Type::Falmer)
+            Stamina::CreatureStaminaConsume(actor, raceType);
+        }
+      } else if (attackState == RE::ATTACK_STATE_ENUM::kBash)
+        Stamina::BashStaminaConsume(actor);
+
       lastAttackStates[actor] = attackState;
     }
   }
@@ -141,20 +143,19 @@ float Hook_OnGetMeleeDamage::GetWeaponDamage(RE::InventoryEntryData* weapon,
                                              RE::ActorValueOwner* actorValueOwner, float damageMult,
                                              bool unk)
 {
-  float damage = _GetWeaponDamage(weapon, actorValueOwner, damageMult, unk);
+  auto mult = damageMult;
 
-  auto actor = skyrim_cast<RE::Actor*>(actorValueOwner);
-  if (actor)
-    Damage::ProcessDamage(actor, damage);
-  return damage;
+  if (auto actor = skyrim_cast<RE::Actor*>(actorValueOwner); actor)
+    Damage::ProcessDamage(actor, mult);
+
+  return _GetWeaponDamage(weapon, actorValueOwner, mult, unk);
 }
 
 void Hook_OnGetMeleeDamage::GetBashDamage(RE::ActorValueOwner* actorValueOwner, float& outDamage)
 {
   _GetBashDamage(actorValueOwner, outDamage);
 
-  auto actor = skyrim_cast<RE::Actor*>(actorValueOwner);
-  if (actor)
+  if (auto actor = skyrim_cast<RE::Actor*>(actorValueOwner); actor)
     Damage::ProcessDamage(actor, outDamage);
 }
 
@@ -162,8 +163,7 @@ void Hook_OnGetMeleeDamage::GetUnarmedDamage(RE::ActorValueOwner* actorValueOwne
 {
   _GetUnarmedDamage(actorValueOwner, outDamage);
 
-  auto actor = skyrim_cast<RE::Actor*>(actorValueOwner);
-  if (actor)
+  if (auto actor = skyrim_cast<RE::Actor*>(actorValueOwner); actor)
     Damage::ProcessDamage(actor, outDamage);
 }
 
@@ -180,11 +180,8 @@ void Hook_OnWeaponHit::ProcessHit(RE::Actor* victim, RE::HitData& hitData)
 
   // 处决状态增伤
   // 引入处决触发的入口在Posture，退出状态必须在Posture之前
-  if (Execution::IsExecutable(victim)) {
+  if (Execution::IsExecutable(victim))
     hitData.totalDamage *= Settings::fOnHitDamageMultWhenExecutable;
-    Execution::ExitExecutable(victim);
-    victim->NotifyAnimationGraph("staggerStop");
-  }
 
   // 力竭状态伤害变动
   if (Settings::fAttackDamageMultWhenExhausted > 0.0f && Exhausted::IsActorExhausted(aggressor))

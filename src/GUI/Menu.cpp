@@ -160,6 +160,14 @@ void Stamina()
                    0.0f, 20.0f, "%.2f");
   ImGui::DragFloat("PowerAttackStaminaCostPerMass"_h, &Settings::fPowerAttackStaminaCostPerMass,
                    0.01f, 0.0f, 10.0f, "%.2f");
+  ImGui::DragFloat("BashStaminaCostMult"_h, &Settings::fBashStaminaCostMult, 0.05f, 0.0f, 10.0f,
+                   "%.2f");
+  ImGui::DragFloat("BashStaminaCostPerMass"_h, &Settings::fBashStaminaCostPerMass, 0.01f, 0.0f,
+                   10.0f, "%.2f");
+  ImGui::DragFloat("PowerBashStaminaCostMult"_h, &Settings::fPowerBashStaminaCostMult, 0.05f, 0.0f,
+                   10.0f, "%.2f");
+  ImGui::DragFloat("PowerBashStaminaCostPerMass"_h, &Settings::fPowerBashStaminaCostPerMass, 0.01f,
+                   0.0f, 10.0f, "%.2f");
 }
 
 void Posture()

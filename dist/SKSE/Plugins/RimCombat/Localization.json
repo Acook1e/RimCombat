@@ -127,7 +127,7 @@
         "label": "格挡中耐力回复倍率",
         "desc": "维持格挡状态时的耐力回复倍率。"
     },
-    "NormalAttackStaminaCostPerMass": {
+    "AttackStaminaCostPerMass": {
         "label": "普通攻击每单位质量耐力消耗",
         "desc": "普通攻击时，每单位武器质量额外附加的耐力消耗。"
     },
@@ -138,6 +138,22 @@
     "PowerAttackStaminaCostPerMass": {
         "label": "重击每单位质量耐力消耗",
         "desc": "重击时，每单位武器质量额外附加的耐力消耗。"
+    },
+    "BashStaminaCostMult": {
+        "label": "盾击耐力消耗倍率",
+        "desc": "普通盾击基础耐力消耗的倍率。"
+    },
+    "BashStaminaCostPerMass": {
+        "label": "盾击每单位质量耐力消耗",
+        "desc": "盾击时，每单位武器质量额外附加的耐力消耗。"
+    },
+    "PowerBashStaminaCostMult": {
+        "label": "猛击耐力消耗倍率",
+        "desc": "强力盾击基础耐力消耗的倍率。"
+    },
+    "PowerBashStaminaCostPerMass": {
+        "label": "猛击每单位质量耐力消耗",
+        "desc": "强力盾击时，每单位武器质量额外附加的耐力消耗。"
     },
     "UsePostureSystem": {
         "label": "启用架势系统",

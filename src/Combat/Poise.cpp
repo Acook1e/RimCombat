@@ -292,6 +292,7 @@ void Poise::DamagePoiseHealth(RE::Actor* actor, float value)
 
     // 重置韧性值，避免重复触发硬直
     data.current = data.max;
+    Execution::ExitExecutable(actor);
     return;
   }
 
@@ -338,9 +339,19 @@ void Poise::TargetSet(RE::Actor* actor, const std::string& payload)
   if (!actor || !Settings::bUsePoiseSystem)
     return;
 
-  auto multiplier = Utils::toFloat(payload);
-  if (multiplier < 0.0f)
+  auto split = Utils::split(payload, '|');
+  if (split.size() != 1 && split.size() != 2)
     return;
+
+  auto multiplier = Utils::toFloat(split[0]);
+  auto fallback   = split.size() == 2 ? Utils::toFloat(split[1]) : multiplier;
+  if (multiplier < 0.0f || fallback < 0.0f)
+    return;
+
+  auto perform = WeaponArt::Manager::GetPerform(actor);
+  if (perform == WeaponArt::Manager::Perform::Subordinate)
+    multiplier = fallback;
+
   std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
   poiseMultOnHit[actor] = multiplier;
 }

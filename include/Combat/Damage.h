@@ -20,7 +20,10 @@ public:
   // Damage系统作用于近战的初始伤害倍率，而非最终伤害倍率
   static void ProcessDamage(RE::Actor* aggressor, float& damage);
 
-  // 对于MCO/BFCO框架，武器重击的伤害是两倍
+  // 在原版系统中，单武器武器重击的伤害是2倍
+  // 双持重击是1.5倍伤害
+  // 对于MCO框架，任何重击都是单武器重击
+  // 对于BFCO框架，存在双持重击的概念，但目前极少使用
   // Bash具有0.5倍伤害
   // PowerBash具有1.5倍伤害
   // 空手重击是1倍伤害

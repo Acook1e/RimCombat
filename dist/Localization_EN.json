@@ -1,0 +1,582 @@
+{
+    "RimCombat": {
+        "label": "RimCombat",
+        "desc": "RimCombat settings menu."
+    },
+    "General": {
+        "label": "General",
+        "desc": "Load, save, and reset settings."
+    },
+    "Stamina": {
+        "label": "Stamina",
+        "desc": "Attack stamina and stamina regen settings."
+    },
+    "Posture": {
+        "label": "Posture",
+        "desc": "Posture health, posture regen, and guard break settings."
+    },
+    "Poise": {
+        "label": "Poise",
+        "desc": "Poise health, poise regen, and poise damage settings."
+    },
+    "Stagger": {
+        "label": "Stagger",
+        "desc": "Stagger system and recovery time settings."
+    },
+    "Exhausted": {
+        "label": "Exhausted",
+        "desc": "Exhaustion entry/exit, penalties, and restrictions."
+    },
+    "Block": {
+        "label": "Block",
+        "desc": "Block, timed block, and block stamina drain settings."
+    },
+    "WeaponArt": {
+        "label": "Weapon Art",
+        "desc": "Weapon Art system, HUD, and menu position settings."
+    },
+    "Execution": {
+        "label": "Execution",
+        "desc": "Reserved settings for the currently paused execution module."
+    },
+    "Debug": {
+        "label": "Debug",
+        "desc": "Currently only a small amount of debug information."
+    },
+    "None": {
+        "label": "None",
+        "desc": ""
+    },
+    "Unknown": {
+        "label": "Unknown",
+        "desc": ""
+    },
+    "LoadSettings": {
+        "label": "Reload Settings",
+        "desc": "Reload settings from Settings.json. This will overwrite any unsaved temporary changes."
+    },
+    "SaveSettings": {
+        "label": "Save Settings",
+        "desc": "Immediately write the current menu values back to Settings.json."
+    },
+    "ResetSettings": {
+        "label": "Reset Settings",
+        "desc": "Overwrite the current settings file with defaults and reload."
+    },
+    "MenuGeneralSummary": {
+        "label": "This menu only edits scalar settings; weapon and race tables are still maintained in Settings.json.",
+        "desc": ""
+    },
+    "MenuStaminaSummary": {
+        "label": "Base weapon stamina and creature stamina tables are still maintained in Settings.json.",
+        "desc": ""
+    },
+    "MenuPostureSummary": {
+        "label": "Base posture and base posture damage tables are still maintained in Settings.json.",
+        "desc": ""
+    },
+    "MenuPoiseSummary": {
+        "label": "Base poise and base poise damage tables are still maintained in Settings.json.",
+        "desc": ""
+    },
+    "MenuBlockSummary": {
+        "label": "Per-weapon block strength is still maintained in Settings.json.",
+        "desc": ""
+    },
+    "MenuExecutionSummary": {
+        "label": "Execution entry is currently paused; posture breaks directly convert to PostureBreak stagger.",
+        "desc": "This is a reserved entry for the execution module and does not mean posture breaks currently lead into execution state."
+    },
+    "DebugCrosshairTarget": {
+        "label": "Crosshair Target: {}",
+        "desc": "The currently targeted actor under the crosshair."
+    },
+    "UseAttackStaminaSystem": {
+        "label": "Enable Attack Stamina System",
+        "desc": "Controls whether RimCombat takes over stamina consumption for normal attacks, power attacks, swing events, and Precision hits."
+    },
+    "ConsumeStaminaOutCombat": {
+        "label": "Consume Stamina Out of Combat",
+        "desc": "Allow stamina consumption under RimCombat rules even when not in combat."
+    },
+    "DisableAttackWhenStaminaZero": {
+        "label": "Disable Attack at Zero Stamina",
+        "desc": "When enabled, attacks are blocked when stamina is fully depleted."
+    },
+    "StaminaRegenMult": {
+        "label": "Global Stamina Regen Multiplier",
+        "desc": "Uniformly scales stamina regeneration speed across all races."
+    },
+    "StaminaRegenMin": {
+        "label": "Stamina Regen Minimum",
+        "desc": "Lower clamp applied to each race's modified stamina regen."
+    },
+    "StaminaRegenMax": {
+        "label": "Stamina Regen Maximum",
+        "desc": "Upper clamp applied to each race's modified stamina regen."
+    },
+    "StaminaRegenDelay": {
+        "label": "Stamina Regen Delay",
+        "desc": "Delay before stamina regeneration resumes after taking a hit."
+    },
+    "StaminaRegenMultCombat": {
+        "label": "Combat Stamina Regen Multiplier",
+        "desc": "Stamina regeneration multiplier while in combat."
+    },
+    "StaminaRegenMultBlock": {
+        "label": "Blocking Stamina Regen Multiplier",
+        "desc": "Stamina regeneration multiplier while holding a block."
+    },
+    "AttackStaminaCostPerMass": {
+        "label": "Normal Attack Stamina Cost Per Mass",
+        "desc": "Additional stamina cost per unit of weapon mass for normal attacks."
+    },
+    "PowerAttackStaminaCostMult": {
+        "label": "Power Attack Stamina Cost Multiplier",
+        "desc": "Multiplier applied to base stamina cost for power attacks."
+    },
+    "PowerAttackStaminaCostPerMass": {
+        "label": "Power Attack Stamina Cost Per Mass",
+        "desc": "Additional stamina cost per unit of weapon mass for power attacks."
+    },
+    "BashStaminaCostMult": {
+        "label": "Bash Stamina Cost Multiplier",
+        "desc": "Multiplier applied to base stamina cost for bashes."
+    },
+    "BashStaminaCostPerMass": {
+        "label": "Bash Stamina Cost Per Mass",
+        "desc": "Additional stamina cost per unit of weapon mass for bashes."
+    },
+    "PowerBashStaminaCostMult": {
+        "label": "Power Bash Stamina Cost Multiplier",
+        "desc": "Multiplier applied to base stamina cost for power bashes."
+    },
+    "PowerBashStaminaCostPerMass": {
+        "label": "Power Bash Stamina Cost Per Mass",
+        "desc": "Additional stamina cost per unit of weapon mass for power bashes."
+    },
+    "UsePostureSystem": {
+        "label": "Enable Posture System",
+        "desc": "Controls whether posture health, posture damage, guard break, and related HUD are active."
+    },
+    "UsePostureHUD": {
+        "label": "Enable Posture HUD",
+        "desc": "Display the posture bar through TrueHUD when available."
+    },
+    "MaxPostureHealthMult": {
+        "label": "Health to Max Posture Multiplier",
+        "desc": "How much max posture each point of max health provides."
+    },
+    "MaxPostureStaminaMult": {
+        "label": "Stamina to Max Posture Multiplier",
+        "desc": "How much max posture each point of max stamina provides."
+    },
+    "PostureRegenDelay": {
+        "label": "Posture Regen Delay",
+        "desc": "Delay after taking posture damage before posture regeneration begins, in milliseconds."
+    },
+    "PostureRegenPercentPerSecond": {
+        "label": "Posture Regen Percent Per Second",
+        "desc": "Percentage of max posture regenerated per second."
+    },
+    "BashPostureDamageMult": {
+        "label": "Bash Posture Damage Multiplier",
+        "desc": "Posture damage multiplier for bash hits."
+    },
+    "PowerAttackPostureDamageMult": {
+        "label": "Power Attack Posture Damage Multiplier",
+        "desc": "Posture damage multiplier for power attack hits."
+    },
+    "PowerBashPostureDamageMult": {
+        "label": "Power Bash Posture Damage Multiplier",
+        "desc": "Posture damage multiplier for power bash hits."
+    },
+    "ArmorPostureDamageFactor": {
+        "label": "Armor Posture Damage Reduction Factor",
+        "desc": "Coefficient used when armor rating reduces incoming posture damage."
+    },
+    "UsePoiseSystem": {
+        "label": "Enable Poise System",
+        "desc": "Controls whether poise health, poise regen, and poise threshold checks are active."
+    },
+    "PoiseStaminaMult": {
+        "label": "Stamina to Poise Multiplier",
+        "desc": "How much max poise each point of max stamina provides."
+    },
+    "PoiseMassMult": {
+        "label": "Mass to Poise Multiplier",
+        "desc": "How much max poise each unit of character mass provides."
+    },
+    "PoiseRegenDelay": {
+        "label": "Poise Regen Delay",
+        "desc": "Delay after taking poise damage before poise regeneration begins, in milliseconds."
+    },
+    "PoiseRegenPercentPerSecond": {
+        "label": "Poise Regen Percent Per Second",
+        "desc": "Percentage of max poise regenerated per second."
+    },
+    "StaggerLevelSmall": {
+        "label": "Small Stagger Threshold",
+        "desc": "Poise damage required to trigger a Small stagger."
+    },
+    "StaggerLevelMedium": {
+        "label": "Medium Stagger Threshold",
+        "desc": "Poise damage required to trigger a Medium stagger."
+    },
+    "StaggerLevelLarge": {
+        "label": "Large Stagger Threshold",
+        "desc": "Poise damage required to trigger a Large stagger."
+    },
+    "LightArmorHeadMaxPoiseBonus": {
+        "label": "Light Armor Head Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing a light armor helmet."
+    },
+    "LightArmorBodyMaxPoiseBonus": {
+        "label": "Light Armor Body Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing a light armor cuirass."
+    },
+    "LightArmorHandMaxPoiseBonus": {
+        "label": "Light Armor Hand Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing light armor gauntlets."
+    },
+    "LightArmorFeetMaxPoiseBonus": {
+        "label": "Light Armor Feet Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing light armor boots."
+    },
+    "HeavyArmorHeadMaxPoiseBonus": {
+        "label": "Heavy Armor Head Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing a heavy armor helmet."
+    },
+    "HeavyArmorBodyMaxPoiseBonus": {
+        "label": "Heavy Armor Body Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing a heavy armor cuirass."
+    },
+    "HeavyArmorHandMaxPoiseBonus": {
+        "label": "Heavy Armor Hand Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing heavy armor gauntlets."
+    },
+    "HeavyArmorFeetMaxPoiseBonus": {
+        "label": "Heavy Armor Feet Max Poise Bonus",
+        "desc": "Max poise bonus granted by wearing heavy armor boots."
+    },
+    "BashPoiseDamageMult": {
+        "label": "Bash Poise Damage Multiplier",
+        "desc": "Poise damage multiplier for bash hits."
+    },
+    "PowerAttackPoiseDamageMult": {
+        "label": "Power Attack Poise Damage Multiplier",
+        "desc": "Poise damage multiplier for power attack hits."
+    },
+    "PowerBashPoiseDamageMult": {
+        "label": "Power Bash Poise Damage Multiplier",
+        "desc": "Poise damage multiplier for power bash hits."
+    },
+    "UseStaggerSystem": {
+        "label": "Enable Stagger System",
+        "desc": "Controls whether RimCombat takes over stagger level and recovery time."
+    },
+    "StaggerRecoveryTimeSmall": {
+        "label": "Small Stagger Recovery Time",
+        "desc": "Recovery time for Small stagger, in milliseconds."
+    },
+    "StaggerRecoveryTimeMedium": {
+        "label": "Medium Stagger Recovery Time",
+        "desc": "Recovery time for Medium stagger, in milliseconds."
+    },
+    "StaggerRecoveryTimeLarge": {
+        "label": "Large Stagger Recovery Time",
+        "desc": "Recovery time for Large stagger, in milliseconds."
+    },
+    "UseExhaustedSystem": {
+        "label": "Enable Exhausted System",
+        "desc": "Controls whether the exhausted state and its offensive/defensive penalties are active."
+    },
+    "DisablePlayerAttackWhenExhausted": {
+        "label": "Disable Player Attack When Exhausted",
+        "desc": "When enabled, the player cannot attack while exhausted."
+    },
+    "DisableNPCAttackWhenExhausted": {
+        "label": "Disable NPC Attack When Exhausted",
+        "desc": "When enabled, NPCs cannot attack while exhausted."
+    },
+    "ExitExhaustedOnHit": {
+        "label": "Exit Exhaustion on Hit",
+        "desc": "When enabled, taking a hit helps the actor exit the exhausted state."
+    },
+    "ExhaustedExitPercent": {
+        "label": "Exhausted Exit Stamina Percent",
+        "desc": "Stamina percentage recovered to when exiting the exhausted state."
+    },
+    "AttackDamageMultWhenExhausted": {
+        "label": "Attack Damage Multiplier When Exhausted",
+        "desc": "Damage multiplier for attacks made while exhausted."
+    },
+    "AttackPostureDamageMultWhenExhausted": {
+        "label": "Attack Posture Damage Multiplier When Exhausted",
+        "desc": "Posture damage multiplier for attacks made while exhausted."
+    },
+    "OnHitDamageMultWhenExhausted": {
+        "label": "Incoming Damage Multiplier When Exhausted",
+        "desc": "Multiplier for damage taken while exhausted."
+    },
+    "OnHitPostureDamageMultWhenExhausted": {
+        "label": "Incoming Posture Damage Multiplier When Exhausted",
+        "desc": "Multiplier for posture damage taken while exhausted."
+    },
+    "UseBlockSystem": {
+        "label": "Enable Block System",
+        "desc": "Controls whether RimCombat takes over block damage reduction and block stamina drain."
+    },
+    "TimedBlockEnabled": {
+        "label": "Enable Timed Block",
+        "desc": "Controls whether the timed block window and its benefits are active."
+    },
+    "TimedBlockNeverPostureBreak": {
+        "label": "Timed Block Posture Break Immunity",
+        "desc": "When a timed block is triggered successfully, this hit cannot cause a posture break."
+    },
+    "TimedBlockLimit": {
+        "label": "Timed Block Window",
+        "desc": "Time from the start of a block during which it still counts as a timed block, in milliseconds."
+    },
+    "TimedBlockDuration": {
+        "label": "Timed Block Duration",
+        "desc": "How long the timed block's enhanced benefits last after a successful trigger, in milliseconds."
+    },
+    "BlockMaxStaminaConsumePercent": {
+        "label": "Max Block Stamina Drain Percent",
+        "desc": "Maximum percent of max stamina a single block can consume."
+    },
+    "BlockMinStaminaConsume": {
+        "label": "Block Minimum Stamina Drain",
+        "desc": "Base stamina drain applied when stamina is insufficient for a full block."
+    },
+    "TimedBlockBlockStrengthMult": {
+        "label": "Timed Block Strength Multiplier",
+        "desc": "Additional multiplier applied to block strength during timed block state."
+    },
+    "UseWeaponArtSystem": {
+        "label": "Enable Weapon Art System",
+        "desc": "Controls whether the Weapon Art system, state machine, and payload processing are active."
+    },
+    "UseWeaponArtHUD": {
+        "label": "Enable Weapon Art HUD",
+        "desc": "Controls whether the PrismaUI Weapon Art HUD is displayed."
+    },
+    "WeaponArtHUDPosX": {
+        "label": "Weapon Art HUD X Position",
+        "desc": "Horizontal screen position of the Weapon Art HUD, in percent."
+    },
+    "WeaponArtHUDPosY": {
+        "label": "Weapon Art HUD Y Position",
+        "desc": "Vertical screen position of the Weapon Art HUD, in percent."
+    },
+    "WeaponArtHUDScale": {
+        "label": "Weapon Art HUD Scale",
+        "desc": "Overall scale multiplier for the Weapon Art HUD."
+    },
+    "WeaponArtMenuStartPercent": {
+        "label": "Weapon Art Menu Start Position",
+        "desc": "Horizontal starting position of the Weapon Art menu, in screen percent."
+    },
+    "SwitchWeaponArtMenu_Purpose": {
+        "label": "Toggle Weapon Art Menu",
+        "desc": "Show or hide the Weapon Art menu while the inventory is open."
+    },
+    "SwitchWeaponArtHUD_Purpose": {
+        "label": "Toggle Weapon Art State",
+        "desc": "Toggle the current Weapon Art between enabled and disabled."
+    },
+    "WeaponArtMenuLevel": {
+        "label": "Weapon Art Level",
+        "desc": "Current Weapon Art system level display."
+    },
+    "WeaponArtMenuPoints": {
+        "label": "Weapon Art Points",
+        "desc": "Currently available Weapon Art points."
+    },
+    "WeaponArtMenuClose": {
+        "label": "Close",
+        "desc": "Close the Weapon Art menu."
+    },
+    "WeaponArtMenuCatalog": {
+        "label": "Catalog",
+        "desc": "Title for the Weapon Art list area."
+    },
+    "WeaponArtMenuCatalogTitle": {
+        "label": "All Weapon Arts",
+        "desc": "Weapon Art overview title."
+    },
+    "WeaponArtMenuCatalogNote": {
+        "label": "Select a Weapon Art below. The upper area shows the current weapon and the selected art.",
+        "desc": "Instruction text for the Weapon Art menu."
+    },
+    "WeaponArtMenuArtCount": {
+        "label": "{} total",
+        "desc": "Weapon Art count display."
+    },
+    "WeaponArtMenuNoDescription": {
+        "label": "No description available.",
+        "desc": "Placeholder text when a Weapon Art has no description."
+    },
+    "WeaponArtMenuNoArtsTitle": {
+        "label": "No Weapon Arts Loaded",
+        "desc": "Title displayed when the Weapon Art list is empty."
+    },
+    "WeaponArtMenuNoArtsBody": {
+        "label": "The menu is ready, but the plugin has not sent any Weapon Art data yet.",
+        "desc": "Body text displayed when the Weapon Art list is empty."
+    },
+    "WeaponArtMenuCurrentWeapon": {
+        "label": "Current Weapon",
+        "desc": "Title for the current weapon panel."
+    },
+    "WeaponArtMenuNoWeaponSelected": {
+        "label": "No Weapon Selected",
+        "desc": "Displayed when no weapon is selected in the inventory."
+    },
+    "WeaponArtMenuInventorySelectionRequired": {
+        "label": "Select a weapon in the inventory first",
+        "desc": "Reminder to select a weapon."
+    },
+    "WeaponArtMenuSelectWeaponTitle": {
+        "label": "Please select a weapon in the inventory first",
+        "desc": "Empty state title for the current weapon panel."
+    },
+    "WeaponArtMenuSelectWeaponBody": {
+        "label": "The top-left area shows the currently selected weapon, the assigned art, and its assignment status.",
+        "desc": "Empty state body for the current weapon panel."
+    },
+    "WeaponArtMenuBoundArt": {
+        "label": "Assigned Art",
+        "desc": "Field name in the current weapon panel."
+    },
+    "WeaponArtMenuWeaponType": {
+        "label": "Weapon Type",
+        "desc": "Field name in the current weapon panel."
+    },
+    "WeaponArtMenuWeaponBody": {
+        "label": "If the highlighted art is unlocked and compatible with this weapon, you can assign it here.",
+        "desc": "Instruction for the current weapon panel."
+    },
+    "WeaponArtMenuNoWeaponArtSelected": {
+        "label": "No Art Selected",
+        "desc": "Button text when no Weapon Art is highlighted."
+    },
+    "WeaponArtMenuSelectedArtAlreadyBound": {
+        "label": "This Art Is Already Assigned",
+        "desc": "Button text when the highlighted art is already assigned to the weapon."
+    },
+    "WeaponArtMenuBindAction": {
+        "label": "Assign {}",
+        "desc": "Button text to assign a Weapon Art to the weapon."
+    },
+    "WeaponArtMenuUnbindCurrent": {
+        "label": "Remove Current Art",
+        "desc": "Remove the Weapon Art from the current weapon."
+    },
+    "WeaponArtMenuNoWeaponArtBound": {
+        "label": "No Art Currently Assigned",
+        "desc": "Button text when the current weapon has no art assigned."
+    },
+    "WeaponArtMenuSelectedArt": {
+        "label": "Selected Art",
+        "desc": "Title for the top-right panel."
+    },
+    "WeaponArtMenuNoArtSelected": {
+        "label": "No Art Selected",
+        "desc": "Displayed when no art is highlighted."
+    },
+    "WeaponArtMenuWaitingTitle": {
+        "label": "Waiting for Weapon Art Data",
+        "desc": "Title for the empty art detail panel."
+    },
+    "WeaponArtMenuWaitingBody": {
+        "label": "Once the plugin sends the Weapon Art list, the selected entry will appear here.",
+        "desc": "Body for the empty art detail panel."
+    },
+    "WeaponArtMenuUnlockLevel": {
+        "label": "Unlock Level",
+        "desc": "Field name in the art detail panel."
+    },
+    "WeaponArtMenuPointCost": {
+        "label": "Point Cost",
+        "desc": "Field name in the art detail panel."
+    },
+    "WeaponArtMenuActivation": {
+        "label": "Activation Type",
+        "desc": "Field name in the art detail panel."
+    },
+    "WeaponArtMenuAssignment": {
+        "label": "Assignment Status",
+        "desc": "Field name in the art detail panel."
+    },
+    "WeaponArtMenuAvailable": {
+        "label": "Assignable",
+        "desc": "Displayed when the current art can be assigned."
+    },
+    "WeaponArtMenuCurrentlyAssigned": {
+        "label": "Currently Assigned",
+        "desc": "Badge text when the art is currently assigned."
+    },
+    "WeaponArtMenuUnlocked": {
+        "label": "Unlocked",
+        "desc": "Badge text when the art is unlocked."
+    },
+    "WeaponArtMenuLocked": {
+        "label": "Locked",
+        "desc": "Badge text when the art is locked."
+    },
+    "WeaponArtMenuLevelBadge": {
+        "label": "Level {}",
+        "desc": "Level badge on the art card."
+    },
+    "WeaponArtMenuCostBadge": {
+        "label": "Cost {}",
+        "desc": "Point cost badge on the art card."
+    },
+    "WeaponArtMenuPrepare": {
+        "label": "Prepare",
+        "desc": "Weapon Art type that requires preparation."
+    },
+    "WeaponArtMenuInstant": {
+        "label": "Instant",
+        "desc": "Weapon Art type that fires immediately."
+    },
+    "WeaponArtMenuCompatible": {
+        "label": "Compatible",
+        "desc": "The current weapon can use this art."
+    },
+    "WeaponArtMenuIncompatible": {
+        "label": "Incompatible",
+        "desc": "The current weapon cannot use this art."
+    },
+    "WeaponArtMenuAssigned": {
+        "label": "Assigned",
+        "desc": "This art is already assigned to the current weapon."
+    },
+    "WeaponArtMenuAlreadyUnlocked": {
+        "label": "Already Unlocked",
+        "desc": "Button text when the art is already unlocked."
+    },
+    "WeaponArtMenuUnlockAction": {
+        "label": "Unlock Art ({} pts)",
+        "desc": "Button text to unlock the art."
+    },
+    "WeaponArtMenuAssignedToWeapon": {
+        "label": "Assigned to Weapon",
+        "desc": "Button text when the art is assigned to the current weapon."
+    },
+    "WeaponArtMenuAssignToSelectedWeapon": {
+        "label": "Assign to Current Weapon",
+        "desc": "Button text to assign the art to the selected weapon."
+    },
+    "WeaponArtMenuHintSelectArt": {
+        "label": "First select an art from the grid below, then decide whether to assign it to this weapon.",
+        "desc": "Hint when no art is selected."
+    },
+    "WeaponArtMenuHintCanBind": {
+        "label": "You can assign {} to this weapon, or remove the current assignment first.",
+        "desc": "Hint when the art can be assigned."
+    }
+}

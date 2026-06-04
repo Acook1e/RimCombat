@@ -9,7 +9,8 @@ public:
   // 图事件，payload用于传递信息
   // Set|multiplier表示自身受到韧性伤害，multiplier为韧性伤害倍率
   // End表示结束对自身的韧性伤害修改，清空缓存的Set|multiplier事件，通常在此次攻击的命中帧结束时触发
-  // TargetSet|multiplier用于设置击中目标的韧性伤害倍率，multiplier为韧性伤害倍率
+  // TargetSet|multiplier|fallback用于设置击中目标的韧性伤害倍率，multiplier为韧性伤害倍率
+  // fallback用于战技条件不满足时的韧性伤害倍率，multiplier和fallback都不处理小于0的值
   // TargetEnd用于结束对目标的韧性伤害倍率设置，通常在此次攻击命中帧结束时触发
   constexpr static std::string_view RIMPOISE = "RimPoise";
 

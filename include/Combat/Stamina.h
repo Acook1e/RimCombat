@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Settings.h"
+#include "Data/Race.h"
 
 class Stamina
 {
@@ -24,6 +24,7 @@ public:
 
   // 由AttackState的切换触发
   static void SwingStaminaConsume(RE::Actor* actor, RE::TESObjectWEAP* weapon);
+  static void CreatureStaminaConsume(RE::Actor* actor, Race::Type raceType);
   static void BashStaminaConsume(RE::Actor* actor);
 
   // AttackState无法正确获取空手攻击，使用图事件触发

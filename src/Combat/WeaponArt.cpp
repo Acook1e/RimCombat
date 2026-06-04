@@ -492,9 +492,9 @@ Manager::Manager()
 
         // 如果想要查看ID，可以在对应的战技定义中添加"verbose": true字段
         bool verbose = value.value("verbose", false);
-        if (verbose)
-          logger::info("Loaded Weapon Art {} (ID: {}) from file {}.", name, id,
-                       entry.path().string());
+        // if (verbose)
+        logger::info("Loaded Weapon Art {} (ID: {}) from file {}.", name, id,
+                     entry.path().string());
 
         WeaponArtInfo art(id, name, description, availableWeapon, std::move(weapons),
                           std::move(spells), consumePoint, unlockLevel, needPrepare);

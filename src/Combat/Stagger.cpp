@@ -142,6 +142,8 @@ void Stagger::Update()
 {
   auto now = Utils::GetTime<std::chrono::milliseconds>();
 
+  logger::info("A");
+
   // 更新免疫缓存，移除过期的免疫状态
   {
     std::scoped_lock lock(mtx_immuneCache);
@@ -157,14 +159,14 @@ void Stagger::Update()
   {
     std::scoped_lock lock(mtx_recover);
     for (auto it = staggerRecovery.begin(); it != staggerRecovery.end();) {
-      auto victim               = it->first;
-      auto [recoverTime, level] = it->second;
+      auto victim = it->first;
+      auto data   = it->second;
       // 特殊硬直的恢复时间有Recoverable事件来控制
-      if (level < Level::Largest)
+      if (data.current > Level::Largest)
         continue;
-      if (recoverTime <= now) {
-        if (victim)
-          victim->SetGraphVariableBool(STAGGER_RECOVERABLE, true);
+
+      if (data.recoverTime <= now) {
+        victim->SetGraphVariableBool(STAGGER_RECOVERABLE, true);
         it = staggerRecovery.erase(it);
       } else
         ++it;
@@ -325,7 +327,9 @@ void Stagger::StaggerStart(RE::Actor* victim)
     if (!staggerRecovery.contains(victim))
       staggerRecovery[victim] = {now + recoverTime, level};
     else {
-      auto [lastTime, lastLevel] = staggerRecovery[victim];
+      auto data      = staggerRecovery[victim];
+      auto lastLevel = data.current;
+      auto lastTime  = data.recoverTime;
 
       // 如果在大硬直期间受到小硬直，则忽略这次硬直
       if (lastLevel > level)

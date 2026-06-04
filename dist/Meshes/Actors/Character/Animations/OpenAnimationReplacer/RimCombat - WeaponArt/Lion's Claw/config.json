@@ -1,7 +1,7 @@
 {
-  "name": "SpinningSlash",
+  "name": "Unshethe",
   "description": "None",
-  "priority": 2064141002,
+  "priority": 2064141003,
   "conditions": [
     {
       "condition": "AND",
@@ -16,7 +16,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 994588405
+            "value": 1597283175
           }
         },
         {

@@ -207,7 +207,11 @@ namespace
                     {"StaminaRegenMultBlock", fStaminaRegenMultBlock},
                     {"AttackStaminaCostPerMass", fAttackStaminaCostPerMass},
                     {"PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult},
-                    {"PowerAttackStaminaCostPerMass", fPowerAttackStaminaCostPerMass}};
+                    {"PowerAttackStaminaCostPerMass", fPowerAttackStaminaCostPerMass},
+                    {"BashStaminaCostMult", fBashStaminaCostMult},
+                    {"BashStaminaCostPerMass", fBashStaminaCostPerMass},
+                    {"PowerBashStaminaCostMult", fPowerBashStaminaCostMult},
+                    {"PowerBashStaminaCostPerMass", fPowerBashStaminaCostPerMass}};
     SaveWeaponFloatMap(stamina, "BaseStaminaCost", baseStaminaCostMap);
     SaveRaceFloatMap(stamina, "BaseCreatureStamina", baseCreatureStaminaMap);
     root["Stamina"] = std::move(stamina);
@@ -399,6 +403,10 @@ void LoadSettings()
     LoadSetting(stamina, "Stamina", "PowerAttackStaminaCostMult", fPowerAttackStaminaCostMult);
     LoadSetting(stamina, "Stamina", "PowerAttackStaminaCostPerMass",
                 fPowerAttackStaminaCostPerMass);
+    LoadSetting(stamina, "Stamina", "BashStaminaCostMult", fBashStaminaCostMult);
+    LoadSetting(stamina, "Stamina", "BashStaminaCostPerMass", fBashStaminaCostPerMass);
+    LoadSetting(stamina, "Stamina", "PowerBashStaminaCostMult", fPowerBashStaminaCostMult);
+    LoadSetting(stamina, "Stamina", "PowerBashStaminaCostPerMass", fPowerBashStaminaCostPerMass);
     LoadWeaponFloatMap(stamina, "Stamina", "BaseStaminaCost", baseStaminaCostMap);
     LoadRaceFloatMap(stamina, "Stamina", "BaseCreatureStamina", baseCreatureStaminaMap);
   }

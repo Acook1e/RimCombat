@@ -1,7 +1,7 @@
 {
     "Lion's Claw": {
-        "name": "狮子斩",
-        "description": "向空中跃起后向前方斩击",
+        "name": "Lion's Claw",
+        "description": "Leap into the air and slam down with a devastating overhead strike.",
         "weapons": [],
         "availableWeapon": [
             "Heavy",
@@ -12,8 +12,8 @@
         "needPrepare": false
     },
     "Unsheathe": {
-        "name": "居合",
-        "description": "收刀入鞘，根据轻重攻击使出不同的派生攻击",
+        "name": "Unsheathe",
+        "description": "Sheathe your blade, then draw with a light or heavy follow-up attack.",
         "weapons": [],
         "availableWeapon": [
             "Normal",
@@ -25,8 +25,8 @@
         "Elden Rim - Weapon Arts ID": "4/5"
     },
     "Double Slash": {
-        "name": "二连斩",
-        "description": "快速斩击两次，可衔接多次攻击",
+        "name": "Double Slash",
+        "description": "Unleash a rapid sequence of slashes that builds into a heavy finishing blow.",
         "weapons": [],
         "availableWeapon": [
             "Light",
@@ -39,8 +39,8 @@
         "needPrepare": false
     },
     "Giant Hunting": {
-        "name": "狩猎巨人",
-        "description": "向前方突袭，对路径上的敌人造成伤害",
+        "name": "Giant Hunt",
+        "description": "Lunge forward with a powerful thrust that launches enemies into the air.",
         "weapons": [],
         "availableWeapon": [
             "Heavy",
@@ -51,8 +51,8 @@
         "needPrepare": false
     },
     "Impaling Thrust": {
-        "name": "贯穿",
-        "description": "快速向前突刺，对路径上的敌人造成伤害",
+        "name": "Impaling Thrust",
+        "description": "A focused, high-penetration thrust that deals heavy posture and poise damage.",
         "weapons": [],
         "availableWeapon": [
             "Thrust"
@@ -62,8 +62,8 @@
         "needPrepare": false
     },
     "Vacuum Slash": {
-        "name": "真空斩",
-        "description": "向前方斩击，对路径上的敌人造成伤害",
+        "name": "Vacuum Slash",
+        "description": "Charge and unleash a downward slash that projects a blade wave forward.",
         "weapons": [],
         "availableWeapon": [
             "Normal",

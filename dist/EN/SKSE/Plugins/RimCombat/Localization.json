@@ -271,6 +271,14 @@
         "label": "Power Bash Poise Damage Multiplier",
         "desc": "Poise damage multiplier for power bash hits."
     },
+    "LevelDiffAggressorMultPerLevel": {
+        "label": "Level Gap Poise Resistance (Per Level)",
+        "desc": "Poise damage attenuation factor applied per level the attacker is below the target."
+    },
+    "VictimAttackingPoiseBonusPercent": {
+        "label": "Hyper Armor Poise Bonus Percent",
+        "desc": "Percentage of current weapon poise damage granted as bonus poise while attacking."
+    },
     "UseStaggerSystem": {
         "label": "Enable Stagger System",
         "desc": "Controls whether RimCombat takes over stagger level and recovery time."

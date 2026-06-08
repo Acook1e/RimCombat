@@ -271,6 +271,14 @@
         "label": "强盾击韧性伤害倍率",
         "desc": "强盾击命中时的韧性伤害倍率。"
     },
+    "LevelDiffAggressorMultPerLevel": {
+        "label": "等级差削韧衰减（每级）",
+        "desc": "攻击者每低于受击者一级，削韧受到的衰减因子。"
+    },
+    "VictimAttackingPoiseBonusPercent": {
+        "label": "出手韧性加成比例",
+        "desc": "攻击动作中，基于当前武器削韧值提供的额外韧性百分比。"
+    },
     "UseStaggerSystem": {
         "label": "启用硬直系统",
         "desc": "控制 RimCombat 是否接管硬直等级与恢复时间。"

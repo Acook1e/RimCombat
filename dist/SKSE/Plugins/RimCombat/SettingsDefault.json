@@ -257,6 +257,8 @@
         "BashPoiseDamageMult": 0.50,
         "PowerAttackPoiseDamageMult": 2.00,
         "PowerBashPoiseDamageMult": 0.65,
+        "LevelDiffAggressorMultPerLevel": 0.05,
+        "VictimAttackingPoiseBonusPercent": 0.8,
         "BasePoise": {
             "Human": 10.0,
             "AshHopper": 1.5,

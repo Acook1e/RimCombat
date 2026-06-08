@@ -250,7 +250,9 @@ namespace
                   {"HeavyArmorFeetMaxPoiseBonus", fHeavyArmorFeetMaxPoiseBonus},
                   {"BashPoiseDamageMult", fBashPoiseDamageMult},
                   {"PowerAttackPoiseDamageMult", fPowerAttackPoiseDamageMult},
-                  {"PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult}};
+                  {"PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult},
+                  {"LevelDiffAggressorMultPerLevel", fLevelDiffAggressorMultPerLevel},
+                  {"VictimAttackingPoiseBonusPercent", fVictimAttackingPoiseBonusPercent}};
     SaveRaceFloatMap(poise, "BasePoise", basePoiseMap);
     SaveWeaponFloatMap(poise, "BasePoiseDamage", basePoiseDamageMap);
     SaveRaceFloatMap(poise, "BaseCreaturePoiseDamage", baseCreaturePoiseDamage);
@@ -448,6 +450,9 @@ void LoadSettings()
     LoadSetting(poise, "Poise", "HeavyArmorHandMaxPoiseBonus", fHeavyArmorHandMaxPoiseBonus);
     LoadSetting(poise, "Poise", "HeavyArmorFeetMaxPoiseBonus", fHeavyArmorFeetMaxPoiseBonus);
     LoadSetting(poise, "Poise", "BashPoiseDamageMult", fBashPoiseDamageMult);
+    LoadSetting(poise, "Poise", "LevelDiffAggressorMultPerLevel", fLevelDiffAggressorMultPerLevel);
+    LoadSetting(poise, "Poise", "VictimAttackingPoiseBonusPercent",
+                fVictimAttackingPoiseBonusPercent);
     LoadSetting(poise, "Poise", "PowerAttackPoiseDamageMult", fPowerAttackPoiseDamageMult);
     LoadSetting(poise, "Poise", "PowerBashPoiseDamageMult", fPowerBashPoiseDamageMult);
     LoadRaceFloatMap(poise, "Poise", "BasePoise", basePoiseMap);

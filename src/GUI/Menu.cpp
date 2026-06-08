@@ -229,6 +229,10 @@ void Poise()
                    0.0f, 20.0f, "%.2f");
   ImGui::DragFloat("PowerBashPoiseDamageMult"_h, &Settings::fPowerBashPoiseDamageMult, 0.05f, 0.0f,
                    20.0f, "%.2f");
+  ImGui::DragFloat("LevelDiffAggressorMultPerLevel"_h, &Settings::fLevelDiffAggressorMultPerLevel,
+                   0.005f, 0.0f, 1.0f, "%.3f");
+  ImGui::DragFloat("VictimAttackingPoiseBonusPercent"_h,
+                   &Settings::fVictimAttackingPoiseBonusPercent, 0.05f, 0.0f, 2.0f, "%.2f");
 }
 
 void Stagger()

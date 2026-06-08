@@ -16,7 +16,13 @@ float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
 
   auto powerEntry = RE::BGSPerkEntry::EntryPoint::kModPowerAttackStamina;
 
-  // 无法判断乘法与加法的区别
+  if (powerAttack) {
+    if (!actor->HasPerkEntries(powerEntry))
+      return finalCost;
+    auto weaponEntry = actor->GetAttackingWeapon();
+    auto weapon      = weaponEntry ? weaponEntry->object->As<RE::TESObjectWEAP>() : nullptr;
+    RE::BGSEntryPoint::HandleEntryPoint(powerEntry, actor, weapon, &finalCost);
+  }
 
   return finalCost;
 }
@@ -59,6 +65,8 @@ void Stamina::SwingStaminaConsume(RE::Actor* actor, RE::TESObjectWEAP* weapon)
     staminaCost += Settings::fAttackStaminaCostPerMass * weaponWeight;
   }
 
+  staminaCost = ApplyPerkEntry(actor, actor->IsPowerAttacking(), staminaCost);
+
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }
 
@@ -81,6 +89,8 @@ void Stamina::CreatureStaminaConsume(RE::Actor* actor, Race::Type raceType)
   float staminaCost = Race::GetBaseStaminaConsumption(raceType);
   if (actor->IsPowerAttacking())
     staminaCost *= Settings::fPowerAttackStaminaCostMult;
+
+  staminaCost = ApplyPerkEntry(actor, actor->IsPowerAttacking(), staminaCost);
 
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, staminaCost);
 }
@@ -129,6 +139,7 @@ void Stamina::BashStaminaConsume(RE::Actor* actor)
     baseCost += Settings::fBashStaminaCostPerMass * mass;
   }
 
+  baseCost = ApplyPerkEntry(actor, actor->IsPowerAttacking(), baseCost);
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
 }
 
@@ -153,6 +164,7 @@ void Stamina::UnarmStaminaConsume(RE::Actor* actor)
   if (actor->IsPowerAttacking())
     baseCost *= Settings::fPowerAttackStaminaCostMult;
 
+  baseCost = ApplyPerkEntry(actor, actor->IsPowerAttacking(), baseCost);
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
 }
 
@@ -250,6 +262,7 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
   else
     baseCost += Settings::fAttackStaminaCostPerMass * mass;
 
+  baseCost = ApplyPerkEntry(actor, power, baseCost);
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
 }
 

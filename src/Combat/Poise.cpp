@@ -43,9 +43,14 @@ float Poise::CalculateMaxPoise(RE::Actor* actor)
   float armorBonus = 0.0f;
 
   // 获取所有装备的护甲类型对应的韧性加成
-  for (auto& [obj, pair] : actor->GetInventory([](RE::TESBoundObject& object) {
+  for (auto& [obj, data] : actor->GetInventory([](RE::TESBoundObject& object) {
          return object.IsArmor();
        })) {
+
+    auto& [count, entry] = data;
+    if (!entry->IsWorn())
+      continue;
+
     auto armor = obj->As<RE::TESObjectARMO>();
     if (armor->IsLightArmor()) {
       if (armor->HasPartOf(RE::BIPED_MODEL::BipedObjectSlot::kHead))
@@ -241,11 +246,39 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
   auto aggressorEntry = RE::BGSEntryPoint::ENTRY_POINTS::kModTargetStagger;
   auto victimEntry    = RE::BGSEntryPoint::ENTRY_POINTS::kModIncomingStagger;
 
-  // 暂时不使用任何原版的entry
-  // 因为无法判断是乘法还是加法
+  float aggressorMult = 1.0f;
+  float victimMult    = 1.0f;
+
+  // 无法判断是乘法还是加法
+  // 但是因为与原版的数值差距较大，加法不会造成过大影响
+  // 在此不做检测
+
+  if (aggressor->HasPerkEntries(aggressorEntry))
+    RE::BGSEntryPoint::HandleEntryPoint(aggressorEntry, aggressor, hitData.weapon, &aggressorMult);
+
+  if (victim->HasPerkEntries(victimEntry))
+    RE::BGSEntryPoint::HandleEntryPoint(victimEntry, victim, hitData.weapon, &victimMult);
+
+  // 限制乘数在合理范围，避免极端数值导致的平衡性问题
+  aggressorMult = std::clamp(aggressorMult, 0.6f, 2.0f);
+  victimMult    = std::clamp(victimMult, 0.6f, 2.0f);
+
+  // 计算攻击者和受击者的等级差距
+  auto levelDiff     = aggressor->GetLevel() - victim->GetLevel();
+  auto levelDiffMult = 1.0f;
+  // 攻击者等级低于受击者会应用一个衰减
+  // 反之则正常计算
+  if (levelDiff < 0)
+    levelDiffMult = 1.0f / (1.0f + std::abs(levelDiff) * Settings::fLevelDiffAggressorMultPerLevel);
 
   // 根据类型应用不同的韧性伤害倍率
   float poiseDamage = base;
+
+  poiseDamage *= aggressorMult;
+  poiseDamage *= victimMult;
+
+  poiseDamage *= levelDiffMult;
+
   if (hitData.flags.any(RE::HitData::Flag::kPowerAttack)) {
     if (bash)
       poiseDamage *= Settings::fPowerBashPoiseDamageMult;
@@ -262,6 +295,26 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
       poiseDamage *= iter->second;
     if (auto iter = poiseMultSelf.find(victim); iter != poiseMultSelf.end())
       poiseDamage *= iter->second;
+  }
+
+  // 处理攻击出手韧性值
+  auto state = victim->AsActorState()->GetAttackState();
+  if (state == RE::ATTACK_STATE_ENUM::kDraw || state == RE::ATTACK_STATE_ENUM::kSwing) {
+    float baseBonus = 0.0f;
+
+    auto weapon = victim->GetAttackingWeapon();
+    if (weapon && weapon->object && weapon->object->IsWeapon()) {
+      auto type = Weapon::GetWeaponType(weapon->object->As<RE::TESObjectWEAP>());
+      baseBonus = Weapon::GetBasePoiseDamage(type);
+    } else
+      baseBonus = Race::GetBasePoiseDamage(Race::GetRace(victim));
+
+    if (victim->IsPowerAttacking())
+      baseBonus *= Settings::fPowerAttackPoiseDamageMult;
+    baseBonus *= Settings::fVictimAttackingPoiseBonusPercent;
+
+    // 最低保留10%的韧性伤害以保证攻击的打击感，同时也避免过度削弱韧性系统的存在感
+    poiseDamage = (std::max)(poiseDamage - baseBonus, poiseDamage * 0.1f);
   }
 
   DamagePoiseHealth(victim, poiseDamage);

@@ -68,6 +68,25 @@ RE::InventoryEntryData* GetSelectedItemEntry()
   }
   return nullptr;
 }
+void PlaySFX(RE::Actor* actor, RE::BGSSoundDescriptorForm* descriptor, RE::NiPoint3 position,
+             float volume)
+{
+  if (!actor || !descriptor)
+    return;
+
+  auto* audioManager = RE::BSAudioManager::GetSingleton();
+  if (!audioManager)
+    return;
+
+  RE::BSSoundHandle handle;
+  audioManager->GetSoundHandle(handle, descriptor);
+  if (!handle.IsValid())
+    return;
+  handle.SetPosition(position);
+  handle.SetVolume(volume);
+  handle.SetObjectToFollow(actor->Get3D());
+  handle.Play();
+}
 
 // 主线程相关
 std::mutex taskMutex;

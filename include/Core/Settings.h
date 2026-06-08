@@ -15,9 +15,9 @@ inline bool bUseDamageSystem = true;
 // 重击伤害倍率，相对于轻攻击
 inline float fDamageMultPowerAttack = 1.8f;
 // 格挡攻击伤害倍率，相对于轻攻击
-inline float fDamageMultBash = 0.20f;
+inline float fDamageMultBash = 0.50f;
 // 格挡猛击伤害倍率，相对于轻攻击
-inline float fDamageMultPowerBash = 0.35f;
+inline float fDamageMultPowerBash = 0.65f;
 #pragma endregion
 
 #pragma region Stamina
@@ -53,13 +53,13 @@ inline float fPowerAttackStaminaCostMult = 2.5f;
 // 每单位质量的重击额外耐力消耗
 inline float fPowerAttackStaminaCostPerMass = 0.6f;
 // 格挡攻击耐力消耗倍率，乘以基础耐力消耗
-inline float fBashStaminaCostMult = 0.40f;
+inline float fBashStaminaCostMult = 1.80f;
 // 每单位质量的格挡攻击额外耐力消耗
-inline float fBashStaminaCostPerMass = 0.10f;
+inline float fBashStaminaCostPerMass = 0.15f;
 // 格挡猛击耐力消耗倍率，乘以基础耐力消耗
-inline float fPowerBashStaminaCostMult = 1.50f;
+inline float fPowerBashStaminaCostMult = 2.00f;
 // 每单位质量的格挡猛击额外耐力消耗
-inline float fPowerBashStaminaCostPerMass = 0.30f;
+inline float fPowerBashStaminaCostPerMass = 0.20f;
 #pragma endregion
 
 #pragma region Posture
@@ -87,11 +87,11 @@ inline std::unordered_map<RaceEnumType, float> baseCreaturePostureDamage{};
 inline std::unordered_map<WeaponEnumType, float> basePostureDamageMap{};
 
 // 格挡攻击架势伤害倍率，乘以基础架势伤害
-inline float fBashPostureDamageMult = 1.20f;
+inline float fBashPostureDamageMult = 0.50f;
 // 重击架势伤害倍率，乘以基础架势伤害
 inline float fPowerAttackPostureDamageMult = 2.00f;
 // 格挡猛击架势伤害倍率，乘以基础架势伤害
-inline float fPowerBashPostureDamageMult = 3.50f;
+inline float fPowerBashPostureDamageMult = 0.65f;
 
 // 护甲值减少的架势伤害计算因子
 inline float fArmorPostureDamageFactor = 1.1f;
@@ -125,11 +125,15 @@ inline float fHeavyArmorBodyMaxPoiseBonus = 2.5f;
 inline float fHeavyArmorHandMaxPoiseBonus = 0.6f;
 inline float fHeavyArmorFeetMaxPoiseBonus = 0.6f;
 // 格挡攻击韧性伤害倍率，乘以基础韧性伤害
-inline float fBashPoiseDamageMult = 1.20f;
+inline float fBashPoiseDamageMult = 0.50f;
 // 重击的韧性伤害倍率，乘以基础韧性伤害
 inline float fPowerAttackPoiseDamageMult = 2.00f;
 // 格挡猛击韧性伤害倍率，乘以基础韧性伤害
-inline float fPowerBashPoiseDamageMult = 3.50f;
+inline float fPowerBashPoiseDamageMult = 0.65f;
+// 等级差距存在时，攻击者的韧性伤害倍率衰减的因子
+inline float fLevelDiffAggressorMultPerLevel = 0.05f;
+// 攻击过程中，基于的额外韧性值，相对于受击者此次攻击削韧值的百分比
+inline float fVictimAttackingPoiseBonusPercent = 0.8f;
 
 // 各个种族的基础韧性值
 inline std::unordered_map<RaceEnumType, float> basePoiseMap{};

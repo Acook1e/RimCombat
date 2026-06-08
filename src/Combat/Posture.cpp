@@ -60,6 +60,10 @@ Posture::PostureData& Posture::GetPostureDataRef(RE::Actor* actor)
 
 Posture::Posture()
 {
+  auto dataHandler = RE::TESDataHandler::GetSingleton();
+  if (dataHandler)
+    postureBreakSFX = dataHandler->LookupForm<RE::BGSSoundDescriptorForm>(0x806, "RimCombat.esp");
+
   Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
     // 将FormID转换为持久化格式
     // 并自动去除非法或未找到的FormID
@@ -305,7 +309,8 @@ void Posture::DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBrea
   if (postureData.current <= 0.0f) {
     Stagger::SetStaggerLevel(actor, Stagger::Level::PostureBreak);
     // Execution::EnterExecutable(actor);
-    postureData.current = 0.5f * postureData.max;  // 进入处决状态后默认恢复到一半的最大值
+    postureData.current = 0.8f * postureData.max;  // 进入处决状态后默认恢复到最大值的80%
+    Utils::PlaySFX(actor, postureBreakSFX, actor->GetPosition());
   }
 }
 

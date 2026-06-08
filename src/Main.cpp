@@ -27,7 +27,6 @@ void onPostLoad()
   Localization::Initialize();
 
   // 读取配置+序列化
-  Block::GetSingleton();
   Damage::GetSingleton();
   Stamina::GetSingleton();
   Exhausted::GetSingleton();
@@ -63,6 +62,7 @@ void onDataLoaded()
   // 依赖OCF
   Weapon::Initialize();
   // 依赖数据加载的系统
+  Block::GetSingleton();
   Poise::GetSingleton();
   Posture::GetSingleton();
   Stagger::GetSingleton();

@@ -6,8 +6,64 @@
 #include "Data/Weapon.h"
 #include "Utils.h"
 
+namespace
+{
+static RE::TESObjectACTI* activator = nullptr;
+static RE::BGSExplosion* spark      = nullptr;
+static RE::BGSExplosion* sparkFlare = nullptr;
+static RE::BGSExplosion* sparkRing  = nullptr;
+
+static RE::BGSSoundDescriptorForm* timedBlockSFX = nullptr;
+static RE::BGSSoundDescriptorForm* parrySFX      = nullptr;
+
+void PlaceBlockVFX(RE::Actor* actor, Weapon::Type type, std::uint32_t blockType)
+{
+  if (!actor || type == Weapon::Type::None)
+    return;
+
+  if (!activator)
+    return;
+
+  auto obj = actor->PlaceObjectAtMe(activator, false);
+
+  if (type == Weapon::Type::Shield || type == Weapon::Type::Torch)
+    obj->MoveToNode(actor, "SHIELD");
+  else
+    obj->MoveToNode(actor, "WEAPON");
+
+  switch (blockType) {
+  case "TimedBlock"_h:
+    if (spark && sparkFlare) {
+      obj->PlaceObjectAtMe(spark, false);
+      obj->PlaceObjectAtMe(sparkFlare, false);
+    }
+    break;
+  case "Parry"_h:
+    if (spark && sparkFlare && sparkRing) {
+      obj->PlaceObjectAtMe(spark, false);
+      obj->PlaceObjectAtMe(sparkFlare, false);
+      obj->PlaceObjectAtMe(sparkRing, false);
+    }
+    break;
+  default:
+    break;
+  }
+  obj->SetDelete(true);
+}
+};  // namespace
+
 Block::Block()
 {
+  auto dataHandler = RE::TESDataHandler::GetSingleton();
+  if (dataHandler) {
+    activator     = dataHandler->LookupForm<RE::TESObjectACTI>(0x800, "RimCombat.esp");
+    spark         = dataHandler->LookupForm<RE::BGSExplosion>(0x801, "RimCombat.esp");
+    sparkFlare    = dataHandler->LookupForm<RE::BGSExplosion>(0x802, "RimCombat.esp");
+    sparkRing     = dataHandler->LookupForm<RE::BGSExplosion>(0x803, "RimCombat.esp");
+    timedBlockSFX = dataHandler->LookupForm<RE::BGSSoundDescriptorForm>(0x804, "RimCombat.esp");
+    parrySFX      = dataHandler->LookupForm<RE::BGSSoundDescriptorForm>(0x805, "RimCombat.esp");
+  }
+
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     {
       std::lock_guard lock(mtx_blockStart);
@@ -119,7 +175,11 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
       Stagger::SetStaggerLevel(aggressor, Stagger::Level::GuardBreak);
       Stagger::SetStaggerMagnitude(aggressor, Stagger::Level::GuardBreak);
       Stagger::StaggerStart(aggressor);
-      return;
+
+      auto type = Weapon::GetBlockType(victim);
+
+      PlaceBlockVFX(victim, type, "Parry"_h);
+      Utils::PlaySFX(victim, parrySFX, victim->GetPosition());
     }
   }
 
@@ -199,8 +259,11 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
   auto type          = Weapon::GetBlockType(victim);
   auto blockStrength = Weapon::GetBlockStrength(type);
 
-  if (timedBlock)
+  if (timedBlock) {
     blockStrength *= Settings::fTimedBlockBlockStrengthMult;
+    PlaceBlockVFX(victim, type, "TimedBlock"_h);
+    Utils::PlaySFX(victim, timedBlockSFX, victim->GetPosition());
+  }
 
   if (blockStrength <= 0.0f)
     return;

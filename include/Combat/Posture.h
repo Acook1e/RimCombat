@@ -71,4 +71,6 @@ private:
   // 缓存不可破防状态的持续时间
   static inline std::mutex mtx_unbreakableCache;
   static inline std::unordered_map<RE::Actor*, std::uint64_t> unbreakableActors;
+
+  static inline RE::BGSSoundDescriptorForm* postureBreakSFX = nullptr;
 };

@@ -142,8 +142,6 @@ void Stagger::Update()
 {
   auto now = Utils::GetTime<std::chrono::milliseconds>();
 
-  logger::info("A");
-
   // 更新免疫缓存，移除过期的免疫状态
   {
     std::scoped_lock lock(mtx_immuneCache);
@@ -296,6 +294,10 @@ void Stagger::ProcessProjectileStagger(RE::Actor* victim, RE::FormID formID)
 void Stagger::StaggerStart(RE::Actor* victim)
 {
   if (!victim || !Settings::bUseStaggerSystem)
+    return;
+
+  // 处于濒死状态的目标不触发硬直
+  if (victim->AsActorState()->IsBleedingOut())
     return;
 
   auto level = GetStaggerLevel(victim);

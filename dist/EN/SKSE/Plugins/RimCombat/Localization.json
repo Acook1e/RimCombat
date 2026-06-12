@@ -163,6 +163,10 @@
         "label": "Enable Posture HUD",
         "desc": "Display the posture bar through TrueHUD when available."
     },
+    "DisablePlayerPostureBreak": {
+        "label": "Disable Player Posture Break",
+        "desc": "When enabled, the player will not trigger posture-break stagger when posture reaches zero."
+    },
     "MaxPostureHealthMult": {
         "label": "Health to Max Posture Multiplier",
         "desc": "How much max posture each point of max health provides."
@@ -366,6 +370,10 @@
     "UseWeaponArtSystem": {
         "label": "Enable Weapon Art System",
         "desc": "Controls whether the Weapon Art system, state machine, and payload processing are active."
+    },
+    "HideWeaponArtHUDOnSheathe": {
+        "label": "Hide HUD When Sheathed",
+        "desc": "When enabled, the Weapon Art HUD is hidden while weapons are sheathed."
     },
     "UseWeaponArtHUD": {
         "label": "Enable Weapon Art HUD",

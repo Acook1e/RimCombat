@@ -79,10 +79,12 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
       return true;
     break;
   case "staggerstop"_h: {
-    // 如果在可恢复状态后解除硬直，则硬直生命周期结束
-    auto recoverable = false;
-    if (actor->GetGraphVariableBool(Stagger::STAGGER_RECOVERABLE, recoverable))
-      Stagger::SetStaggerLevel(actor, Stagger::Level::None);
+    auto cuurentLevel = Stagger::GetStaggerLevel(actor);
+    if (cuurentLevel != Stagger::Level::None)
+      break;
+    auto recordLevel = Stagger::IsInStagger(actor);
+    if (recordLevel != Stagger::Level::None)
+      Stagger::Recoverable(actor);
     break;
   }
   case "prehitframe"_h:
@@ -91,6 +93,19 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     break;
   case "dodge"_h:
     break;
+
+    // 进入拔刀状态
+  case "beginweapondraw"_h:
+    if (Settings::bHideWeaponArtHUDOnSheathe && actor->IsPlayerRef())
+      UI::WeaponArtHUD::Show();
+    break;
+
+    // 收刀状态
+  case "beginweaponsheathe"_h:
+    if (Settings::bHideWeaponArtHUDOnSheathe && actor->IsPlayerRef())
+      UI::WeaponArtHUD::Hide();
+    break;
+
   case "rimblock"_h:
     Block::ParsePayload(actor, payload);
     break;
@@ -177,6 +192,10 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
       ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME) || ui->IsMenuOpen(RE::MagicMenu::MENU_NAME) ||
       ui->IsMenuOpen(RE::BarterMenu::MENU_NAME) || ui->IsMenuOpen(RE::CraftingMenu::MENU_NAME) ||
       ui->IsMenuOpen(RE::Console::MENU_NAME) || ui->IsMenuOpen(RE::JournalMenu::MENU_NAME))
+    showHUD = false;
+
+  auto player = RE::PlayerCharacter::GetSingleton();
+  if (Settings::bHideWeaponArtHUDOnSheathe && !player->AsActorState()->IsWeaponDrawn())
     showHUD = false;
 
   if (showHUD)

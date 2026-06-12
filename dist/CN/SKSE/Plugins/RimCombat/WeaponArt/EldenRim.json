@@ -9,7 +9,6 @@
         ],
         "consumePoint": 5,
         "unlockLevel": 5,
-        "ownAtStart": false,
         "needPrepare": false
     },
     "Unsheathe": {
@@ -22,7 +21,6 @@
         ],
         "consumePoint": 1,
         "unlockLevel": 0,
-        "ownAtStart": true,
         "needPrepare": true,
         "Elden Rim - Weapon Arts ID": "4/5"
     },
@@ -38,7 +36,6 @@
         ],
         "consumePoint": 2,
         "unlockLevel": 0,
-        "ownAtStart": true,
         "needPrepare": false
     },
     "Giant Hunting": {
@@ -51,7 +48,6 @@
         ],
         "consumePoint": 7,
         "unlockLevel": 5,
-        "ownAtStart": false,
         "needPrepare": false
     },
     "Impaling Thrust": {
@@ -63,7 +59,6 @@
         ],
         "consumePoint": 2,
         "unlockLevel": 0,
-        "ownAtStart": true,
         "needPrepare": false
     },
     "Vacuum Slash": {
@@ -77,7 +72,6 @@
         ],
         "consumePoint": 25,
         "unlockLevel": 50,
-        "ownAtStart": false,
         "needPrepare": false,
         "spells": {
             "VacuumChop": {

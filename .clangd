@@ -1,5 +1,5 @@
 CompileFlags:
-  CompilationDatabase: .
+  CompilationDatabase: build
   Add: [-ferror-limit=0]
   Remove: [/Yu*, -Yu*, /Fp*, -Fp*, /FI*, -Fo*]
 

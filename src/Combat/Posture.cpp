@@ -265,7 +265,8 @@ void Posture::DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBrea
 {
   if (!actor)
     return;
-  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+  if (actor->IsPlayerRef() &&
+      (RE::PlayerCharacter::GetSingleton()->IsGodMode() || Settings::bDisablePlayerPostureBreak))
     return;
 
   if (value <= 0.0f)

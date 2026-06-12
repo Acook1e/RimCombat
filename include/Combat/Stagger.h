@@ -61,6 +61,7 @@ public:
   static float GetStaggerMagnitude(RE::Actor* actor);
   static void SetStaggerMagnitude(RE::Actor* actor, Level level);
 
+  static Level IsInStagger(RE::Actor* actor);
   static Level GetStaggerLevel(RE::Actor* actor);
   static void SetStaggerLevel(RE::Actor* actor, Level level);
 

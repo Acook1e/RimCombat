@@ -218,6 +218,7 @@ namespace
 
     json posture = {{"UsePostureSystem", bUsePostureSystem},
                     {"UsePostureHUD", bUsePostureHUD},
+                    {"DisablePlayerPostureBreak", bDisablePlayerPostureBreak},
                     {"MaxPostureHealthMult", fMaxPostureHealthMult},
                     {"MaxPostureStaminaMult", fMaxPostureStaminaMult},
                     {"PostureRegenDelay", uPostureRegenDelay},
@@ -286,6 +287,7 @@ namespace
     root["Block"] = std::move(block);
 
     root["WeaponArt"] = {{"UseWeaponArtSystem", bUseWeaponArtSystem},
+                         {"HideWeaponArtHUDOnSheathe", bHideWeaponArtHUDOnSheathe},
                          {"UseWeaponArtHUD", bUseWeaponArtHUD},
                          {"WeaponArtHUDPosX", fWeaponArtHUDPosX},
                          {"WeaponArtHUDPosY", fWeaponArtHUDPosY},
@@ -416,6 +418,7 @@ void LoadSettings()
   if (const auto it = root.find("Posture"); it != root.end() && it->is_object()) {
     const auto& posture = *it;
     LoadSetting(posture, "Posture", "UsePostureSystem", bUsePostureSystem);
+    LoadSetting(posture, "Posture", "DisablePlayerPostureBreak", bDisablePlayerPostureBreak);
     LoadSetting(posture, "Posture", "UsePostureHUD", bUsePostureHUD);
     LoadSetting(posture, "Posture", "MaxPostureHealthMult", fMaxPostureHealthMult);
     LoadSetting(posture, "Posture", "MaxPostureStaminaMult", fMaxPostureStaminaMult);
@@ -502,6 +505,7 @@ void LoadSettings()
 
   if (const auto it = root.find("WeaponArt"); it != root.end() && it->is_object()) {
     const auto& weaponArt = *it;
+    LoadSetting(weaponArt, "WeaponArt", "HideWeaponArtHUDOnSheathe", bHideWeaponArtHUDOnSheathe);
     LoadSetting(weaponArt, "WeaponArt", "UseWeaponArtSystem", bUseWeaponArtSystem);
     LoadSetting(weaponArt, "WeaponArt", "UseWeaponArtHUD", bUseWeaponArtHUD);
     LoadSetting(weaponArt, "WeaponArt", "WeaponArtHUDPosX", fWeaponArtHUDPosX);

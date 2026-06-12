@@ -82,6 +82,15 @@ Block::Block()
       parryEndTimes.clear();
     }
   });
+
+  // AddTimedBlockListener([](RE::Actor* actor) {
+  //   auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton();
+  //   if (!vm)
+  //     return;
+
+  //   auto args = RE::MakeFunctionArguments<RE::Actor*>(std::move(actor));
+  //   vm->SendEventAll("OnRimTimedBlock", args);
+  // });
 }
 
 void Block::Update()

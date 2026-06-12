@@ -215,7 +215,8 @@ WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
                              const std::string& description, AvailableWeapon availableWeapon,
                              const std::vector<RE::FormID>& weapons,
                              const std::unordered_map<std::uint32_t, SpellInfo>& spells,
-                             std::uint8_t consumePoint, std::uint8_t unlockLevel, bool needPrepare)
+                             std::uint8_t consumePoint, std::uint8_t unlockLevel, bool ownAtStart,
+                             bool needPrepare)
 {
   this->id              = id;
   this->name            = std::move(name);
@@ -225,6 +226,7 @@ WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
   this->spells          = std::move(spells);
   this->consumePoint    = consumePoint;
   this->unlockLevel     = unlockLevel;
+  this->ownAtStart      = ownAtStart;
   this->needPrepare     = needPrepare;
 }
 
@@ -266,7 +268,25 @@ PlayerStat::PlayerStat()
     serial->WriteRecordData(&level, sizeof(level));
     serial->WriteRecordData(&point, sizeof(point));
 
-    auto count = static_cast<std::uint32_t>(unlockedArts.size());
+    // PlayerStat在Manager之后初始化，因此可以安全地访问Manager中的数据来验证artID的有效性
+
+    // 保存已拥有的战技ID列表
+    auto count = static_cast<std::uint32_t>(ownedArts.size());
+    serial->WriteRecordData(&count, sizeof(count));
+    for (const auto& artID : ownedArts) {
+      // 保存时无需验证artID的有效性，因为读取必定优先验证
+      serial->WriteRecordData(&artID, sizeof(artID));
+    }
+
+    // 插入所有一开始就拥有的战技ID
+    auto arts = Manager::GetAllWeaponArts();
+    for (const auto& art : arts) {
+      if (art->OwnAtStart())
+        ownedArts.insert(art->GetID());
+    }
+
+    // 保存已解锁的战技ID列表
+    count = static_cast<std::uint32_t>(unlockedArts.size());
     serial->WriteRecordData(&count, sizeof(count));
     for (const auto& artID : unlockedArts) {
       // 保存时无需验证artID的有效性，因为读取必定优先验证
@@ -280,6 +300,18 @@ PlayerStat::PlayerStat()
     serial->ReadRecordData(&point, sizeof(point));
 
     std::uint32_t count = 0;
+
+    // 读取已拥有的战技ID列表，并验证每个ID的有效性，确保只加载已定义的战技ID
+    serial->ReadRecordData(&count, sizeof(count));
+    for (std::uint32_t i = 0; i < count; ++i) {
+      std::int32_t artID = 0;
+      serial->ReadRecordData(&artID, sizeof(artID));
+      // 验证artID的有效性，确保只加载已定义的战技ID
+      if (Manager::IsValidWeaponArtID(artID))
+        ownedArts.insert(artID);
+    }
+
+    // 读取已解锁的战技ID列表，并验证每个ID的有效性，确保只加载已定义的战技ID
     serial->ReadRecordData(&count, sizeof(count));
     for (std::uint32_t i = 0; i < count; ++i) {
       std::int32_t artID = 0;
@@ -294,8 +326,14 @@ PlayerStat::PlayerStat()
     exp   = 0.0f;
     level = 1;
     point = 3;
+    ownedArts.clear();
     unlockedArts.clear();
   });
+}
+
+bool PlayerStat::IsOwned(std::int32_t artID)
+{
+  return ownedArts.find(artID) != ownedArts.end();
 }
 
 bool PlayerStat::IsUnlocked(std::int32_t artID)
@@ -326,8 +364,23 @@ void PlayerStat::AddExp(float value)
   }
 }
 
+bool PlayerStat::SetOwned(std::int32_t artID)
+{
+  if (ownedArts.find(artID) != ownedArts.end())
+    return true;  // 已拥有
+
+  auto* art = Manager::GetWeaponArtInfo(artID);
+  if (!art)  // 无效的战技ID
+    return false;
+  ownedArts.insert(artID);
+  return true;
+}
+
 bool PlayerStat::UnlockArt(std::int32_t artID)
 {
+  if (ownedArts.find(artID) == ownedArts.end())
+    return false;  // 不拥有该战技，无法解锁
+
   if (unlockedArts.find(artID) != unlockedArts.end())
     return true;  // 已解锁
 
@@ -487,6 +540,9 @@ Manager::Manager()
         std::uint8_t consumePoint = value.value("consumePoint", 0);
         std::uint8_t unlockLevel  = value.value("unlockLevel", 1);
 
+        // 是否一开始就拥有该战技，默认为false
+        bool ownAtStart = value.value("ownAtStart", false);
+
         // 是否准备动画，不要求一定存在，默认为false
         bool needPrepare = value.value("needPrepare", false);
 
@@ -497,7 +553,7 @@ Manager::Manager()
                      entry.path().string());
 
         WeaponArtInfo art(id, name, description, availableWeapon, std::move(weapons),
-                          std::move(spells), consumePoint, unlockLevel, needPrepare);
+                          std::move(spells), consumePoint, unlockLevel, ownAtStart, needPrepare);
         artMap[id] = std::move(art);
       }
     } catch (const std::exception& e) {

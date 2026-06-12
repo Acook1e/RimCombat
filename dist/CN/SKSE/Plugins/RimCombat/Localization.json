@@ -163,10 +163,6 @@
         "label": "启用架势 HUD",
         "desc": "在可用时通过 TrueHUD 显示架势条。"
     },
-    "DisablePlayerPostureBreak": {
-        "label": "禁用玩家失衡",
-        "desc": "开启后，玩家不会因为架势归零而触发失衡硬直。"
-    },
     "MaxPostureHealthMult": {
         "label": "生命转最大架势倍率",
         "desc": "每点最大生命额外提供多少最大架势值。"
@@ -374,10 +370,6 @@
     "UseWeaponArtHUD": {
         "label": "启用战技 HUD",
         "desc": "控制 PrismaUI 战技 HUD 是否显示。"
-    },
-    "HideWeaponArtHUDOnSheathe": {
-        "label": "收刀时隐藏 HUD",
-        "desc": "开启后，收刀状态下战技 HUD 自动隐藏。"
     },
     "WeaponArtHUDPosX": {
         "label": "战技 HUD 横向位置",

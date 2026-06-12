@@ -175,6 +175,7 @@ void Posture()
   ImGui::Text("MenuPostureSummary"_h);
   ImGui::Checkbox("UsePostureSystem"_h, &Settings::bUsePostureSystem);
   ImGui::Checkbox("UsePostureHUD"_h, &Settings::bUsePostureHUD);
+  ImGui::Checkbox("DisablePlayerPostureBreak"_h, &Settings::bDisablePlayerPostureBreak);
   ImGui::DragFloat("MaxPostureHealthMult"_h, &Settings::fMaxPostureHealthMult, 0.005f, 0.0f, 1.0f,
                    "%.3f");
   ImGui::DragFloat("MaxPostureStaminaMult"_h, &Settings::fMaxPostureStaminaMult, 0.005f, 0.0f, 1.0f,
@@ -284,6 +285,7 @@ void Block()
 void WeaponArt()
 {
   ImGui::Checkbox("UseWeaponArtSystem"_h, &Settings::bUseWeaponArtSystem);
+  ImGui::Checkbox("HideWeaponArtHUDOnSheathe"_h, &Settings::bHideWeaponArtHUDOnSheathe);
   ImGui::Checkbox("UseWeaponArtHUD"_h, &Settings::bUseWeaponArtHUD);
   ImGui::DragFloat("WeaponArtHUDPosX"_h, &Settings::fWeaponArtHUDPosX, 0.1f, 0.0f, 100.0f, "%.1f");
   ImGui::DragFloat("WeaponArtHUDPosY"_h, &Settings::fWeaponArtHUDPosY, 0.1f, 0.0f, 100.0f, "%.1f");

@@ -114,7 +114,7 @@ void Stamina::BashStaminaConsume(RE::Actor* actor)
   auto leftType  = Weapon::GetActorEquipmentType(actor, true);
   auto rightType = Weapon::GetActorEquipmentType(actor, false);
 
-  if (leftType == Weapon::Type::None || rightType == Weapon::Type::None)
+  if (leftType == Weapon::Type::None && rightType == Weapon::Type::None)
     return;
 
   auto baseCost = 0.0f;

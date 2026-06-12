@@ -67,6 +67,8 @@ inline float fPowerBashStaminaCostPerMass = 0.20f;
 inline bool bUsePostureSystem = true;
 // 是否使用TrueHUD显示架势值
 inline bool bUsePostureHUD = true;
+// 是否禁用玩家失衡
+inline bool bDisablePlayerPostureBreak = false;
 
 // 每点生命值对应的最大架势值增加量
 inline float fMaxPostureHealthMult = 0.06f;
@@ -208,6 +210,8 @@ inline float fTimedBlockBlockStrengthMult = 4.0f;
 inline bool bUseWeaponArtSystem = true;
 // 是否启用战技HUD
 inline bool bUseWeaponArtHUD = true;
+// 是否在收刀的时候隐藏HUD
+inline bool bHideWeaponArtHUDOnSheathe = true;
 // 战技HUD横向位置，单位为屏幕百分比
 inline float fWeaponArtHUDPosX = 6.0f;
 // 战技HUD纵向位置，单位为屏幕百分比

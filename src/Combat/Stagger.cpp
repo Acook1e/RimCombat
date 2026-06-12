@@ -217,6 +217,18 @@ void Stagger::SetStaggerMagnitude(RE::Actor* actor, Level level)
   actor->SetGraphVariableFloat("staggerMagnitude", magnitude);
 }
 
+Level Stagger::IsInStagger(RE::Actor* actor)
+{
+  if (!actor)
+    return Level::None;
+
+  std::lock_guard<std::mutex> lock(mtx_recover);
+  if (staggerRecovery.contains(actor))
+    return staggerRecovery[actor].current;
+
+  return Level::None;
+}
+
 Level Stagger::GetStaggerLevel(RE::Actor* actor)
 {
   if (!actor)

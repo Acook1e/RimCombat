@@ -93,6 +93,7 @@
     "Posture": {
         "UsePostureSystem": true,
         "UsePostureHUD": true,
+        "DisablePlayerPostureBreak": false,
         "MaxPostureHealthMult": 0.06,
         "MaxPostureStaminaMult": 0.04,
         "PostureRegenDelay": 5000,
@@ -500,6 +501,7 @@
     },
     "WeaponArt": {
         "UseWeaponArtSystem": true,
+        "HideWeaponArtHUDOnSheathe": true,
         "UseWeaponArtHUD": true,
         "WeaponArtHUDPosX": 6.0,
         "WeaponArtHUDPosY": 70.0,

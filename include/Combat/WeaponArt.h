@@ -99,7 +99,8 @@ public:
   WeaponArtInfo(std::int32_t id, const std::string& name, const std::string& description,
                 AvailableWeapon availableWeapon, const std::vector<RE::FormID>& weapons,
                 const std::unordered_map<std::uint32_t, SpellInfo>& spells,
-                std::uint8_t consumePoint, std::uint8_t unlockLevel, bool needPrepare);
+                std::uint8_t consumePoint, std::uint8_t unlockLevel, bool ownAtStart,
+                bool needPrepare);
 
   const std::string& GetName() const { return name; }
   const std::string& GetDescription() const { return description; }
@@ -107,6 +108,8 @@ public:
 
   std::uint8_t GetConsumePoint() const { return consumePoint; }
   std::uint8_t GetUnlockLevel() const { return unlockLevel; }
+
+  bool OwnAtStart() const { return ownAtStart; }
   bool NeedPrepare() const { return needPrepare; }
 
   bool IsWeaponAllowed(RE::TESObjectWEAP* weapon) const;
@@ -134,8 +137,9 @@ private:
   // 解锁该战技所需的战技等级
   std::uint8_t unlockLevel = 0;
 
+  // 是否一开始就拥有该战技
+  bool ownAtStart = false;
   //  是否使用进入战技状态动画
-  // 如果为true，则开启战技时设置
   bool needPrepare = false;
 };
 
@@ -150,9 +154,13 @@ public:
 
   static std::uint8_t GetLevel() { return level; }
   static std::uint8_t GetPoint() { return point; }
+
+  static bool IsOwned(std::int32_t artID);
   static bool IsUnlocked(std::int32_t artID);
 
   static void AddExp(float value);
+
+  static bool SetOwned(std::int32_t artID);
   static bool UnlockArt(std::int32_t artID);
 
 private:
@@ -163,6 +171,7 @@ private:
   static inline float exp                          = 0.0f;  // 当前战技经验
   static inline std::uint8_t level                 = 1;     // 当前战技等级
   static inline std::uint8_t point                 = 3;     // 当前战技点数
+  static inline std::unordered_set<std::int32_t> ownedArts{};
   static inline std::unordered_set<std::int32_t> unlockedArts{};
 };
 

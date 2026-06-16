@@ -1,0 +1,39 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+
+    <moduleName>Rim Combat</moduleName>
+
+    <installSteps order="Explicit">
+        <installStep>
+            <optionalFileGroups order="Explicit">
+                <group name="Main Files / 主要文件" type="SelectExactlyOne">
+                    <plugins order="Explicit">
+                        <plugin name="Core Files / 核心文件">
+                            <files>
+                                <folder source="Core" destination=""/>
+                            </files>
+                        </plugin>
+                    </plugins>
+                </group>
+            </optionalFileGroups>
+
+            <optionalFileGroups order="Explicit">
+                <group name="Install Language / 安装语言" type="SelectExactlyOne">
+                    <plugins order="Explicit">
+                        <plugin name="English">
+                            <files>
+                                <folder source="English" destination=""/>
+                            </files>
+                        </plugin>
+                        <plugin name="简体中文">
+                            <files>
+                                <folder source="Chinese" destination=""/>
+                            </files>
+                        </plugin>
+                    </plugins>
+                </group>
+            </optionalFileGroups>
+        </installStep>
+    </installSteps>
+
+</config>

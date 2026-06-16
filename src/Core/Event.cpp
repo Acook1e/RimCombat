@@ -214,8 +214,8 @@ void ModEvent::RegisterWeaponArtHUDInput()
   auto* API = InputManagerAPI::_API;
 
   constexpr std::int32_t inputType     = 0;
-  constexpr std::string_view inputName = "SwitchWeaponArtHUD";
-  const auto& purpose = Localization::GetLocalization("SwitchWeaponArtHUD_Purpose");
+  constexpr std::string_view inputName = "SwitchWeaponArtState";
+  const auto& purpose = Localization::GetLocalization("SwitchWeaponArtState_Purpose");
 
   auto inputId = API->CreateInput(inputType, inputName.data());
   if (inputId == -1) {
@@ -262,16 +262,38 @@ ModEvent::ProcessEvent(const SKSE::ModCallbackEvent* event,
 {
   if (!event || !eventSource)
     return RE::BSEventNotifyControl::kContinue;
-  if (event->eventName != "InputManager_ActionTriggered")
+
+  auto trigger = event->eventName == "InputManager_ActionTriggered";
+  auto release = event->eventName == "InputManager_ActionReleased";
+
+  if (!trigger && !release)
     return RE::BSEventNotifyControl::kContinue;
 
   auto inputID = static_cast<std::int32_t>(event->numArg);
+  if (inputID == -1)
+    return RE::BSEventNotifyControl::kContinue;
 
   if (inputID == id_WeaponArtHUD) {
+    // 此时可以保证API不为空指针
+    auto* API   = InputManagerAPI::_API;
+    auto action = API->GetActionInfo(inputID);
+
+    // 检测是否是按住模式
+    auto hold = action.pcMainAction == 2 || action.gamepadMainAction == 2;
+
     auto player = RE::PlayerCharacter::GetSingleton();
     if (player) {
-      auto state = WeaponArt::Manager::GetState(player);
-      WeaponArt::Manager::SwitchWeaponArt(player, state == WeaponArt::Manager::State::Disable);
+      if (!hold) {
+        // 切换模式下的按键行为：按一下切换一次状态，松开不做反应
+        auto state = WeaponArt::Manager::GetState(player);
+        WeaponArt::Manager::SwitchWeaponArt(player, state == WeaponArt::Manager::State::Disable);
+      } else {
+        // 按住模式下的按键行为：按住切换到开启状态，松开切换到关闭状态
+        if (trigger)
+          WeaponArt::Manager::SwitchWeaponArt(player, true);
+        else if (release)
+          WeaponArt::Manager::SwitchWeaponArt(player, false);
+      }
     }
   } else if (inputID == id_WeaponArtMenu) {
     if (UI::WeaponArtMenu::IsInventoryMenuShow())

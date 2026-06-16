@@ -17,6 +17,9 @@ namespace WeaponArt
 using AvailableWeaponType = WeaponArtInfo::AvailableWeaponType;
 using AvailableWeapon     = WeaponArtInfo::AvailableWeapon;
 
+using StageData  = WeaponArtInfo::StageData;
+using AttackData = WeaponArtInfo::AttackData;
+
 using Skill     = WeaponArtInfo::Skill;
 using SpellInfo = WeaponArtInfo::SpellInfo;
 
@@ -254,7 +257,27 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
          weaponAttack >= aviailableAttack;
 }
 
-std::optional<WeaponArtInfo::SpellInfo> WeaponArtInfo::GetSpellInfo(std::uint32_t hash) const
+const std::optional<StageData> WeaponArtInfo::GetStageData(std::uint8_t stageID) const
+{
+  if (auto it = stages.find(stageID); it != stages.end())
+    return it->second;
+  return std::nullopt;
+}
+
+const std::optional<AttackData> WeaponArtInfo::GetAttackData(std::uint8_t stageID,
+                                                             std::uint8_t attackID) const
+{
+  auto it = stages.find(stageID);
+  if (it != stages.end()) {
+    const auto& stageData = it->second;
+    auto it2              = stageData.attacks.find(attackID);
+    if (it2 != stageData.attacks.end())
+      return it2->second;
+  }
+  return std::nullopt;
+}
+
+const std::optional<SpellInfo> WeaponArtInfo::GetSpellInfo(std::uint32_t hash) const
 {
   if (auto it = spells.find(hash); it != spells.end())
     return it->second;
@@ -799,19 +822,33 @@ void Manager::SwitchWeaponArt(RE::Actor* actor, bool enable)
   }
 }
 
-void Manager::Start(RE::Actor* actor, const std::string& payload)
+void Manager::Stage(RE::Actor* actor, const std::string& payload)
 {
   if (!actor || !Settings::bUseWeaponArtSystem)
     return;
 
-  auto manaCostStr = payload.substr(6);
-  auto split       = Utils::split(manaCostStr, '|');
-  if (split.size() != 2)
+  auto stageID = Utils::toInt(payload);
+  auto artID   = GetActorWeaponArtID(actor);
+  auto art     = GetWeaponArtInfo(artID);
+  if (!art) {
+    logger::warn("Actor {} does not have a valid Weapon Art. Cannot start stage {}.",
+                 actor->GetName(), stageID);
     return;
-  float manaCost = Utils::toFloat(split[0]);
-  float minMana  = Utils::toFloat(split[1]);
-  if (manaCost < 0.0f || minMana < 0.0f)
+  }
+
+  auto stage = art->GetStageData(stageID);
+
+  if (!stage) {
+    logger::warn("Invalid stage ID {} for Weapon Art {}.", stageID,
+                 art ? art->GetName() : "Unknown");
     return;
+  }
+
+  float manaCost = stage->manaCost;
+  float minMana  = stage->minMana;
+  if (manaCost == NaN || minMana == NaN)
+    return;
+
   auto currentMana = actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMagicka);
   {
     std::scoped_lock lock(mtx_performCache);
@@ -823,6 +860,54 @@ void Manager::Start(RE::Actor* actor, const std::string& payload)
 
   // Payload优化
   Stamina::Start(actor);
+}
+
+void Manager::Attack(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUseWeaponArtSystem)
+    return;
+
+  auto split = Utils::split(payload, '|');
+  if (split.size() != 2) {
+    logger::warn("Invalid attack payload '{}'. Expected format 'stageID|attackID'.", payload);
+    return;
+  }
+
+  auto stageID  = Utils::toInt(split[0]);
+  auto attackID = Utils::toInt(split[1]);
+
+  auto artID = GetActorWeaponArtID(actor);
+  auto art   = GetWeaponArtInfo(artID);
+  if (!art) {
+    logger::warn("Actor {} does not have a valid Weapon Art. Cannot perform attack {}.",
+                 actor->GetName(), payload);
+    return;
+  }
+
+  auto attack = art->GetAttackData(stageID, attackID);
+
+  if (!attack) {
+    logger::warn("Invalid attack ID {} for stage ID {} in Weapon Art {}.", attackID, stageID,
+                 art ? art->GetName() : "Unknown");
+    return;
+  }
+
+  auto side = Stamina::Side::None;
+
+  if (attack->left == attack->right)
+    side = Stamina::Side::Auto;
+  else if (attack->left)
+    side = Stamina::Side::Left;
+  else if (attack->right)
+    side = Stamina::Side::Right;
+
+  if (GetPerform(actor) == Perform::Eligible) {
+
+    Stamina::RimStaminaConsume(actor, side, attack->powerAttack, attack->staminaMult);
+  } else {
+
+    Stamina::RimStaminaConsume(actor, side, attack->powerAttack, attack->subStaminaMult);
+  }
 }
 
 void Manager::End(RE::Actor* actor)
@@ -888,8 +973,10 @@ void Manager::Cast(RE::Actor* actor, const std::string& payload)
 void Manager::PayloadParse(RE::Actor* actor, const std::string& payload)
 {
 
-  if (payload.starts_with("start|"))
-    Start(actor, payload);
+  if (payload.starts_with("stage|"))
+    Stage(actor, payload.substr(6));
+  else if (payload.starts_with("attack|"))
+    Attack(actor, payload.substr(7));
   else if (payload == "end")
     End(actor);
   else if (payload == "prepareend")

@@ -105,8 +105,8 @@ public:
                RE::BSTEventSource<SKSE::ModCallbackEvent>* eventSource) override;
 
 private:
-  static inline std::int32_t id_WeaponArtHUD;
-  static inline std::int32_t id_WeaponArtMenu;
+  static inline std::int32_t id_WeaponArtHUD  = -1;
+  static inline std::int32_t id_WeaponArtMenu = -1;
 };
 
 inline void Install()

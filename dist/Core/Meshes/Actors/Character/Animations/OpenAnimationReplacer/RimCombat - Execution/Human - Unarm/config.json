@@ -1,0 +1,35 @@
+{
+  "name": "Test Execution",
+  "description": "None",
+  "priority": 2064142000,
+  "ignoreDontConvertAnnotationsToTriggersFlag": true,
+  "triggersFromAnnotationsOnly": true,
+  "conditions": [
+    {
+      "condition": "CompareValues",
+      "requiredVersion": "1.0.0.0",
+      "Value A": {
+        "graphVariable": "RimCombat_ExecutionFlag",
+        "graphVariableType": "Int"
+      },
+      "Comparison": "!=",
+      "Value B": {
+        "value": 0.0
+      }
+    }
+  ],
+  "pairedConditions": [
+    {
+      "condition": "CompareValues",
+      "requiredVersion": "1.0.0.0",
+      "Value A": {
+        "graphVariable": "RimCombat_ExecutionFlag",
+        "graphVariableType": "Int"
+      },
+      "Comparison": "!=",
+      "Value B": {
+        "value": 0.0
+      }
+    }
+  ]
+}

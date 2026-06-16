@@ -38,6 +38,8 @@ constexpr inline std::string_view PLUGIN_NAME = "RimCombat";
 constexpr inline std::uint32_t MOD            = 'RCBT';
 constexpr inline std::uint32_t nexusID        = 180357;
 
+const inline float NaN = std::nanf("");
+
 inline REL::Version RUNTIME = SKSE::RUNTIME_SSE_1_6_1170;
 
 // 提前定义魔法枚举的范围，默认范围是-128~127，无法满足本项目枚举的需求

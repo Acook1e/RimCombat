@@ -23,8 +23,7 @@
         "consumePoint": 1,
         "unlockLevel": 0,
         "ownAtStart": true,
-        "needPrepare": true,
-        "Elden Rim - Weapon Arts ID": "4/5"
+        "needPrepare": true
     },
     "Double Slash": {
         "name": "二连斩",

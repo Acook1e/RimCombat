@@ -40,6 +40,9 @@ public:
 private:
   static void Update_NPC(RE::Character* character, float delta);
   static void Update_PC(RE::PlayerCharacter* player, float delta);
+
+  static inline std::mutex mtx_stateCache;
+  static inline std::unordered_map<RE::Actor*, RE::ATTACK_STATE_ENUM> lastAttackStates;
   static void TrackActorUpdate(RE::Actor* actor);
 
   static inline REL::Relocation<decltype(Update_NPC)> _Update_NPC;

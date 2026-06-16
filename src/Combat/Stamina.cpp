@@ -7,6 +7,8 @@
 
 #include "magic_enum/magic_enum.hpp"
 
+using Side = Stamina::Side;
+
 float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
 {
   if (!actor)
@@ -25,6 +27,46 @@ float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
   }
 
   return finalCost;
+}
+
+std::tuple<float, float> ParseSide(RE::Actor* actor, Side side)
+{
+  switch (side) {
+  case Side::None:
+    return {0.0f, 0.0f};
+  case Side::Left: {
+    auto type     = Weapon::GetActorEquipmentType(actor, true);
+    auto baseCost = Weapon::GetBaseStaminaConsumption(type);
+    auto obj      = actor->GetEquippedObject(true);
+    return {baseCost, obj ? obj->GetWeight() : 0.0f};
+  }
+  case Side::Right: {
+    auto type     = Weapon::GetActorEquipmentType(actor, false);
+    auto baseCost = Weapon::GetBaseStaminaConsumption(type);
+    auto obj      = actor->GetEquippedObject(false);
+    return {baseCost, obj ? obj->GetWeight() : 0.0f};
+  }
+  case Side::Creature: {
+    auto race     = Race::GetRace(actor);
+    auto baseCost = Race::GetBaseStaminaConsumption(race);
+    return {baseCost, 0.0f};
+  }
+  case Side::Auto: {
+    auto race = Race::GetRace(actor);
+    if (race == Race::Type::Human || race == Race::Type::Draugr || race == Race::Type::Falmer) {
+      auto weaponEntry = actor->GetAttackingWeapon();
+      auto weaponObj   = weaponEntry ? weaponEntry->object : nullptr;
+      auto type        = Weapon::Type::Unarm;
+      if (weaponObj && weaponObj->IsWeapon())
+        type = Weapon::GetWeaponType(weaponObj->As<RE::TESObjectWEAP>());
+      auto baseCost = Weapon::GetBaseStaminaConsumption(type);
+      return {baseCost, weaponObj->GetWeight()};
+    }
+    auto baseCost = Race::GetBaseStaminaConsumption(race);
+    return {baseCost, 0.0f};
+  }
+  }
+  return {0.0f, 0.0f};
 }
 
 Stamina::Stamina()
@@ -168,6 +210,32 @@ void Stamina::UnarmStaminaConsume(RE::Actor* actor)
   actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
 }
 
+void Stamina::RimStaminaConsume(RE::Actor* actor, Side side, bool power, float multiplier)
+{
+  if (!actor || !Settings::bUseAttackStaminaSystem)
+    return;
+
+  if (!Settings::bConsumeStaminaOutCombat && !actor->IsInCombat())
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  auto [baseCost, mass] = ParseSide(actor, side);
+
+  if (power)
+    baseCost *= Settings::fPowerAttackStaminaCostMult;
+
+  baseCost *= multiplier;
+
+  if (power)
+    baseCost += Settings::fPowerAttackStaminaCostPerMass * mass;
+  else
+    baseCost += Settings::fAttackStaminaCostPerMass * mass;
+
+  baseCost = ApplyPerkEntry(actor, power, baseCost);
+  actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kStamina, baseCost);
+}
+
 void Stamina::Start(RE::Actor* actor)
 {
   if (!actor || !Settings::bUseAttackStaminaSystem)
@@ -197,65 +265,38 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
     return;
 
   auto split = Utils::split(payload, '|');
-  if (split.size() != 3 && split.size() != 4) {
+  if (split.size() != 3) {
     logger::error("Stamina::PayloadParse: Invalid payload format: {}", payload);
     return;
   }
 
-  auto attackType = split[0];
-  auto side       = split[1];
+  auto attackType  = split[0];
+  auto side        = split[1];
+  float multiplier = Utils::toFloat(split[2]);
 
-  float multiplier         = 1.0f;
-  float fallbackMultiplier = 1.0f;
-
-  bool subordinate =
-      WeaponArt::Manager::GetPerform(actor) == WeaponArt::Manager::Perform::Subordinate;
-
-  multiplier = Utils::toFloat(split[2]);
-  // 只有在Subordinate中才处理FallbackMultiplier
-  if (subordinate && split.size() == 4)
-    fallbackMultiplier = Utils::toFloat(split[3]);
-
-  if (multiplier < 0.0f || fallbackMultiplier < 0.0f)
+  if (multiplier < 0.0f)
     return;
 
   bool left  = side == "left";
   bool right = side == "right";
 
   float baseCost = 0.0f;
-  auto mass      = 0.0f;
-  if (left || right) {
-    auto type = Weapon::GetActorEquipmentType(actor, left);
-    baseCost  = Weapon::GetBaseStaminaConsumption(type);
-    auto obj  = actor->GetEquippedObject(left);
-    if (obj)
-      mass = obj->GetWeight();
-  } else {
-    // Auto的情况
-    auto attacking = actor->GetAttackingWeapon();
-    if (attacking) {
-      auto obj = attacking->object;
-      if (obj && obj->IsWeapon()) {
-        auto type = Weapon::GetWeaponType(obj->As<RE::TESObjectWEAP>());
-        if (type != Weapon::Type::None)
-          baseCost = Weapon::GetBaseStaminaConsumption(type);
-        mass = obj->GetWeight();
-      }
-    } else {
-      // 不存在attackingWeapon，认为是空手攻击
-      baseCost = Weapon::GetBaseStaminaConsumption(Weapon::Type::Unarm);
-    }
-  }
+  float mass     = 0.0f;
+  if (side == "left")
+    std::tie(baseCost, mass) = ParseSide(actor, Side::Left);
+  else if (side == "right")
+    std::tie(baseCost, mass) = ParseSide(actor, Side::Right);
+  else if (side == "creature")
+    std::tie(baseCost, mass) = ParseSide(actor, Side::Creature);
+  else if (side == "auto")
+    std::tie(baseCost, mass) = ParseSide(actor, Side::Auto);
 
   auto power = attackType == "power";
 
   if (power)
     baseCost *= Settings::fPowerAttackStaminaCostMult;
 
-  if (subordinate)
-    baseCost *= fallbackMultiplier;
-  else
-    baseCost *= multiplier;
+  baseCost *= multiplier;
 
   if (power)
     baseCost += Settings::fPowerAttackStaminaCostPerMass * mass;

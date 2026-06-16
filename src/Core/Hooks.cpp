@@ -97,35 +97,33 @@ void Hook_OnActorUpdate::Update_PC(RE::PlayerCharacter* player, float delta)
 
 void Hook_OnActorUpdate::TrackActorUpdate(RE::Actor* actor)
 {
-  static std::unordered_map<RE::Actor*, RE::ATTACK_STATE_ENUM> lastAttackStates{};
-
   if (!actor || !actor->Is3DLoaded() || actor->IsDead())
     return;
 
   auto attackState = actor->AsActorState()->GetAttackState();
+  auto lastState   = attackState;
 
-  if (!lastAttackStates.contains(actor))
+  {
+    std::scoped_lock<std::mutex> lock(mtx_stateCache);
+    if (lastAttackStates.contains(actor))
+      lastState = lastAttackStates[actor];
     lastAttackStates[actor] = attackState;
-  else {
-    auto lastState = lastAttackStates[actor];
+  }
 
-    if (attackState != lastState) {
-      if (attackState == RE::ATTACK_STATE_ENUM::kSwing) {
-        auto weapon = actor->GetAttackingWeapon();
-        if (weapon && weapon->object && weapon->object->IsWeapon())
-          Stamina::SwingStaminaConsume(actor, weapon->object->As<RE::TESObjectWEAP>());
-        else {
-          auto raceType = Race::GetRace(actor);
-          // 生物攻击仅针对不能使用武器的生物，这里过滤可以使用武器的生物
-          if (raceType != Race::Type::Human && raceType != Race::Type::Draugr &&
-              raceType != Race::Type::Falmer)
-            Stamina::CreatureStaminaConsume(actor, raceType);
-        }
-      } else if (attackState == RE::ATTACK_STATE_ENUM::kBash)
-        Stamina::BashStaminaConsume(actor);
-
-      lastAttackStates[actor] = attackState;
-    }
+  if (attackState != lastState) {
+    if (attackState == RE::ATTACK_STATE_ENUM::kSwing) {
+      auto weapon = actor->GetAttackingWeapon();
+      if (weapon && weapon->object && weapon->object->IsWeapon())
+        Stamina::SwingStaminaConsume(actor, weapon->object->As<RE::TESObjectWEAP>());
+      else {
+        auto raceType = Race::GetRace(actor);
+        // 生物攻击仅针对不能使用武器的生物，这里过滤可以使用武器的生物
+        if (raceType != Race::Type::Human && raceType != Race::Type::Draugr &&
+            raceType != Race::Type::Falmer)
+          Stamina::CreatureStaminaConsume(actor, raceType);
+      }
+    } else if (attackState == RE::ATTACK_STATE_ENUM::kBash)
+      Stamina::BashStaminaConsume(actor);
   }
 }
 

@@ -85,6 +85,32 @@ public:
     Enchanting
   };
 
+  struct AttackData
+  {
+    // Eligible时的数据
+    float staminaMult = NaN;  // 耐力消耗倍率
+    float damageMult  = NaN;  // 基础伤害倍率
+    float poiseMult   = NaN;  // 韧性伤害倍率
+    float postureMult = NaN;  // 架势伤害倍率
+
+    // Subordinate时的数据
+    float subStaminaMult = NaN;  // 耐力消耗倍率
+    float subDamageMult  = NaN;  // 基础伤害倍率
+    float subPoiseMult   = NaN;  // 韧性伤害倍率
+    float subPostureMult = NaN;  // 架势伤害倍率
+
+    bool left        = false;  // 是否为左手武器
+    bool right       = false;  // 是否为右手武器
+    bool powerAttack = false;  // 是否为重击
+  };
+
+  struct StageData
+  {
+    float manaCost = NaN;  // 魔力消耗
+    float minMana  = NaN;  // 最小魔力消耗
+    std::unordered_map<std::uint8_t, AttackData> attacks;
+  };
+
   struct SpellInfo
   {
     RE::SpellItem* spell;
@@ -114,7 +140,9 @@ public:
 
   bool IsWeaponAllowed(RE::TESObjectWEAP* weapon) const;
 
-  std::optional<SpellInfo> GetSpellInfo(std::uint32_t hash) const;
+  const std::optional<StageData> GetStageData(std::uint8_t stageID) const;
+  const std::optional<AttackData> GetAttackData(std::uint8_t stageID, std::uint8_t attackID) const;
+  const std::optional<SpellInfo> GetSpellInfo(std::uint32_t hash) const;
 
 private:
   // 战技名称
@@ -123,6 +151,10 @@ private:
   std::string description = "";
   // 可使用该战技的武器列表，仅当 availableWeapon 为 Unique 时使用
   std::vector<RE::FormID> weapons{};
+
+  // 战技的阶段以及对应的每次伤害数据
+  std::unordered_map<std::uint8_t, StageData> stages{};
+
   // 战技的法术特效名称的hash，映射到SpellInfo
   std::unordered_map<std::uint32_t, SpellInfo> spells{};
 
@@ -189,9 +221,9 @@ public:
   constexpr static inline std::string_view STATE = "RimCombat_WeaponArtState";
   // 战技系统事件
   // payload用于传递信息
-  // Start|ManaCost|MinMana表示开始使用战技，且需要消耗ManaCost点魔力，至少要MinMana点魔力才能使用
-  // 注意Start不要在第0帧调用，MCO/BFCO框架会对第0帧的事件重复触发两次
-  // Start的同时会启用RimCombat的耐力系统
+  // Stage|StageID表示开始进入战技的某个阶段
+  // 注意Stage不要在第0帧调用，MCO/BFCO框架会对第0帧的事件重复触发两次
+  // Attack|StageID|AttackID表示战技动作的攻击判定，StageID和AttackID用于区分不同阶段和不同攻击的数据
   // End标志战技动作结束，设置PERFORMING为0
   // End的同时会结束RimCombat的耐力系统，伤害系统和架势系统的战技相关处理
   // PrepareEnd标志战技准备动画结束，设置STATE为2
@@ -240,7 +272,8 @@ public:
 
   static void SwitchWeaponArt(RE::Actor* actor, bool enable);
 
-  static void Start(RE::Actor* actor, const std::string& payload);
+  static void Stage(RE::Actor* actor, const std::string& payload);
+  static void Attack(RE::Actor* actor, const std::string& payload);
   static void End(RE::Actor* actor);
   static void Cast(RE::Actor* actor, const std::string& payload);
 

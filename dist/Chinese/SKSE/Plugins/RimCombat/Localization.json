@@ -391,7 +391,7 @@
         "label": "切换战技菜单",
         "desc": "在物品栏打开时显示或隐藏战技菜单。"
     },
-    "SwitchWeaponArtHUD_Purpose": {
+    "SwitchWeaponArtState_Purpose": {
         "label": "切换战技状态",
         "desc": "切换当前战技的启用与关闭状态。"
     },

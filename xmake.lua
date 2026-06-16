@@ -50,6 +50,6 @@ target(PROJECT_NAME)
     set_pcxxheader("include/PCH.h")
 
     after_build(function (target)
-        os.vcp(target:targetfile(), "dist/SKSE/Plugins/")
-        os.vcp(target:symbolfile(), "dist/SKSE/Plugins/")
+        os.vcp(target:targetfile(), "dist/Core/SKSE/Plugins/")
+        os.vcp(target:symbolfile(), "dist/Core/SKSE/Plugins/")
     end)

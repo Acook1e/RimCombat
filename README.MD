@@ -1,76 +1,82 @@
 # Rim Combat · 环战斗
 
-> 面向上古卷轴 5 SE/AE (1.6.629+) 的近战战斗重构。
+> Skyrim SE/AE (1.6.629+) 近战战斗重构。
 >
-> 当前版本：**0.2.0** — 系统完整，数值经过系统性设计，已进入持续测试与调优阶段。
+> 当前版本：**0.3.0** — 战技架构数据驱动化，Fomod 分发，双语文支持。
 >
-> [Nexus Mods](https://www.nexusmods.com/skyrimspecialedition/mods/180357)
+> [Nexus Mods](https://www.nexusmods.com/skyrimspecialedition/mods/180357) · [更新日志](CHANGELOG.md) · [战技自定义指南](WEAPONART_GUIDE.md)
 
 ---
 
 ## 概述
 
-环战斗不是叠动作模组。它的核心是在 MCO 或 BFCO 等现代动画框架之上，构建一套有博弈感的近战资源系统。
+Rim Combat 在 MCO / BFCO 等现代动画框架之上构建一套**资源驱动的近战博弈系统**。它不是动作模组——不添加新攻击动画，而是重建攻击命中后的全部数值管线。
 
-七个独立模块，每个都可以开关与配置：
+**七个模块**，每个可独立开关，全部参数通过 `Settings.json` 配置：
 
-- **耐力** — 每次挥砍消耗耐力，原版耐力系统被完全替换。25+ 武器类型独立消耗值，50+ 生物种族独立配置。附带力竭系统和零耐力禁攻机制。
-- **韧性（Poise）** — 内部硬直阈值。轻击削韧、重击破韧。轻/重甲按部位独立提供韧性加成。出手韧性机制使重武器起手不易被打断。等级差削韧衰减防止低级角色无限压高级敌人。
-- **架势（Posture）** — 破防压力资源。架势归零触发失衡硬直并升级当次攻击的硬直等级。通过 TrueHUD 可视化。
-- **硬直（Stagger）** — 基于 Modern Stagger Lock 的四级硬直系统。特殊硬直级别包括击飞、砸趴、挑飞、破防崩溃。
-- **格挡** — 每把武器独立格挡强度。150ms 限时格挡窗口。Bash 转为 GP 动作，Power Bash 转为弹反——两者均无攻击判定。
-- **战技** — 7 个首发战技，消耗魔力释放。Eligible/Subordinate 双模式。PrismaUI 菜单分配，经验成长与点数解锁。
-- **处决** — 三种基础人型处决动画（空手/单手/双手）开发中，JSON 注册表支持外源扩展。
+| 模块 | 功能 |
+|------|------|
+| **耐力** | 攻击消耗、零耐力禁攻、力竭系统。20+ 武器类型 × 50+ 生物种族独立基础值 |
+| **韧性** | 内部硬直阈值。轻击削韧、重击破韧。四部位护甲独立加成。出手韧性、等级衰减 |
+| **架势** | 破防压力资源。架势归零触发失衡硬直。TrueHUD 可视化 |
+| **硬直** | 四级常规 + 五种特殊硬直。同等级补偿加速脱离 |
+| **格挡** | 每武器独立格挡强度。限时格挡 150ms。Bash→GP / Power Bash→弹反 |
+| **战技** | 7 个首发战技。JSON 配置驱动。魔力阈值双模式。PrismaUI 菜单 |
+| **处决** | 多处决路径（开发中）。JSON 注册表，碰撞禁用 |
 
 ---
 
 ## 数值系统
 
-全部数值通过 `Settings.json` 配置：
+所有数值通过 `SKSE/Plugins/RimCombat/Settings.json` 集中配置：
 
 - 四种攻击类型 × 四个维度（伤害 / 架势 / 韧性 / 耐力）的全局倍率
-- 25+ 武器类型的独立基础值（耐力消耗、架势伤害、韧性伤害、格挡强度）
+- 25+ 武器类型的独立基础值
 - 50+ 生物种族的独立基础值
-- 护甲部位韧性加成、硬直阈值、恢复时间、再生率
+- 护甲部位韧性、硬直阈值、恢复时间、再生率
+- 种族/NPC 韧性覆盖（`Poise/*.json`）、架势覆盖（`Posture/*.json`）
+- 弹射物硬直映射（`Stagger/*.json`）
 
-战技的伤害 / 架势 / 韧性 / 耐力由动画 Payload 独立控制，不依赖全局设置。
+战技的伤害/架势/韧性/耐力由 `WeaponArt/*.json` 中的 `stages→attacks` 层级定义，与全局设置叠加计算。详见 [WEAPONART_GUIDE.md](WEAPONART_GUIDE.md)。
 
 ---
 
 ## 模组开发者接口
 
-环战斗提供一套 Payload 注释系统：
+在动画 annotation 帧中添加以下图事件，由 Rim Combat 接管数值管线：
 
-- `RimStamina` — 耐力管线（Start / End / Consume）
-- `RimDamage` — 伤害管线（SetMult / End）
-- `RimPosture` — 架势管线（Damage / End / Unbreakable）
-- `RimPoise` — 韧性管线（TargetSet / TargetEnd / Set / End）
-- `RimStagger` — 硬直线（TargetSet / TargetEnd / Immune）
-- `RimWeaponArt` — 战技管线（Start / End / PrepareEnd / ToPrepare / Cast）
-- `RimBlock` — 格挡管线（GP / Parry）
-- `RimExecution` — 处决管线（Damage / SetDistance / End）
+| 事件 | Payload | 说明 |
+|------|---------|------|
+| `RimStamina` | `Start` / `End` / `Consume\|AttackType\|Side\|Mult` | 耐力接管与消耗 |
+| `RimDamage` | `SetMult\|Mult` / `End` | 基础伤害倍率 |
+| `RimPosture` | `TargetSet\|Mult` / `TargetEnd` / `Unbreakable\|Duration` | 架势伤害与免疫 |
+| `RimPoise` | `TargetSet\|Mult` / `TargetEnd` / `Set\|Mult` / `End` | 韧性伤害攻防双方 |
+| `RimStagger` | `TargetSet\|Level` / `TargetEnd` / `Immune\|Duration` | 硬直附加与免疫 |
+| `RimWeaponArt` | `Stage\|N` / `Attack\|N\|M` / `End` / `PrepareEnd` / `ToPrepare` / `Cast\|Name` | 战技状态机与法术 |
+| `RimBlock` | `GP\|Duration\|Level\|Auto\|Next` / `Parry\|Duration` | 精确格挡与弹反 |
+| `RimExecution` | `Damage\|Mult` / `SetDistance\|Dist` / `End` | 处决管线 |
 
-所有 Payload 支持 Eligible / Subordinate 双模式自动切换。
-
-详见 [WEAPONART_GUIDE.md](WEAPONART_GUIDE.md)。
+> Duration 单位均为毫秒。Stagger Level 定义：0=None, 1=Small, 2=Medium, 3=Large, 4=Largest, 100=Knockaway, 101=Knockdown, 102=Strikefly, 200=GuardBreak, 254=Execution, 255=PostureBreak。
 
 ---
 
 ## 前置
 
 **必须：**
+
 - SKSE 1.6.629+
 - Address Library
-- OAR（Open Animation Replacer）
+- OAR (Open Animation Replacer)
 - MCO 或 BFCO
 
 **推荐：**
+
 - PrismaUI — 战技菜单与 HUD
-- TrueHUD — 架势条
-- Modern Stagger Lock — 硬直动画兼容
-- OCF — 更细武器分类
-- Precision — 精确碰撞检测
-- Behavior Data Injector — 战技动画注入
+- TrueHUD — 架势条 + 力竭灰屏
+- Modern Stagger Lock — 硬直动画
+- OCF — 武器细分类
+- Precision — 精确碰撞
+- Behavior Data Injector — 动画注入
 
 ---
 
@@ -78,20 +84,43 @@
 
 ```
 dist/
-├── SKSE/Plugins/RimCombat/
-│   ├── RimCombat.dll
-│   ├── Settings.json          ← 运行时配置
-│   ├── SettingsDefault.json   ← 默认配置模板
-│   ├── Localization.json      ← 中文菜单文本
-│   ├── WeaponArt/             ← 战技 JSON 配置
-│   ├── Execution/             ← 处决注册表
-│   ├── Poise/                 ← 特殊韧性覆盖
-│   ├── Posture/               ← 特殊架势覆盖
-│   └── Stagger/               ← 弹射物硬直映射
+├── Core/                              ← 共用资源
+│   ├── SKSE/Plugins/RimCombat/
+│   │   ├── RimCombat.dll
+│   │   ├── Settings.json
+│   │   ├── SettingsDefault.json
+│   │   ├── Localization.json
+│   │   ├── WeaponArt/*.json
+│   │   ├── Execution/*.json
+│   │   ├── Poise/*.json
+│   │   ├── Posture/*.json
+│   │   └── Stagger/*.json
+│   ├── Meshes/RimCombat/              ← 火花粒子特效
+│   ├── Sound/FX/RimCombat/            ← Parry/GP/破防音效
+│   └── RimCombat.esp                  ← 空插件（加载锚点）
+├── CN/SKSE/Plugins/RimCombat/
+│   └── Localization.json              ← 中文文本
 ├── EN/SKSE/Plugins/RimCombat/
-│   └── Localization.json      ← 英文菜单文本
+│   └── Localization.json              ← 英文文本
+├── Fomod/
+│   ├── info.xml
+│   └── ModuleConfig.xml
 └── Meshes/.../RimCombat - WeaponArt/  ← 战技 OAR 动画
 ```
+
+---
+
+## 构建
+
+```bash
+# 克隆
+git clone --recurse-submodules https://github.com/Acook1e/RimCombat.git
+
+# 构建（需要 xmake + Visual Studio 2022）
+xmake build RimCombat
+```
+
+GitHub Actions 自动构建输出在 [Releases](https://github.com/Acook1e/RimCombat/releases)。
 
 ---
 
@@ -99,21 +128,10 @@ dist/
 
 - NPC 暂不能使用战技
 - 处决动画开发中
-- 平衡性处于早期迭代阶段，数值可能继续调整
-
----
-
-## 版本历史
-
-| 版本 | 日期 | 内容 |
-|------|------|------|
-| 0.2.0 | 06-08 | 架势/韧性池大幅上调，Bash→GP / Power Bash→弹反重构，出手韧性，等级削韧衰减，Perk Entry 重新接入 |
-| 0.1.0 | 06-04 | 首发测试版，七个模块 + 七个战技 |
-
-详见 [CHANGELOG.md](CHANGELOG.md)。
+- 平衡性持续迭代
 
 ---
 
 ## 致谢
 
-CommonLibSSE-NG · MCO · BFCO · OAR · Maxsu Poise · Modern Stagger Lock · Elden Rim
+[CommonLibSSE-NG](https://github.com/CharmedBaryon/CommonLibSSE-NG) · SKSE · MCO · BFCO · OAR · Modern Stagger Lock · Elden Rim · Maxsu Poise · PrismaUI · TrueHUD · OCF · Achang · black · Dtry · Maxsu · 旧日火 · 回声

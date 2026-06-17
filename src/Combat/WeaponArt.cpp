@@ -1058,7 +1058,7 @@ void Manager::End(RE::Actor* actor)
   Damage::End(actor);
   Poise::End(actor);
   Poise::TargetEnd(actor);
-  Posture::End(actor);
+  Posture::TargetEnd(actor);
   Stagger::TargetEnd(actor);
   Stamina::End(actor);
 }

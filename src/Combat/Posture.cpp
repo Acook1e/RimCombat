@@ -309,10 +309,24 @@ void Posture::DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBrea
   // 破防处理
   if (postureData.current <= 0.0f) {
     Stagger::SetStaggerLevel(actor, Stagger::Level::PostureBreak);
-    Execution::EnterExecutable(actor);
+    // Execution::EnterExecutable(actor);
     postureData.current = 0.8f * postureData.max;  // 进入处决状态后默认恢复到最大值的80%
     Utils::PlaySFX(actor, postureBreakSFX, actor->GetPosition());
   }
+}
+
+void Posture::TargetSet(RE::Actor* actor, float multiplier)
+{
+  if (!actor || !Settings::bUsePostureSystem)
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  if (multiplier < 0.0f)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx_postureMultiplier);
+  postureMultOnAttack[actor] = multiplier;
 }
 
 void Posture::Unbreakable(RE::Actor* actor, const std::string& payload)
@@ -328,20 +342,6 @@ void Posture::Unbreakable(RE::Actor* actor, const std::string& payload)
 
   std::lock_guard<std::mutex> lock(mtx_unbreakableCache);
   unbreakableActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration.value();
-}
-
-void Posture::TargetSet(RE::Actor* actor, float multiplier)
-{
-  if (!actor || !Settings::bUsePostureSystem)
-    return;
-  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
-    return;
-
-  if (multiplier < 0.0f)
-    return;
-
-  std::lock_guard<std::mutex> lock(mtx_postureMultiplier);
-  postureMultOnAttack[actor] = multiplier;
 }
 
 void Posture::TargetSet(RE::Actor* actor, const std::string& payload)
@@ -361,7 +361,7 @@ void Posture::TargetSet(RE::Actor* actor, const std::string& payload)
   postureMultOnAttack[actor] = multiplier.value();
 }
 
-void Posture::End(RE::Actor* actor)
+void Posture::TargetEnd(RE::Actor* actor)
 {
   if (!actor || !Settings::bUsePostureSystem)
     return;
@@ -381,6 +381,6 @@ void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
     TargetSet(actor, payload.substr(10));
   else if (payload.starts_with("unbreakable|"))
     Unbreakable(actor, payload.substr(12));
-  else if (payload == "end")
-    End(actor);
+  else if (payload == "targetend")
+    TargetEnd(actor);
 }

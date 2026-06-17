@@ -67,7 +67,7 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     Damage::End(actor);
     Poise::End(actor);
     Poise::TargetEnd(actor);
-    Posture::End(actor);
+    Posture::TargetEnd(actor);
     Stagger::TargetEnd(actor);
     Stamina::End(actor);
     WeaponArt::Manager::Interrupt(actor);

@@ -1,5 +1,45 @@
 # Rim Combat Changelog
 
+## 0.3.0 — WeaponArt Config-Driven Architecture (2026-06-17)
+
+### WeaponArt 架构重构
+
+- **数据驱动配置系统**：战技数值从动画 payload 完全迁移到 JSON 配置文件。每个战技定义 `stages` → `attacks`，包含 Eligible/Subordinate 两套倍率（`staminaMult`/`damageMult`/`poiseDamageMult`/`postureDamageMult`）。
+- **Stage/Attack 双层级**：`RimWeaponArt.Stage|N` 切换阶段（含 manaCost/minMana 魔力检查），`RimWeaponArt.Attack|stage|attack` 触发单次攻击，一次调用同时写入四个子系统。
+- **Payload 大幅简化**：每击从旧版 5 条注解（Start + 4 系统）缩减为 2 条（Stage + Attack），Stagger/Cast 注解保留独立通道。
+- **`ownAtStart` 拥有权系统**：JSON 中标记 `ownAtStart` 的战技在新游戏/读档时自动授予。战技菜单仅显示已拥有的战技。
+
+### 子系统对齐
+
+- **Stamina**：新增 `Side` 枚举（None/Left/Right/Creature/Auto）和 `RimStaminaConsume` 统一入口，支持 WeaponArt 配置驱动的耐力消耗。
+- **Poise/Posture/Damage**：统一新增 `TargetSet(actor, float)` / `SetMult(actor, float)` 重载。变量命名对齐（`poiseMultOnAttack` / `postureMultOnAttack`）。
+
+### 修复
+
+- **多线程崩溃**：`TrackActorUpdate` 的 `lastAttackStates` 从静态局部变量改为类成员，加 `std::mutex` 保护，双重锁作用域修复竞态条件。
+
+### 新增设置
+
+- `bDisablePlayerPostureBreak` — 禁用玩家破防硬直
+- `bHideWeaponArtHUDOnSheathe` — 收刀时隐藏战技 HUD
+- `fLevelDiffAggressorMultPerLevel` — 等级差削韧衰减因子
+- `fVictimAttackingPoiseBonusPercent` — 出手韧性加成比例
+- `fStaggerCompensationPercent` — 硬直补偿百分比（加入 MCM 菜单）
+- Damage 区域加入 MCM：`UseDamageSystem` / `DamageMultPowerAttack` / `DamageMultBash` / `DamageMultPowerBash`
+
+### 分发与本地化
+
+- **Fomod 安装器**：支持中/英文一键安装。
+- **完整双语本地化**：201 个 Localization 键值全量覆盖，MCM 菜单、战技菜单、HUD 均支持中文/英文。
+- **Dist 目录重构**：分 `Core`（共用资源）、`Chinese`、`English`、`Fomod` 四层。
+
+### 动画/资源
+
+- 所有 6 个战技的 BFCO 动画已更新为新版 payload 格式。
+- 音效/纹理资源重组至 `Core` 目录。
+
+---
+
 ## 0.2.0 — Combat Balance Overhaul (2026-06-08)
 
 ### 新机制

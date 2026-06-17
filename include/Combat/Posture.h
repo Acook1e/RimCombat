@@ -6,7 +6,7 @@ public:
   // 图事件，payload用于传递信息
   // Unbreakable|Duration用于设置当前免疫架势崩溃，Duration为持续时间，单位为毫秒
   // TargetSet|multiplier用于设置架势伤害倍率
-  // End用于结束当前攻击的架势处理，清空缓存的Damage|multiplier事件，通常在此次攻击的命中帧结束时触发
+  // TargetEnd用于结束当前攻击的架势处理，清空缓存的TargetSet|multiplier事件，通常在此次攻击的命中帧结束时触发
   constexpr static std::string_view RIMPOSTURE = "RimPosture";
 
   struct PostureData
@@ -38,9 +38,9 @@ public:
 
   static void TargetSet(RE::Actor* actor, float multiplier);
 
-  static void TargetSet(RE::Actor* actor, const std::string& payload);
   static void Unbreakable(RE::Actor* actor, const std::string& payload);
-  static void End(RE::Actor* actor);
+  static void TargetSet(RE::Actor* actor, const std::string& payload);
+  static void TargetEnd(RE::Actor* actor);
 
   static void PayloadParse(RE::Actor* actor, const std::string& payload);
 

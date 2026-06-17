@@ -1,7 +1,7 @@
 {
-    "name": "Generalm Parry",
+    "name": "General Player Parry",
     "description": "None",
-    "priority": 1086001,
+    "priority": 2110086001,
     "triggersFromAnnotationsOnly": true,
     "conditions": [
         {

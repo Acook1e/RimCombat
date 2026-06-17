@@ -1,12 +1,8 @@
 #include "Combat/Execution.h"
 
-#include "Combat/Exhausted.h"
 #include "Combat/Stagger.h"
-#include "Core/Settings.h"
-#include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
-#include "nlohmann/json.hpp"
 
 using WeaponType = Weapon::Type;
 using RaceType   = Race::Type;
@@ -134,14 +130,14 @@ Execution::Execution()
 {
   // 从文件加载可用的处决组合
 
-  if (!availableExcutions.contains(RaceType::Human))
-    availableExcutions[RaceType::Human] = {};
+  if (!availableExecutions.contains(RaceType::Human))
+    availableExecutions[RaceType::Human] = {};
 
   for (const auto& value : magic_enum::enum_values<WeaponType>()) {
     if (value == WeaponType::None)
       continue;
 
-    availableExcutions[RaceType::Human].push_back(value);
+    availableExecutions[RaceType::Human].push_back(value);
   }
 }
 
@@ -220,12 +216,12 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   auto race       = Race::GetRace(victim);
 
   std::lock_guard<std::mutex> lock(mtx_executable);
-  if (!availableExcutions.contains(race)) {
+  if (!availableExecutions.contains(race)) {
     logger::info("Execution::TryExecute: No available Idle for using Weapon {} to execute Race {}",
                  magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
     return false;
   }
-  auto& availableWeapons = availableExcutions[race];
+  auto& availableWeapons = availableExecutions[race];
   if (std::find(availableWeapons.begin(), availableWeapons.end(), weaponType) ==
       availableWeapons.end()) {
     logger::info("Execution::TryExecute: Weapon {} cannot be used to execute Race {}",

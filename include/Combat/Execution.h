@@ -54,7 +54,7 @@ private:
 
   // 无锁，处决组合只在初始化时设置一次，且之后不再修改
   // 意味某个种族可被人类使用特定类型的武器处决
-  static inline std::unordered_map<Race::Type, std::vector<Weapon::Type>> availableExcutions;
+  static inline std::unordered_map<Race::Type, std::vector<Weapon::Type>> availableExecutions;
 
   // 需要锁
   // 当前处于可被处决状态的Actor列表，值为处决状态到期时间

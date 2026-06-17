@@ -1,6 +1,5 @@
 #include "GUI/Localization.h"
 
-#include "Core/Settings.h"
 #include "Utils.h"
 
 #include "nlohmann/json.hpp"

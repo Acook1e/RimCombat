@@ -189,6 +189,8 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
 
       PlaceBlockVFX(victim, type, "Parry"_h);
       Utils::PlaySFX(victim, parrySFX, victim->GetPosition());
+
+      return;
     }
   }
 

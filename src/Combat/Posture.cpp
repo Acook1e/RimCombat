@@ -3,14 +3,12 @@
 #include "Combat/Block.h"
 #include "Combat/Execution.h"
 #include "Combat/Exhausted.h"
-#include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
 #include "Data/Race.h"
 #include "Data/Weapon.h"
 #include "Utils.h"
 
-#include "magic_enum/magic_enum.hpp"
 
 float Posture::InitPosture(RE::Actor* actor)
 {

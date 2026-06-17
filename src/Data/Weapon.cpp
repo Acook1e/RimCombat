@@ -1,14 +1,12 @@
 #include "Data/Weapon.h"
 
-#include "Core/Settings.h"
-#include "Data/Race.h"
 
 #include "magic_enum/magic_enum.hpp"
 
 namespace Weapon
 {
 
-using RaceType = Race::Type;
+
 
 inline Type DebugInfo(RE::TESObjectWEAP* weapon, Type type)
 {

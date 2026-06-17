@@ -1,8 +1,6 @@
 #include "Combat/Poise.h"
 
 #include "Combat/Execution.h"
-#include "Combat/Stagger.h"
-#include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Core/Settings.h"
 #include "Data/Race.h"

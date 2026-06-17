@@ -1,8 +1,8 @@
 #include "Combat/Damage.h"
 
-#include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
 #include "Data/Race.h"
+#include "Data/Weapon.h"
 #include "Utils.h"
 
 Damage::Damage()

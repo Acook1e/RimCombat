@@ -1,9 +1,5 @@
 #pragma once
 
-#include "Core/Serialization.h"
-#include "Core/Settings.h"
-#include "Data/Weapon.h"
-#include "Utils.h"
 
 namespace WeaponArt
 {
@@ -284,7 +280,7 @@ public:
 private:
   Manager();
 
-  // 战技ID映射，无需序列化，根据配置信息初始化
+  // 战技ID映射，无需锁，根据配置信息初始化
   static inline std::unordered_map<std::int32_t, WeaponArtInfo> artMap;
 
   // RimCombat Weapon Art Info

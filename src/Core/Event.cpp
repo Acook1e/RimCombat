@@ -15,7 +15,6 @@
 
 #include "API/InputManagerAPI.h"
 
-#include "magic_enum/magic_enum.hpp"
 
 namespace Events
 {
@@ -79,8 +78,8 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
       return true;
     break;
   case "staggerstop"_h: {
-    auto cuurentLevel = Stagger::GetStaggerLevel(actor);
-    if (cuurentLevel != Stagger::Level::None)
+    auto currentLevel = Stagger::GetStaggerLevel(actor);
+    if (currentLevel != Stagger::Level::None)
       break;
     auto recordLevel = Stagger::IsInStagger(actor);
     if (recordLevel != Stagger::Level::None)

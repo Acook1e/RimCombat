@@ -1,7 +1,5 @@
 #include "GUI/Menu.h"
 
-#include "Core/Serialization.h"
-#include "Core/Settings.h"
 #include "GUI/Localization.h"
 #include "Utils.h"
 

@@ -2,6 +2,7 @@
 #pragma clang diagnostic ignored "-Wmicrosoft-cast"
 
 #include "Core/Hooks.h"
+#include "Core/Settings.h"
 
 #include "Combat/Block.h"
 #include "Combat/Damage.h"
@@ -16,7 +17,6 @@
 #include "Utils.h"
 
 #include "detours.h"
-#include "magic_enum/magic_enum.hpp"
 
 namespace Hooks
 {

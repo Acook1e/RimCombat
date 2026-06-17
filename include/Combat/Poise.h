@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Combat/Stagger.h"
-#include "Core/Settings.h"
 
 class Poise
 {

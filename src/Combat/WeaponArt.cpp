@@ -1,4 +1,8 @@
 #include "Combat/WeaponArt.h"
+#include "Core/Serialization.h"
+#include "Core/Settings.h"
+#include "Data/Weapon.h"
+#include "Utils.h"
 
 #include "Combat/Damage.h"
 #include "Combat/Poise.h"
@@ -247,16 +251,16 @@ bool WeaponArtInfo::IsWeaponAllowed(RE::TESObjectWEAP* weapon) const
   // 武器类型
   auto weaponType = WeaponTypeMapping(Weapon::GetWeaponType(weapon));
 
-  auto aviailableAttack = availableWeapon & attackMask;
+  auto availableAttack = availableWeapon & attackMask;
 
   // 如果没有指定攻击类型要求，则视为通配
-  if (aviailableAttack == AvailableWeapon::None)
+  if (availableAttack == AvailableWeapon::None)
     return (availableWeapon | attackMask) >= weaponType;
 
   // 如果指定了攻击类型要求，则武器的攻击类型必须满足要求
   auto weaponAttack = weaponType & attackMask;
   return (availableWeapon | attackMask) >= (weaponType | attackMask) &&
-         weaponAttack >= aviailableAttack;
+         weaponAttack >= availableAttack;
 }
 
 const std::optional<StageData> WeaponArtInfo::GetStageData(std::uint8_t stageID) const
@@ -530,7 +534,7 @@ Manager::Manager()
             stageData.manaCost = stageDataJson.value("manaCost", NaN);
             stageData.minMana  = stageDataJson.value("minMana", NaN);
 
-            if (stageData.manaCost == NaN || stageData.minMana == NaN) {
+            if (std::isnan(stageData.manaCost) || std::isnan(stageData.minMana)) {
               logger::warn(
                   "Invalid Stage Data at Stage {} in Weapon Art {} in file {}. Clean and Skip.",
                   stageKey, key, entry.path().string());
@@ -567,11 +571,12 @@ Manager::Manager()
                 attackData.subPoiseDamageMult   = attackDataJson.value("subPoiseDamageMult", NaN);
                 attackData.subPostureDamageMult = attackDataJson.value("subPostureDamageMult", NaN);
 
-                if (attackData.staminaMult == NaN || attackData.damageMult == NaN ||
-                    attackData.poiseDamageMult == NaN || attackData.postureDamageMult == NaN ||
-                    attackData.subStaminaMult == NaN || attackData.subDamageMult == NaN ||
-                    attackData.subPoiseDamageMult == NaN ||
-                    attackData.subPostureDamageMult == NaN) {
+                if (std::isnan(attackData.staminaMult) || std::isnan(attackData.damageMult) ||
+                    std::isnan(attackData.poiseDamageMult) ||
+                    std::isnan(attackData.postureDamageMult) ||
+                    std::isnan(attackData.subStaminaMult) || std::isnan(attackData.subDamageMult) ||
+                    std::isnan(attackData.subPoiseDamageMult) ||
+                    std::isnan(attackData.subPostureDamageMult)) {
                   logger::warn("Invalid attack Data at Attack {} at Stage {} in Weapon Art {} in "
                                "file {}. Clean and Skip.",
                                attackKey, stageKey, key, entry.path().string());
@@ -766,8 +771,6 @@ bool Manager::IsValidWeaponArtID(std::int32_t artID)
 {
   if (!Settings::bUseWeaponArtSystem)
     return false;
-
-  std::lock_guard<std::mutex> lock(mtx_infoMap);
   return artMap.find(artID) != artMap.end();
 }
 
@@ -792,7 +795,6 @@ std::vector<const WeaponArtInfo*> Manager::GetAllWeaponArts()
 
 const WeaponArtInfo* Manager::GetWeaponArtInfo(std::int32_t artID)
 {
-  std::lock_guard<std::mutex> lock(mtx_infoMap);
   if (auto it = artMap.find(artID); it != artMap.end())
     return &it->second;
   return nullptr;
@@ -971,8 +973,6 @@ void Manager::Stage(RE::Actor* actor, const std::string& payload)
 
   float manaCost = stage->manaCost;
   float minMana  = stage->minMana;
-  if (manaCost == NaN || minMana == NaN)
-    return;
 
   auto currentMana = actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMagicka);
   {

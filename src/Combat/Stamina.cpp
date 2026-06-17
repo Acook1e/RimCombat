@@ -1,11 +1,9 @@
 #include "Combat/Stamina.h"
 
-#include "Combat/WeaponArt.h"
 #include "Core/Serialization.h"
-#include "Core/Settings.h"
 #include "Data/Weapon.h"
+#include "Utils.h"
 
-#include "magic_enum/magic_enum.hpp"
 
 using Side = Stamina::Side;
 

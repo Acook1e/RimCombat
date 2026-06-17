@@ -31,6 +31,10 @@
         "label": "格挡",
         "desc": "格挡、限时格挡和格挡耗耐相关设置。"
     },
+    "Damage": {
+        "label": "伤害",
+        "desc": "伤害倍率相关设置。"
+    },
     "WeaponArt": {
         "label": "战技",
         "desc": "战技系统、战技 HUD 和战技菜单位置设置。"
@@ -79,6 +83,10 @@
         "label": "基础韧性值与基础韧性伤害表仍然在 Settings.json 中维护。",
         "desc": ""
     },
+    "MenuDamageSummary": {
+        "label": "基础伤害倍率表仍然在 Settings.json 中维护。",
+        "desc": ""
+    },
     "MenuBlockSummary": {
         "label": "按武器类型区分的格挡强度仍然在 Settings.json 中维护。",
         "desc": ""
@@ -90,6 +98,22 @@
     "DebugCrosshairTarget": {
         "label": "准星目标：{}",
         "desc": "当前准星选中的目标。"
+    },
+    "UseDamageSystem": {
+        "label": "启用伤害系统",
+        "desc": "控制 RimCombat 是否接管伤害倍率。"
+    },
+    "DamageMultPowerAttack": {
+        "label": "重击伤害倍率",
+        "desc": "重击相对于轻攻击的伤害倍率。"
+    },
+    "DamageMultBash": {
+        "label": "盾击伤害倍率",
+        "desc": "盾击相对于轻攻击的伤害倍率。"
+    },
+    "DamageMultPowerBash": {
+        "label": "强盾击伤害倍率",
+        "desc": "强力盾击相对于轻攻击的伤害倍率。"
     },
     "UseAttackStaminaSystem": {
         "label": "启用攻击耐力系统",
@@ -163,6 +187,10 @@
         "label": "启用架势 HUD",
         "desc": "在可用时通过 TrueHUD 显示架势条。"
     },
+    "DisablePlayerPostureBreak": {
+        "label": "禁用玩家失衡",
+        "desc": "开启后，玩家架势归零时不会触发失衡硬直。"
+    },
     "MaxPostureHealthMult": {
         "label": "生命转最大架势倍率",
         "desc": "每点最大生命额外提供多少最大架势值。"
@@ -214,6 +242,10 @@
     "PoiseRegenPercentPerSecond": {
         "label": "每秒韧性回复百分比",
         "desc": "每秒回复的最大韧性百分比。"
+    },
+    "StaggerCompensationPercent": {
+        "label": "硬直补偿百分比",
+        "desc": "硬直后最低保留的最大韧性百分比，用于防止连续硬直。"
     },
     "StaggerLevelSmall": {
         "label": "小硬直阈值",
@@ -370,6 +402,10 @@
     "UseWeaponArtHUD": {
         "label": "启用战技 HUD",
         "desc": "控制 PrismaUI 战技 HUD 是否显示。"
+    },
+    "HideWeaponArtHUDOnSheathe": {
+        "label": "收刀时隐藏战技 HUD",
+        "desc": "开启后，收刀状态下战技 HUD 会被隐藏。"
     },
     "WeaponArtHUDPosX": {
         "label": "战技 HUD 横向位置",

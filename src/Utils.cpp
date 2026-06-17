@@ -16,23 +16,23 @@ std::vector<std::string> split(const std::string& str, char delimiter)
          std::ranges::to<std::vector>();
 }
 
-float toFloat(const std::string& str)
+std::optional<float> toFloat(const std::string& str)
 {
   try {
     return std::stof(str);
   } catch (const std::exception& e) {
     logger::error("Failed to parse float from string '{}': {}", str, e.what());
-    return 0.0f;
+    return std::nullopt;
   }
 }
 
-std::int32_t toInt(const std::string& str, int base)
+std::optional<std::int32_t> toInt(const std::string& str, int base)
 {
   try {
     return std::stoi(str, nullptr, base);
   } catch (const std::exception& e) {
     logger::error("Failed to parse int from string '{}': {}", str, e.what());
-    return 0;
+    return std::nullopt;
   }
 }
 

@@ -112,8 +112,8 @@ Posture::Posture()
       postureMap.clear();
     }
     {
-      std::scoped_lock lock(mtx_damageCache);
-      damageCache.clear();
+      std::scoped_lock lock(mtx_postureMultiplier);
+      postureMultOnAttack.clear();
     }
     {
       std::scoped_lock lock(mtx_unbreakableCache);
@@ -249,8 +249,8 @@ void Posture::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitD
 
   // 处理基于图事件的架势伤害调整
   {
-    std::scoped_lock lock(mtx_damageCache);
-    if (auto iter = damageCache.find(aggressor); iter != damageCache.end())
+    std::scoped_lock lock(mtx_postureMultiplier);
+    if (auto iter = postureMultOnAttack.find(aggressor); iter != postureMultOnAttack.end())
       postureDamage *= iter->second;
   }
 
@@ -321,32 +321,44 @@ void Posture::Unbreakable(RE::Actor* actor, const std::string& payload)
     return;
 
   auto duration = Utils::toInt(payload);
+  if (!duration)
+    return;
   if (duration <= 0)
     return;
 
   std::lock_guard<std::mutex> lock(mtx_unbreakableCache);
-  unbreakableActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration;
+  unbreakableActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration.value();
 }
 
-void Posture::Damage(RE::Actor* actor, const std::string& payload)
+void Posture::TargetSet(RE::Actor* actor, float multiplier)
 {
   if (!actor || !Settings::bUsePostureSystem)
     return;
   if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
     return;
 
-  auto split = Utils::split(payload, '|');
-  if (split.size() != 1 && split.size() != 2)
+  if (multiplier < 0.0f)
     return;
-  float damageMult   = Utils::toFloat(split[0]);
-  float fallbackMult = split.size() == 2 ? Utils::toFloat(split[1]) : damageMult;
-  if (damageMult < 0.0f || fallbackMult < 0.0f)
-    return;
-  auto subordinate =
-      WeaponArt::Manager::GetPerform(actor) == WeaponArt::Manager::Perform::Subordinate;
 
-  std::lock_guard<std::mutex> lock(mtx_damageCache);
-  damageCache[actor] = subordinate ? fallbackMult : damageMult;
+  std::lock_guard<std::mutex> lock(mtx_postureMultiplier);
+  postureMultOnAttack[actor] = multiplier;
+}
+
+void Posture::TargetSet(RE::Actor* actor, const std::string& payload)
+{
+  if (!actor || !Settings::bUsePostureSystem)
+    return;
+  if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+    return;
+
+  auto multiplier = Utils::toFloat(payload);
+  if (!multiplier)
+    return;
+  if (multiplier < 0.0f)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx_postureMultiplier);
+  postureMultOnAttack[actor] = multiplier.value();
 }
 
 void Posture::End(RE::Actor* actor)
@@ -354,8 +366,8 @@ void Posture::End(RE::Actor* actor)
   if (!actor || !Settings::bUsePostureSystem)
     return;
 
-  std::lock_guard<std::mutex> lock(mtx_damageCache);
-  damageCache.erase(actor);
+  std::lock_guard<std::mutex> lock(mtx_postureMultiplier);
+  postureMultOnAttack.erase(actor);
 }
 
 void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
@@ -365,10 +377,10 @@ void Posture::PayloadParse(RE::Actor* actor, const std::string& payload)
   if (!actor)
     return;
 
-  if (payload.starts_with("unbreakable|"))
+  if (payload.starts_with("targetset|"))
+    TargetSet(actor, payload.substr(10));
+  else if (payload.starts_with("unbreakable|"))
     Unbreakable(actor, payload.substr(12));
-  else if (payload.starts_with("damage|"))
-    Damage(actor, payload.substr(7));
   else if (payload == "end")
     End(actor);
 }

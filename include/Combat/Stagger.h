@@ -99,8 +99,8 @@ private:
 
   // 由于动画事件的发送早于受击处理
   // 因此缓存在动画事件的数据，在受击处理时再处理
-  static inline std::mutex mtx_targetCache;
-  static inline std::unordered_map<RE::Actor*, Level> staggerLevelOnHit;
+  static inline std::mutex mtx_levelCache;
+  static inline std::unordered_map<RE::Actor*, Level> staggerLevelOnAttack;
 
   // 缓存免疫硬直时间
   static inline std::mutex mtx_immuneCache;

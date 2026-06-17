@@ -22,8 +22,11 @@ float ApplyPerkEntry(RE::Actor* actor, bool powerAttack, float baseCost)
     if (!actor->HasPerkEntries(powerEntry))
       return finalCost;
     auto weaponEntry = actor->GetAttackingWeapon();
-    auto weapon      = weaponEntry ? weaponEntry->object->As<RE::TESObjectWEAP>() : nullptr;
-    RE::BGSEntryPoint::HandleEntryPoint(powerEntry, actor, weapon, &finalCost);
+    auto weaponObj   = weaponEntry ? weaponEntry->object : nullptr;
+    if (weaponObj && weaponObj->IsWeapon()) {
+      auto weapon = weaponObj->As<RE::TESObjectWEAP>();
+      RE::BGSEntryPoint::HandleEntryPoint(powerEntry, actor, weapon, &finalCost);
+    }
   }
 
   return finalCost;
@@ -270,10 +273,11 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
     return;
   }
 
-  auto attackType  = split[0];
-  auto side        = split[1];
-  float multiplier = Utils::toFloat(split[2]);
-
+  auto attackType = split[0];
+  auto side       = split[1];
+  auto multiplier = Utils::toFloat(split[2]);
+  if (!multiplier)
+    return;
   if (multiplier < 0.0f)
     return;
 
@@ -296,7 +300,7 @@ void Stamina::Consume(RE::Actor* actor, const std::string& payload)
   if (power)
     baseCost *= Settings::fPowerAttackStaminaCostMult;
 
-  baseCost *= multiplier;
+  baseCost *= multiplier.value();
 
   if (power)
     baseCost += Settings::fPowerAttackStaminaCostPerMass * mass;

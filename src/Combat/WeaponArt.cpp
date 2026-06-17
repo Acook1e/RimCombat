@@ -217,6 +217,7 @@ AvailableWeapon WeaponTypeMapping(Weapon::Type type)
 WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
                              const std::string& description, AvailableWeapon availableWeapon,
                              const std::vector<RE::FormID>& weapons,
+                             const std::unordered_map<std::uint8_t, StageData>& stages,
                              const std::unordered_map<std::uint32_t, SpellInfo>& spells,
                              std::uint8_t consumePoint, std::uint8_t unlockLevel, bool ownAtStart,
                              bool needPrepare)
@@ -226,6 +227,7 @@ WeaponArtInfo::WeaponArtInfo(std::int32_t id, const std::string& name,
   this->description     = std::move(description);
   this->availableWeapon = availableWeapon;
   this->weapons         = std::move(weapons);
+  this->stages          = std::move(stages);
   this->spells          = std::move(spells);
   this->consumePoint    = consumePoint;
   this->unlockLevel     = unlockLevel;
@@ -286,12 +288,12 @@ const std::optional<SpellInfo> WeaponArtInfo::GetSpellInfo(std::uint32_t hash) c
 
 PlayerStat::PlayerStat()
 {
+  // PlayerStat在Manager之后初始化，因此可以安全地访问Manager中的数据
+
   Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
     serial->WriteRecordData(&exp, sizeof(exp));
     serial->WriteRecordData(&level, sizeof(level));
     serial->WriteRecordData(&point, sizeof(point));
-
-    // PlayerStat在Manager之后初始化，因此可以安全地访问Manager中的数据来验证artID的有效性
 
     // 保存已拥有的战技ID列表
     auto count = static_cast<std::uint32_t>(ownedArts.size());
@@ -299,13 +301,6 @@ PlayerStat::PlayerStat()
     for (const auto& artID : ownedArts) {
       // 保存时无需验证artID的有效性，因为读取必定优先验证
       serial->WriteRecordData(&artID, sizeof(artID));
-    }
-
-    // 插入所有一开始就拥有的战技ID
-    auto arts = Manager::GetAllWeaponArts();
-    for (const auto& art : arts) {
-      if (art->OwnAtStart())
-        ownedArts.insert(art->GetID());
     }
 
     // 保存已解锁的战技ID列表
@@ -321,6 +316,13 @@ PlayerStat::PlayerStat()
     serial->ReadRecordData(&exp, sizeof(exp));
     serial->ReadRecordData(&level, sizeof(level));
     serial->ReadRecordData(&point, sizeof(point));
+
+    // 插入所有一开始就拥有的战技ID
+    auto arts = Manager::GetAllWeaponArts();
+    for (const auto& art : arts) {
+      if (art->OwnAtStart())
+        ownedArts.insert(art->GetID());
+    }
 
     std::uint32_t count = 0;
 
@@ -477,8 +479,8 @@ Manager::Manager()
         for (const auto& w : weaponStrs) {
           auto split = Utils::split(w, '|');
           if (split.size() != 2) {
-            logger::warn("Invalid weapon '{}' for Weapon Art {} in file {}. Skipping.", w, key,
-                         entry.path().string());
+            logger::warn("Invalid weapon '{}' for Weapon Art {} in file {}. Skipping this weapon.",
+                         w, key, entry.path().string());
             continue;
           }
           auto res = dataHandle->LookupFormID(Utils::hash(split[0]), split[1]);
@@ -491,8 +493,9 @@ Manager::Manager()
           if (auto awOpt = magic_enum::enum_flags_cast<AvailableWeapon>(awStr); awOpt.has_value()) {
             availableWeapon = availableWeapon | awOpt.value();
           } else {
-            logger::warn("Invalid weapon art type '{}' for Weapon Art {} in file {}. Skipping.",
-                         awStr, key, entry.path().string());
+            logger::warn(
+                "Invalid weapon art type '{}' for Weapon Art {} in file {}. Skipping this type.",
+                awStr, key, entry.path().string());
           }
         }
 
@@ -507,8 +510,106 @@ Manager::Manager()
             availableWeapon = availableWeapon | familyMask;
         }
 
+        // 攻击数据必须存在
+        // 任何数据非法都直接中断解析并清空stages
+        bool stageSuccess = true;
+        std::unordered_map<std::uint8_t, StageData> stages{};
+        auto stagesJson = value.value("stages", nlohmann::json::object());
+        if (stagesJson.is_object()) {
+          for (const auto& [stageKey, stageDataJson] : stagesJson.items()) {
+            StageData stageData;
+            auto stageID = Utils::toInt(stageKey);
+
+            if (!stageID) {
+              logger::warn("Invalid stage ID {} in Weapon Art {} in file {}. Clean and Skip.",
+                           stageKey, key, entry.path().string());
+              stageSuccess = false;
+              break;
+            }
+
+            stageData.manaCost = stageDataJson.value("manaCost", NaN);
+            stageData.minMana  = stageDataJson.value("minMana", NaN);
+
+            if (stageData.manaCost == NaN || stageData.minMana == NaN) {
+              logger::warn(
+                  "Invalid Stage Data at Stage {} in Weapon Art {} in file {}. Clean and Skip.",
+                  stageKey, key, entry.path().string());
+              stageSuccess = false;
+              break;
+            }
+
+            bool attackSuccess = true;
+            std::unordered_map<std::uint8_t, AttackData> attacks;
+            auto attacksJson = stageDataJson.value("attacks", nlohmann::json::object());
+            if (attacksJson.is_object()) {
+              for (const auto& [attackKey, attackDataJson] : attacksJson.items()) {
+                AttackData attackData;
+                auto attackID = Utils::toInt(attackKey);
+                if (!attackID) {
+                  logger::warn("Invalid attack ID {} at Stage {} in Weapon Art {} in file {}. "
+                               "Clean and Skip.",
+                               attackKey, stageKey, key, entry.path().string());
+                  attackSuccess = false;
+                  break;
+                }
+
+                attackData.left        = attackDataJson.value("left", false);
+                attackData.right       = attackDataJson.value("right", false);
+                attackData.powerAttack = attackDataJson.value("powerAttack", false);
+
+                attackData.staminaMult       = attackDataJson.value("staminaMult", NaN);
+                attackData.damageMult        = attackDataJson.value("damageMult", NaN);
+                attackData.poiseDamageMult   = attackDataJson.value("poiseDamageMult", NaN);
+                attackData.postureDamageMult = attackDataJson.value("postureDamageMult", NaN);
+
+                attackData.subStaminaMult       = attackDataJson.value("subStaminaMult", NaN);
+                attackData.subDamageMult        = attackDataJson.value("subDamageMult", NaN);
+                attackData.subPoiseDamageMult   = attackDataJson.value("subPoiseDamageMult", NaN);
+                attackData.subPostureDamageMult = attackDataJson.value("subPostureDamageMult", NaN);
+
+                if (attackData.staminaMult == NaN || attackData.damageMult == NaN ||
+                    attackData.poiseDamageMult == NaN || attackData.postureDamageMult == NaN ||
+                    attackData.subStaminaMult == NaN || attackData.subDamageMult == NaN ||
+                    attackData.subPoiseDamageMult == NaN ||
+                    attackData.subPostureDamageMult == NaN) {
+                  logger::warn("Invalid attack Data at Attack {} at Stage {} in Weapon Art {} in "
+                               "file {}. Clean and Skip.",
+                               attackKey, stageKey, key, entry.path().string());
+                  attackSuccess = false;
+                  break;
+                }
+
+                attacks.emplace(attackID.value(), attackData);
+              }
+            }
+
+            if (attackSuccess) {
+              stageData.attacks = std::move(attacks);
+              stages.emplace(stageID.value(), std::move(stageData));
+            } else {
+              logger::warn("Failed to Parse AttackData at Stage {} in Weapon Art {} in file {}. "
+                           "Clean and Skip.",
+                           stageKey, key, entry.path().string());
+              stageSuccess = false;
+              break;
+            }
+          }
+        }
+        if (stages.empty()) {
+          logger::warn("Empty StageData for Weapon Art {} in file {}. Skipping", key,
+                       entry.path().string());
+          continue;
+        }
+        if (!stageSuccess) {
+          logger::warn("Failed to Parse StageData in Weapon Art {} in file {}. Clean and Skip.",
+                       key, entry.path().string());
+          stages.clear();
+          continue;
+        }
+
         // 法术特效可以不存在，默认为空对象
-        auto spellsJson = value.value("spells", nlohmann::json::object());
+        bool spellSuccess = true;
+        auto spellsJson   = value.value("spells", nlohmann::json::object());
         std::unordered_map<std::uint32_t, SpellInfo> spells{};
         if (spellsJson.is_object()) {
           for (const auto& [spellKey, spellValue] : spellsJson.items()) {
@@ -520,18 +621,28 @@ Manager::Manager()
             std::string modName   = spellValue.value("mod", "");
             std::string formIDStr = spellValue.value("formID", "");
             auto formID           = Utils::toInt(formIDStr, 16);
-            auto spellFormID      = dataHandle->LookupFormID(formID, modName);
+            if (!formID) {
+              logger::warn("Invalid form ID '{}' for Weapon Art {} in file {}. Clean and Skip.",
+                           formIDStr, key, entry.path().string());
+              spellSuccess = false;
+              break;
+            }
+
+            auto spellFormID = dataHandle->LookupFormID(formID.value(), modName);
             if (!spellFormID) {
-              logger::warn("Invalid spell reference '{}' for Weapon Art {} in file {}. Skipping.",
-                           spellKey, key, entry.path().string());
-              continue;
+              logger::warn(
+                  "Invalid spell reference '{}' for Weapon Art {} in file {}. Clean and Skip.",
+                  spellKey, key, entry.path().string());
+              spellSuccess = false;
+              break;
             }
             auto* spell = RE::TESForm::LookupByID<RE::SpellItem>(spellFormID);
             if (!spell || spell->formType != RE::FormType::Spell) {
               logger::warn("Form ID '{}' does not correspond to a valid spell for Weapon Art {} "
-                           "in file {}. Skipping.",
-                           formID, key, entry.path().string());
-              continue;
+                           "in file {}. Clean and Skip.",
+                           formID.value(), key, entry.path().string());
+              spellSuccess = false;
+              break;
             }
 
             bool selfCast        = spellValue.value("selfCast", false);
@@ -541,22 +652,30 @@ Manager::Manager()
             Skill skill          = magic_enum::enum_cast<Skill>(skillStr).value_or(Skill::None);
             if (skill == Skill::None) {
               logger::warn(
-                  "Invalid skill '{}' for spell '{}' in Weapon Art {} in file {}. Skipping.",
+                  "Invalid skill '{}' for spell '{}' in Weapon Art {} in file {}. Clean and Skip.",
                   skillStr, spellKey, key, entry.path().string());
-              continue;
+              spellSuccess = false;
+              break;
             }
 
             float factor = spellValue.value("factor", 1.0f);
             if (factor < 0.0f) {
               logger::warn(
-                  "Invalid factor {} for spell '{}' in Weapon Art {} in file {}. Skipping.", factor,
-                  spellKey, key, entry.path().string());
-              continue;
+                  "Invalid factor {} for spell '{}' in Weapon Art {} in file {}. Clean and Skip.",
+                  factor, spellKey, key, entry.path().string());
+              spellSuccess = false;
+              break;
             }
 
             spells[spellHash] =
                 SpellInfo{spell, effectiveness, stdMagnitude, factor, skill, selfCast};
           }
+        }
+        if (!spellSuccess) {
+          logger::warn("Failed to Parse SpellInfo in Weapon Art {} in file {}. Clean and Skip.",
+                       key, entry.path().string());
+          spells.clear();
+          continue;
         }
 
         // 消耗的战技点数和解锁所需等级，默认为0和1
@@ -576,7 +695,8 @@ Manager::Manager()
                      entry.path().string());
 
         WeaponArtInfo art(id, name, description, availableWeapon, std::move(weapons),
-                          std::move(spells), consumePoint, unlockLevel, ownAtStart, needPrepare);
+                          std::move(stages), std::move(spells), consumePoint, unlockLevel,
+                          ownAtStart, needPrepare);
         artMap[id] = std::move(art);
       }
     } catch (const std::exception& e) {
@@ -828,18 +948,23 @@ void Manager::Stage(RE::Actor* actor, const std::string& payload)
     return;
 
   auto stageID = Utils::toInt(payload);
-  auto artID   = GetActorWeaponArtID(actor);
-  auto art     = GetWeaponArtInfo(artID);
-  if (!art) {
-    logger::warn("Actor {} does not have a valid Weapon Art. Cannot start stage {}.",
-                 actor->GetName(), stageID);
+  if (!stageID) {
+    logger::warn("Invalid stage ID: {}.", payload);
     return;
   }
 
-  auto stage = art->GetStageData(stageID);
+  auto artID = GetActorWeaponArtID(actor);
+  auto art   = GetWeaponArtInfo(artID);
+  if (!art) {
+    logger::warn("Actor {} does not have a valid Weapon Art. Cannot start stage {}.",
+                 actor->GetName(), stageID.value());
+    return;
+  }
+
+  auto stage = art->GetStageData(stageID.value());
 
   if (!stage) {
-    logger::warn("Invalid stage ID {} for Weapon Art {}.", stageID,
+    logger::warn("Invalid stage ID {} for Weapon Art {}.", stageID.value(),
                  art ? art->GetName() : "Unknown");
     return;
   }
@@ -876,6 +1001,11 @@ void Manager::Attack(RE::Actor* actor, const std::string& payload)
   auto stageID  = Utils::toInt(split[0]);
   auto attackID = Utils::toInt(split[1]);
 
+  if (!stageID || !attackID) {
+    logger::warn("Invalid stage ID {} or Invalid attack ID {}", split[0], split[1]);
+    return;
+  }
+
   auto artID = GetActorWeaponArtID(actor);
   auto art   = GetWeaponArtInfo(artID);
   if (!art) {
@@ -884,11 +1014,11 @@ void Manager::Attack(RE::Actor* actor, const std::string& payload)
     return;
   }
 
-  auto attack = art->GetAttackData(stageID, attackID);
+  auto attack = art->GetAttackData(stageID.value(), attackID.value());
 
   if (!attack) {
-    logger::warn("Invalid attack ID {} for stage ID {} in Weapon Art {}.", attackID, stageID,
-                 art ? art->GetName() : "Unknown");
+    logger::warn("Invalid attack ID {} for stage ID {} in Weapon Art {}.", attackID.value(),
+                 stageID.value(), art ? art->GetName() : "Unknown");
     return;
   }
 
@@ -900,13 +1030,19 @@ void Manager::Attack(RE::Actor* actor, const std::string& payload)
     side = Stamina::Side::Left;
   else if (attack->right)
     side = Stamina::Side::Right;
+  else
+    side = Stamina::Side::Auto;
 
   if (GetPerform(actor) == Perform::Eligible) {
-
     Stamina::RimStaminaConsume(actor, side, attack->powerAttack, attack->staminaMult);
+    Damage::SetMult(actor, attack->damageMult);
+    Poise::TargetSet(actor, attack->poiseDamageMult);
+    Posture::TargetSet(actor, attack->postureDamageMult);
   } else {
-
     Stamina::RimStaminaConsume(actor, side, attack->powerAttack, attack->subStaminaMult);
+    Damage::SetMult(actor, attack->subDamageMult);
+    Poise::TargetSet(actor, attack->subPoiseDamageMult);
+    Posture::TargetSet(actor, attack->subPostureDamageMult);
   }
 }
 

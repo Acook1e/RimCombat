@@ -45,14 +45,17 @@ Stagger::Stagger()
           std::string mod       = item.value("mod", "");
           std::string formIDStr = item.value("formID", "");
           auto formID           = Utils::toInt(formIDStr, 16);
-          auto staggerLevelStr  = item.value("level", "None");
+          if (!formID)
+            continue;
+
+          auto staggerLevelStr = item.value("level", "None");
           auto staggerLevel = magic_enum::enum_cast<Level>(staggerLevelStr).value_or(Level::None);
           if (staggerLevel == Level::None) {
             logger::warn("Invalid stagger level '{}' in file {}. Skipping.", staggerLevelStr,
                          entry.path().string());
             continue;
           }
-          auto form = dataHandle->LookupFormID(formID, mod);
+          auto form = dataHandle->LookupFormID(formID.value(), mod);
           if (!form) {
             logger::warn("Invalid form ID '{}|{}' for stagger settings in file {}. Skipping.",
                          formIDStr, mod, entry.path().string());
@@ -106,17 +109,20 @@ Stagger::Stagger()
       // valueStr 转去除空格
       valueStr.erase(std::remove_if(valueStr.begin(), valueStr.end(), ::isspace), valueStr.end());
 
+      auto value = Utils::toFloat(valueStr);
+      if (!value)
+        continue;
+
       // largest可能包含largest和large两个关键词
       // 因此判断LargeStagger和LargestStagger的关键词，确保正确匹配
-      if (key.find("small") != std::string::npos) {
-        staggerMagnitudeMap[Level::Small] = Utils::toFloat(valueStr);
-      } else if (key.find("medium") != std::string::npos) {
-        staggerMagnitudeMap[Level::Medium] = Utils::toFloat(valueStr);
-      } else if (key.find("largestagger") != std::string::npos) {
-        staggerMagnitudeMap[Level::Large] = Utils::toFloat(valueStr);
-      } else if (key.find("largeststagger") != std::string::npos) {
-        staggerMagnitudeMap[Level::Largest] = Utils::toFloat(valueStr);
-      }
+      if (key.find("small") != std::string::npos)
+        staggerMagnitudeMap[Level::Small] = value.value();
+      else if (key.find("medium") != std::string::npos)
+        staggerMagnitudeMap[Level::Medium] = value.value();
+      else if (key.find("largestagger") != std::string::npos)
+        staggerMagnitudeMap[Level::Large] = value.value();
+      else if (key.find("largeststagger") != std::string::npos)
+        staggerMagnitudeMap[Level::Largest] = value.value();
     }
 
     logger::info("Stagger: Modern Stagger Lock stagger magnitude thresholds loaded");
@@ -128,8 +134,8 @@ Stagger::Stagger()
   // 使用序列化系统重置缓存
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     {
-      std::scoped_lock lock(mtx_targetCache);
-      staggerLevelOnHit.clear();
+      std::scoped_lock lock(mtx_levelCache);
+      staggerLevelOnAttack.clear();
     }
     {
       std::scoped_lock lock(mtx_immuneCache);
@@ -274,8 +280,8 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
   // 不清除Map中的数据，直到EndTarget事件，以确保在攻击过程中持续生效
   Level targetLevel = Level::None;
   {
-    std::lock_guard lock(mtx_targetCache);
-    if (auto it = staggerLevelOnHit.find(aggressor); it != staggerLevelOnHit.end())
+    std::lock_guard lock(mtx_levelCache);
+    if (auto it = staggerLevelOnAttack.find(aggressor); it != staggerLevelOnAttack.end())
       targetLevel = it->second;
   }
 
@@ -379,11 +385,15 @@ void Stagger::TargetSet(RE::Actor* actor, const std::string& payload)
   if (WeaponArt::Manager::GetPerform(actor) == WeaponArt::Manager::Perform::Subordinate)
     return;
 
-  auto level = static_cast<Level>(Utils::toInt(payload));
+  auto levelInt = Utils::toInt(payload);
+  if (!levelInt)
+    return;
+
+  auto level = static_cast<Level>(levelInt.value());
   if (level == Level::None)
     return;
-  std::lock_guard lock(mtx_targetCache);
-  staggerLevelOnHit[actor] = level;
+  std::lock_guard lock(mtx_levelCache);
+  staggerLevelOnAttack[actor] = level;
 }
 
 void Stagger::TargetEnd(RE::Actor* actor)
@@ -391,8 +401,8 @@ void Stagger::TargetEnd(RE::Actor* actor)
   if (!actor)
     return;
 
-  std::lock_guard lock(mtx_targetCache);
-  staggerLevelOnHit.erase(actor);
+  std::lock_guard lock(mtx_levelCache);
+  staggerLevelOnAttack.erase(actor);
 }
 
 void Stagger::Immune(RE::Actor* actor, const std::string& payload)
@@ -408,8 +418,14 @@ void Stagger::Immune(RE::Actor* actor, const std::string& payload)
   if (split.size() != 2)
     return;
 
-  auto immuneLevel = static_cast<Level>(Utils::toInt(split[0]));
-  auto duration    = Utils::toInt(split[1]);
+  auto levelInt = Utils::toInt(split[0]);
+  if (!levelInt)
+    return;
+  auto immuneLevel = static_cast<Level>(levelInt.value());
+
+  auto duration = Utils::toInt(split[1]);
+  if (!duration)
+    return;
 
   // 允许免疫特殊等级，但处决硬直是无法被免疫的
   // 因此仍然允许设置处决硬直的免疫状态以实现特定敌人完全免疫硬直的效果
@@ -417,7 +433,7 @@ void Stagger::Immune(RE::Actor* actor, const std::string& payload)
     return;
 
   std::lock_guard lock(mtx_immuneCache);
-  immuneActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration;
+  immuneActors[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration.value();
 }
 
 void Stagger::Recoverable(RE::Actor* actor)

@@ -139,6 +139,17 @@ void General()
   ImGui::Text("MenuGeneralSummary"_h);
 }
 
+void Damage()
+{
+  ImGui::Text("MenuDamageSummary"_h);
+  ImGui::Checkbox("UseDamageSystem"_h, &Settings::bUseDamageSystem);
+  ImGui::DragFloat("DamageMultPowerAttack"_h, &Settings::fDamageMultPowerAttack, 0.05f, 0.0f, 10.0f,
+                   "%.2f");
+  ImGui::DragFloat("DamageMultBash"_h, &Settings::fDamageMultBash, 0.05f, 0.0f, 10.0f, "%.2f");
+  ImGui::DragFloat("DamageMultPowerBash"_h, &Settings::fDamageMultPowerBash, 0.05f, 0.0f, 10.0f,
+                   "%.2f");
+}
+
 void Stamina()
 {
   ImGui::Text("MenuStaminaSummary"_h);
@@ -202,6 +213,8 @@ void Poise()
   ImGui::DragUInt64("PoiseRegenDelay"_h, &Settings::uPoiseRegenDelay, 10.0f, 0, 60000);
   ImGui::DragFloat("PoiseRegenPercentPerSecond"_h, &Settings::fPoiseRegenPercentPerSecond, 0.1f,
                    0.0f, 100.0f, "%.1f");
+  ImGui::DragFloat("StaggerCompensationPercent"_h, &Settings::fStaggerCompensationPercent, 0.01f,
+                   0.0f, 1.0f, "%.2f");
   ImGui::DragFloat("StaggerLevelSmall"_h, &Settings::fStaggerLevelSmall, 0.05f, 0.0f, 100.0f,
                    "%.2f");
   ImGui::DragFloat("StaggerLevelMedium"_h, &Settings::fStaggerLevelMedium, 0.05f, 0.0f, 100.0f,
@@ -331,6 +344,7 @@ Menu::Menu()
 
   ImGui::AddSectionItem("General"_h, General);
   ImGui::AddSectionItem("Stamina"_h, Stamina);
+  ImGui::AddSectionItem("Damage"_h, Damage);
   ImGui::AddSectionItem("Posture"_h, Posture);
   ImGui::AddSectionItem("Poise"_h, Poise);
   ImGui::AddSectionItem("Stagger"_h, Stagger);

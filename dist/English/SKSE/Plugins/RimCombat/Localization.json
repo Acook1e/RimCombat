@@ -31,6 +31,10 @@
         "label": "Block",
         "desc": "Block, timed block, and block stamina drain settings."
     },
+    "Damage": {
+        "label": "Damage",
+        "desc": "Damage multiplier settings."
+    },
     "WeaponArt": {
         "label": "Weapon Art",
         "desc": "Weapon Art system, HUD, and menu position settings."
@@ -79,6 +83,10 @@
         "label": "Base poise and base poise damage tables are still maintained in Settings.json.",
         "desc": ""
     },
+    "MenuDamageSummary": {
+        "label": "Base damage multiplier tables are still maintained in Settings.json.",
+        "desc": ""
+    },
     "MenuBlockSummary": {
         "label": "Per-weapon block strength is still maintained in Settings.json.",
         "desc": ""
@@ -90,6 +98,22 @@
     "DebugCrosshairTarget": {
         "label": "Crosshair Target: {}",
         "desc": "The currently targeted actor under the crosshair."
+    },
+    "UseDamageSystem": {
+        "label": "Enable Damage System",
+        "desc": "Controls whether RimCombat takes over damage multipliers."
+    },
+    "DamageMultPowerAttack": {
+        "label": "Power Attack Damage Multiplier",
+        "desc": "Damage multiplier for power attacks relative to light attacks."
+    },
+    "DamageMultBash": {
+        "label": "Bash Damage Multiplier",
+        "desc": "Damage multiplier for bashes relative to light attacks."
+    },
+    "DamageMultPowerBash": {
+        "label": "Power Bash Damage Multiplier",
+        "desc": "Damage multiplier for power bashes relative to light attacks."
     },
     "UseAttackStaminaSystem": {
         "label": "Enable Attack Stamina System",
@@ -218,6 +242,10 @@
     "PoiseRegenPercentPerSecond": {
         "label": "Poise Regen Percent Per Second",
         "desc": "Percentage of max poise regenerated per second."
+    },
+    "StaggerCompensationPercent": {
+        "label": "Stagger Compensation Percent",
+        "desc": "Minimum max poise percentage retained after stagger to prevent chain-stagger."
     },
     "StaggerLevelSmall": {
         "label": "Small Stagger Threshold",
@@ -399,7 +427,7 @@
         "label": "Toggle Weapon Art Menu",
         "desc": "Show or hide the Weapon Art menu while the inventory is open."
     },
-    "SwitchWeaponArtHUD_Purpose": {
+    "SwitchWeaponArtState_Purpose": {
         "label": "Toggle Weapon Art State",
         "desc": "Toggle the current Weapon Art between enabled and disabled."
     },
@@ -594,5 +622,185 @@
     "WeaponArtMenuHintCanBind": {
         "label": "You can assign {} to this weapon, or remove the current assignment first.",
         "desc": "Hint when the art can be assigned."
+    },
+    "WeaponArtMenuHintHasBinding": {
+        "label": "This weapon already has an art assigned. You can switch to the highlighted compatible art, or remove the current one first.",
+        "desc": "Hint when the weapon already has an assignment."
+    },
+    "WeaponArtMenuHintNoBinding": {
+        "label": "Select an unlocked and compatible art to assign, or keep this weapon without an art.",
+        "desc": "Hint when the weapon has no art assigned."
+    },
+    "WeaponArtMenuHintUnlockBlocked": {
+        "label": "Requires level {} and at least {} available Weapon Art points.",
+        "desc": "Hint when unlock requirements are not met."
+    },
+    "WeaponArtMenuHintNeedWeapon": {
+        "label": "Please select a weapon in the inventory first to perform weapon-related assignments.",
+        "desc": "Hint when no weapon is selected."
+    },
+    "WeaponArtMenuHintIncompatible": {
+        "label": "The current weapon does not meet the weapon requirements for this art.",
+        "desc": "Hint when the weapon is incompatible."
+    },
+    "WeaponArtMenuHintAlreadyAssigned": {
+        "label": "The current weapon already has this highlighted art assigned.",
+        "desc": "Hint when the art is already assigned."
+    },
+    "WeaponArtMenuHintReadyToAssign": {
+        "label": "This art is ready to be assigned to the currently selected weapon.",
+        "desc": "Hint when the art is ready to assign."
+    },
+    "WeaponArtMenuHintUnlockFirst": {
+        "label": "Unlock this art first before assigning it to a weapon.",
+        "desc": "Hint when the art is not yet unlocked."
+    },
+    "WeaponArtMenuHintStateUpdated": {
+        "label": "Weapon Art state updated.",
+        "desc": "Default hint text."
+    },
+    "UseExecutionSystem": {
+        "label": "Enable Execution System",
+        "desc": "Currently only a reserved toggle; the execution entry on the Posture side is paused."
+    },
+    "OnHitDamageMultWhenExecutable": {
+        "label": "Incoming Damage Multiplier When Executable",
+        "desc": "Reserved multiplier for when the execution system is restored in the future."
+    },
+    "UnknownWeaponType": {
+        "label": "Unknown",
+        "desc": ""
+    },
+    "WeaponArtUnassigned": {
+        "label": "Unassigned",
+        "desc": ""
+    },
+    "WeaponArtUnknown": {
+        "label": "Unknown Art",
+        "desc": ""
+    },
+    "WeaponArtHUDLabel": {
+        "label": "Weapon Art",
+        "desc": ""
+    },
+    "WeaponArtHUDStateDisable": {
+        "label": "Disabled",
+        "desc": ""
+    },
+    "WeaponArtHUDStatePrepare": {
+        "label": "Preparing",
+        "desc": ""
+    },
+    "WeaponArtHUDStateEnable": {
+        "label": "Enabled",
+        "desc": ""
+    },
+    "Unarm": {
+        "label": "Unarmed",
+        "desc": ""
+    },
+    "Werewolf": {
+        "label": "Werewolf",
+        "desc": ""
+    },
+    "Werebear": {
+        "label": "Werebear",
+        "desc": ""
+    },
+    "VampireLord": {
+        "label": "Vampire Lord",
+        "desc": ""
+    },
+    "Dagger": {
+        "label": "Dagger",
+        "desc": ""
+    },
+    "Claw": {
+        "label": "Claw",
+        "desc": ""
+    },
+    "Sword": {
+        "label": "Sword",
+        "desc": ""
+    },
+    "Rapier": {
+        "label": "Rapier",
+        "desc": ""
+    },
+    "Katana": {
+        "label": "Katana",
+        "desc": ""
+    },
+    "WarAxe": {
+        "label": "War Axe",
+        "desc": ""
+    },
+    "Mace": {
+        "label": "Mace",
+        "desc": ""
+    },
+    "Cestus": {
+        "label": "Cestus",
+        "desc": ""
+    },
+    "Whip": {
+        "label": "Whip",
+        "desc": ""
+    },
+    "ShortSpear": {
+        "label": "Short Spear",
+        "desc": ""
+    },
+    "GreatSword": {
+        "label": "Greatsword",
+        "desc": ""
+    },
+    "GreatKatana": {
+        "label": "Great Katana",
+        "desc": ""
+    },
+    "BattleAxe": {
+        "label": "Battleaxe",
+        "desc": ""
+    },
+    "WarHammer": {
+        "label": "War Hammer",
+        "desc": ""
+    },
+    "Quarterstaff": {
+        "label": "Quarterstaff",
+        "desc": ""
+    },
+    "Glaive": {
+        "label": "Glaive",
+        "desc": ""
+    },
+    "Pike": {
+        "label": "Pike",
+        "desc": ""
+    },
+    "Halberd": {
+        "label": "Halberd",
+        "desc": ""
+    },
+    "Bow": {
+        "label": "Bow",
+        "desc": ""
+    },
+    "Crossbow": {
+        "label": "Crossbow",
+        "desc": ""
+    },
+    "Staff": {
+        "label": "Staff",
+        "desc": ""
+    },
+    "Shield": {
+        "label": "Shield",
+        "desc": ""
+    },
+    "Torch": {
+        "label": "Torch",
+        "desc": ""
     }
 }

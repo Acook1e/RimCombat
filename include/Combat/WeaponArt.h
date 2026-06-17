@@ -88,16 +88,16 @@ public:
   struct AttackData
   {
     // Eligible时的数据
-    float staminaMult = NaN;  // 耐力消耗倍率
-    float damageMult  = NaN;  // 基础伤害倍率
-    float poiseMult   = NaN;  // 韧性伤害倍率
-    float postureMult = NaN;  // 架势伤害倍率
+    float staminaMult       = NaN;  // 耐力消耗倍率
+    float damageMult        = NaN;  // 基础伤害倍率
+    float poiseDamageMult   = NaN;  // 韧性伤害倍率
+    float postureDamageMult = NaN;  // 架势伤害倍率
 
     // Subordinate时的数据
-    float subStaminaMult = NaN;  // 耐力消耗倍率
-    float subDamageMult  = NaN;  // 基础伤害倍率
-    float subPoiseMult   = NaN;  // 韧性伤害倍率
-    float subPostureMult = NaN;  // 架势伤害倍率
+    float subStaminaMult       = NaN;  // 耐力消耗倍率
+    float subDamageMult        = NaN;  // 基础伤害倍率
+    float subPoiseDamageMult   = NaN;  // 韧性伤害倍率
+    float subPostureDamageMult = NaN;  // 架势伤害倍率
 
     bool left        = false;  // 是否为左手武器
     bool right       = false;  // 是否为右手武器
@@ -124,6 +124,7 @@ public:
   WeaponArtInfo() = default;
   WeaponArtInfo(std::int32_t id, const std::string& name, const std::string& description,
                 AvailableWeapon availableWeapon, const std::vector<RE::FormID>& weapons,
+                const std::unordered_map<std::uint8_t, StageData>& stages,
                 const std::unordered_map<std::uint32_t, SpellInfo>& spells,
                 std::uint8_t consumePoint, std::uint8_t unlockLevel, bool ownAtStart,
                 bool needPrepare);

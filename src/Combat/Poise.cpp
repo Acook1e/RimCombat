@@ -139,8 +139,8 @@ Poise::Poise()
     }
     {
       std::scoped_lock lock(mtx_poiseMultiplier);
+      poiseMultOnAttack.clear();
       poiseMultOnHit.clear();
-      poiseMultSelf.clear();
     }
   });
 
@@ -291,9 +291,9 @@ void Poise::ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitDat
   // 根据缓存应用韧性伤害倍率调整
   {
     std::scoped_lock lock(mtx_poiseMultiplier);
-    if (auto iter = poiseMultOnHit.find(aggressor); iter != poiseMultOnHit.end())
+    if (auto iter = poiseMultOnAttack.find(aggressor); iter != poiseMultOnAttack.end())
       poiseDamage *= iter->second;
-    if (auto iter = poiseMultSelf.find(victim); iter != poiseMultSelf.end())
+    if (auto iter = poiseMultOnHit.find(victim); iter != poiseMultOnHit.end())
       poiseDamage *= iter->second;
   }
 
@@ -366,16 +366,43 @@ void Poise::DamagePoiseHealth(RE::Actor* actor, float value)
     Stagger::SetStaggerLevel(actor, level);
 }
 
+void Poise::Set(RE::Actor* actor, float multiplier)
+{
+  if (!actor || !Settings::bUsePoiseSystem)
+    return;
+
+  if (multiplier < 0.0f)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
+  poiseMultOnHit[actor] = multiplier;
+}
+
+void Poise::TargetSet(RE::Actor* actor, float multiplier)
+{
+  if (!actor || !Settings::bUsePoiseSystem)
+    return;
+
+  if (multiplier < 0.0f)
+    return;
+
+  std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
+  poiseMultOnAttack[actor] = multiplier;
+}
+
 void Poise::Set(RE::Actor* actor, const std::string& payload)
 {
   if (!actor || !Settings::bUsePoiseSystem)
     return;
 
   auto multiplier = Utils::toFloat(payload);
+  if (!multiplier)
+    return;
   if (multiplier < 0.0f)
     return;
+
   std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
-  poiseMultSelf[actor] = multiplier;
+  poiseMultOnHit[actor] = multiplier.value();
 }
 
 void Poise::End(RE::Actor* actor)
@@ -384,7 +411,7 @@ void Poise::End(RE::Actor* actor)
     return;
 
   std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
-  poiseMultSelf.erase(actor);
+  poiseMultOnHit.erase(actor);
 }
 
 void Poise::TargetSet(RE::Actor* actor, const std::string& payload)
@@ -392,21 +419,14 @@ void Poise::TargetSet(RE::Actor* actor, const std::string& payload)
   if (!actor || !Settings::bUsePoiseSystem)
     return;
 
-  auto split = Utils::split(payload, '|');
-  if (split.size() != 1 && split.size() != 2)
+  auto multiplier = Utils::toFloat(payload);
+  if (!multiplier)
     return;
-
-  auto multiplier = Utils::toFloat(split[0]);
-  auto fallback   = split.size() == 2 ? Utils::toFloat(split[1]) : multiplier;
-  if (multiplier < 0.0f || fallback < 0.0f)
+  if (multiplier < 0.0f)
     return;
-
-  auto perform = WeaponArt::Manager::GetPerform(actor);
-  if (perform == WeaponArt::Manager::Perform::Subordinate)
-    multiplier = fallback;
 
   std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
-  poiseMultOnHit[actor] = multiplier;
+  poiseMultOnAttack[actor] = multiplier.value();
 }
 
 void Poise::TargetEnd(RE::Actor* actor)
@@ -415,7 +435,7 @@ void Poise::TargetEnd(RE::Actor* actor)
     return;
 
   std::lock_guard<std::mutex> lock(mtx_poiseMultiplier);
-  poiseMultOnHit.erase(actor);
+  poiseMultOnAttack.erase(actor);
 }
 
 void Poise::PayloadParse(RE::Actor* actor, const std::string& payload)

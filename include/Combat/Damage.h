@@ -4,11 +4,9 @@ class Damage
 {
 public:
   // 图事件，payload用于传递信息
-  // SetMult|Multiplier|FallbackMultiplier用于设置伤害倍率
-  // Multiplier和FallbackMultiplier是伤害倍率，不处理小于0的值
-  // Multiplier代表在满足战技条件下的倍率，FallbackMultiplier代表不满足战技条件下的倍率
-  // 在非战技中使用Multiplier的倍率，可以不写FallbackMultiplier，因为根本不会处理
-  // End表示此攻击的伤害倍率设置结束，清空缓存的Damage|Multiplier事件，通常在此次攻击的命中帧结束时触发
+  // SetMult|Multiplier用于设置伤害倍率
+  // Multiplier是伤害倍率，不处理小于0的值
+  // End表示此攻击的伤害倍率设置结束，清空缓存的倍率，通常在此次攻击的命中帧结束时触发
   constexpr static std::string_view RIMDAMAGE = "RimDamage";
 
   static Damage& GetSingleton()
@@ -30,6 +28,8 @@ public:
   // 在这里对伤害进行归一化并提供统一的相对1倍倍率的数值调整
   static void ProcessWeaponDamage(RE::Actor* aggressor, RE::HitData& hitData);
 
+  static void SetMult(RE::Actor* actor, float multiplier);
+
   static void SetMult(RE::Actor* actor, const std::string& payload);
   static void End(RE::Actor* actor);
 
@@ -41,6 +41,6 @@ private:
   constexpr static inline std::uint32_t serialType = 'RCDS';
 
   // 伤害倍率缓存，键为Actor指针，值为当前攻击的伤害倍率，战技中根据条件使用不同的倍率
-  static inline std::mutex mtx_damageCache;
-  static inline std::unordered_map<RE::Actor*, float> damageCache;
+  static inline std::mutex mtx_damageMultiplier;
+  static inline std::unordered_map<RE::Actor*, float> damageMultOnAttack;
 };

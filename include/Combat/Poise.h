@@ -8,9 +8,8 @@ class Poise
 public:
   // 图事件，payload用于传递信息
   // Set|multiplier表示自身受到韧性伤害，multiplier为韧性伤害倍率
-  // End表示结束对自身的韧性伤害修改，清空缓存的Set|multiplier事件，通常在此次攻击的命中帧结束时触发
-  // TargetSet|multiplier|fallback用于设置击中目标的韧性伤害倍率，multiplier为韧性伤害倍率
-  // fallback用于战技条件不满足时的韧性伤害倍率，multiplier和fallback都不处理小于0的值
+  // End表示结束对自身的韧性伤害修改，通常在此次攻击的命中帧结束时触发
+  // TargetSet|multiplier用于设置击中目标的韧性伤害倍率，multiplier为韧性伤害倍率
   // TargetEnd用于结束对目标的韧性伤害倍率设置，通常在此次攻击命中帧结束时触发
   constexpr static std::string_view RIMPOISE = "RimPoise";
 
@@ -42,6 +41,9 @@ public:
   static void ProcessWeaponHit(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& hitData);
   static void DamagePoiseHealth(RE::Actor* actor, float value);
 
+  static void Set(RE::Actor* actor, float multiplier);
+  static void TargetSet(RE::Actor* actor, float multiplier);
+
   static void Set(RE::Actor* actor, const std::string& payload);
   static void End(RE::Actor* actor);
   static void TargetSet(RE::Actor* actor, const std::string& payload);
@@ -70,9 +72,9 @@ private:
 
   // 需要锁
   // Actor的韧性伤害倍率缓存
-  // OnHit是被存入的Actor作为攻击者时应用
-  // Self是被存入的Actor作为受击者时应用
+  // OnAttack是被存入的Actor作为攻击者时应用
+  // OnHit是被存入的Actor作为受击者时应用
   static inline std::mutex mtx_poiseMultiplier;
+  static inline std::unordered_map<RE::Actor*, float> poiseMultOnAttack;
   static inline std::unordered_map<RE::Actor*, float> poiseMultOnHit;
-  static inline std::unordered_map<RE::Actor*, float> poiseMultSelf;
 };

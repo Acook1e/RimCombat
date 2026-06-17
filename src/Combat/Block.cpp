@@ -385,23 +385,30 @@ void Block::GP(RE::Actor* actor, const std::string& payload)
     return;
   }
 
-  auto now     = Utils::GetTime<std::chrono::milliseconds>();
-  auto endTime = Utils::toInt(split[0]);
-  if (endTime <= 0) {
-    logger::warn("Invalid GP duration: {}", split[0]);
-    return;
-  }
-  data.endTime = now + endTime;
+  auto now = Utils::GetTime<std::chrono::milliseconds>();
 
-  data.level = static_cast<Stagger::Level>(Utils::toInt(split[1]));
-  if (data.level == Stagger::Level::None || data.level > Stagger::Level::Large) {
-    logger::warn("Invalid GP stagger level: {}", split[1]);
+  auto endTime = Utils::toInt(split[0]);
+  if (!endTime)
     return;
-  }
+  if (endTime.value() <= 0)
+    return;
+  data.endTime = now + endTime.value();
+
+  auto level = Utils::toInt(split[1]);
+  if (!level)
+    return;
+
+  data.level = static_cast<Stagger::Level>(level.value());
+  if (data.level == Stagger::Level::None || data.level > Stagger::Level::Large)
+    return;
 
   data.autoAttack    = split[2] == "true";
   data.isPowerAttack = split[3].starts_with("p");
-  data.nextAttack    = static_cast<std::uint8_t>(Utils::toInt(split[3].substr(1)));
+
+  auto nextAttack = Utils::toInt(split[3].substr(1));
+  if (!nextAttack)
+    return;
+  data.nextAttack = static_cast<std::uint8_t>(nextAttack.value());
   if (data.nextAttack == 0)
     data.autoAttack = false;
 
@@ -417,13 +424,13 @@ void Block::Parry(RE::Actor* actor, const std::string& payload)
     return;
 
   auto duration = Utils::toInt(payload);
-  if (duration <= 0) {
-    logger::warn("Invalid Parry duration: {}", payload);
+  if (!duration)
     return;
-  }
+  if (duration <= 0)
+    return;
 
   std::lock_guard lock(mtx_parry);
-  parryEndTimes[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration;
+  parryEndTimes[actor] = Utils::GetTime<std::chrono::milliseconds>() + duration.value();
 }
 
 void Block::ParsePayload(RE::Actor* actor, const std::string& payload)

@@ -351,6 +351,9 @@ void WeaponArtMenu::SyncViewData()
 
   auto arts = json::array();
   for (const auto* art : WeaponArt::Manager::GetAllWeaponArts()) {
+    if (!WeaponArt::PlayerStat::IsOwned(art->GetID()))
+      continue;
+
     auto unlocked      = WeaponArt::PlayerStat::IsUnlocked(art->GetID());
     auto weaponAllowed = selectedWeapon && art->IsWeaponAllowed(selectedWeapon);
 

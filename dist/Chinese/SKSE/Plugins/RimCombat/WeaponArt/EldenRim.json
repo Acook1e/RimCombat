@@ -9,8 +9,42 @@
         ],
         "consumePoint": 5,
         "unlockLevel": 5,
-        "ownAtStart": false,
-        "needPrepare": false
+        "ownAtStart": true,
+        "needPrepare": false,
+        "stages": {
+            "1": {
+                "manaCost": 28.0,
+                "minMana": 22.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.20,
+                        "damageMult": 0.30,
+                        "poiseDamageMult": 0.25,
+                        "postureDamageMult": 0.30,
+                        "subStaminaMult": 0.30,
+                        "subDamageMult": 0.15,
+                        "subPoiseDamageMult": 0.15,
+                        "subPostureDamageMult": 0.20
+                    },
+                    "2": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": true,
+                        "staminaMult": 1.20,
+                        "damageMult": 2.20,
+                        "poiseDamageMult": 3.00,
+                        "postureDamageMult": 2.50,
+                        "subStaminaMult": 2.00,
+                        "subDamageMult": 1.00,
+                        "subPoiseDamageMult": 1.50,
+                        "subPostureDamageMult": 1.20
+                    }
+                }
+            }
+        }
     },
     "Unsheathe": {
         "name": "居合",
@@ -23,7 +57,47 @@
         "consumePoint": 1,
         "unlockLevel": 0,
         "ownAtStart": true,
-        "needPrepare": true
+        "needPrepare": true,
+        "stages": {
+            "1": {
+                "manaCost": 12.0,
+                "minMana": 8.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.80,
+                        "damageMult": 2.00,
+                        "poiseDamageMult": 1.50,
+                        "postureDamageMult": 2.00,
+                        "subStaminaMult": 1.20,
+                        "subDamageMult": 1.00,
+                        "subPoiseDamageMult": 0.80,
+                        "subPostureDamageMult": 1.00
+                    }
+                }
+            },
+            "2": {
+                "manaCost": 16.0,
+                "minMana": 12.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": true,
+                        "staminaMult": 0.80,
+                        "damageMult": 1.30,
+                        "poiseDamageMult": 1.50,
+                        "postureDamageMult": 1.50,
+                        "subStaminaMult": 1.50,
+                        "subDamageMult": 0.70,
+                        "subPoiseDamageMult": 0.80,
+                        "subPostureDamageMult": 0.80
+                    }
+                }
+            }
+        }
     },
     "Double Slash": {
         "name": "二连斩",
@@ -38,7 +112,105 @@
         "consumePoint": 2,
         "unlockLevel": 0,
         "ownAtStart": true,
-        "needPrepare": false
+        "needPrepare": false,
+        "stages": {
+            "1": {
+                "manaCost": 10.0,
+                "minMana": 7.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.50,
+                        "damageMult": 0.50,
+                        "poiseDamageMult": 0.40,
+                        "postureDamageMult": 0.50,
+                        "subStaminaMult": 0.80,
+                        "subDamageMult": 0.35,
+                        "subPoiseDamageMult": 0.25,
+                        "subPostureDamageMult": 0.35
+                    },
+                    "2": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.50,
+                        "damageMult": 0.60,
+                        "poiseDamageMult": 0.45,
+                        "postureDamageMult": 0.60,
+                        "subStaminaMult": 0.80,
+                        "subDamageMult": 0.40,
+                        "subPoiseDamageMult": 0.30,
+                        "subPostureDamageMult": 0.40
+                    }
+                }
+            },
+            "2": {
+                "manaCost": 12.0,
+                "minMana": 8.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.60,
+                        "damageMult": 0.70,
+                        "poiseDamageMult": 0.50,
+                        "postureDamageMult": 0.70,
+                        "subStaminaMult": 0.90,
+                        "subDamageMult": 0.45,
+                        "subPoiseDamageMult": 0.35,
+                        "subPostureDamageMult": 0.45
+                    },
+                    "2": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.60,
+                        "damageMult": 0.80,
+                        "poiseDamageMult": 0.55,
+                        "postureDamageMult": 0.80,
+                        "subStaminaMult": 0.90,
+                        "subDamageMult": 0.50,
+                        "subPoiseDamageMult": 0.40,
+                        "subPostureDamageMult": 0.50
+                    },
+                    "3": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.60,
+                        "damageMult": 0.90,
+                        "poiseDamageMult": 0.60,
+                        "postureDamageMult": 0.90,
+                        "subStaminaMult": 0.90,
+                        "subDamageMult": 0.55,
+                        "subPoiseDamageMult": 0.45,
+                        "subPostureDamageMult": 0.55
+                    }
+                }
+            },
+            "3": {
+                "manaCost": 8.0,
+                "minMana": 5.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 0.80,
+                        "damageMult": 1.50,
+                        "poiseDamageMult": 1.20,
+                        "postureDamageMult": 1.50,
+                        "subStaminaMult": 1.20,
+                        "subDamageMult": 0.80,
+                        "subPoiseDamageMult": 0.60,
+                        "subPostureDamageMult": 0.80
+                    }
+                }
+            }
+        }
     },
     "Giant Hunting": {
         "name": "狩猎巨人",
@@ -50,8 +222,42 @@
         ],
         "consumePoint": 7,
         "unlockLevel": 5,
-        "ownAtStart": false,
-        "needPrepare": false
+        "ownAtStart": true,
+        "needPrepare": false,
+        "stages": {
+            "1": {
+                "manaCost": 35.0,
+                "minMana": 30.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": true,
+                        "staminaMult": 0.20,
+                        "damageMult": 0.20,
+                        "poiseDamageMult": 0.20,
+                        "postureDamageMult": 0.30,
+                        "subStaminaMult": 0.20,
+                        "subDamageMult": 0.10,
+                        "subPoiseDamageMult": 0.10,
+                        "subPostureDamageMult": 0.20
+                    },
+                    "2": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": true,
+                        "staminaMult": 1.50,
+                        "damageMult": 2.50,
+                        "poiseDamageMult": 3.00,
+                        "postureDamageMult": 2.50,
+                        "subStaminaMult": 1.50,
+                        "subDamageMult": 1.20,
+                        "subPoiseDamageMult": 1.50,
+                        "subPostureDamageMult": 1.20
+                    }
+                }
+            }
+        }
     },
     "Impaling Thrust": {
         "name": "贯穿",
@@ -63,7 +269,28 @@
         "consumePoint": 2,
         "unlockLevel": 0,
         "ownAtStart": true,
-        "needPrepare": false
+        "needPrepare": false,
+        "stages": {
+            "1": {
+                "manaCost": 14.0,
+                "minMana": 10.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": true,
+                        "staminaMult": 1.00,
+                        "damageMult": 2.00,
+                        "poiseDamageMult": 2.50,
+                        "postureDamageMult": 2.50,
+                        "subStaminaMult": 2.20,
+                        "subDamageMult": 0.90,
+                        "subPoiseDamageMult": 1.20,
+                        "subPostureDamageMult": 1.00
+                    }
+                }
+            }
+        }
     },
     "Vacuum Slash": {
         "name": "真空斩",
@@ -76,8 +303,29 @@
         ],
         "consumePoint": 25,
         "unlockLevel": 50,
-        "ownAtStart": false,
+        "ownAtStart": true,
         "needPrepare": false,
+        "stages": {
+            "1": {
+                "manaCost": 26.0,
+                "minMana": 20.0,
+                "attacks": {
+                    "1": {
+                        "left": false,
+                        "right": true,
+                        "powerAttack": false,
+                        "staminaMult": 1.20,
+                        "damageMult": 2.00,
+                        "poiseDamageMult": 2.50,
+                        "postureDamageMult": 2.00,
+                        "subStaminaMult": 2.00,
+                        "subDamageMult": 1.00,
+                        "subPoiseDamageMult": 1.20,
+                        "subPostureDamageMult": 1.00
+                    }
+                }
+            }
+        },
         "spells": {
             "VacuumChop": {
                 "mod": "EldenSkyrim_RimSkills.esp",

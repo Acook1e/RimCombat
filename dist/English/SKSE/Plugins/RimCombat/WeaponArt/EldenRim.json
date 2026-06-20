@@ -1,4 +1,6 @@
 {
+    "$schema": "https://raw.githubusercontent.com/Acook1e/RimCombat/main/scripts/WeaponArt.schema.json",
+
     "Lion's Claw": {
         "name": "Lion's Claw",
         "description": "Leap into the air and slam down with a devastating overhead strike.",

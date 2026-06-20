@@ -15,7 +15,6 @@
 
 #include "API/InputManagerAPI.h"
 
-
 namespace Events
 {
 // 返回True表示事件不需要往下传递了，返回False表示继续往下传递
@@ -91,18 +90,6 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "tkdr_iframeend"_h:
     break;
   case "dodge"_h:
-    break;
-
-    // 进入拔刀状态
-  case "beginweapondraw"_h:
-    if (Settings::bHideWeaponArtHUDOnSheathe && actor->IsPlayerRef())
-      UI::WeaponArtHUD::Show();
-    break;
-
-    // 收刀状态
-  case "beginweaponsheathe"_h:
-    if (Settings::bHideWeaponArtHUDOnSheathe && actor->IsPlayerRef())
-      UI::WeaponArtHUD::Hide();
     break;
 
   case "rimblock"_h:

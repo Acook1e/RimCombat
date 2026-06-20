@@ -16,48 +16,22 @@ void DisableCollision(RE::Actor* actor)
   if (!controller)
     return;
 
-  controller->pitchAngle          = 0.0f;
-  controller->rollAngle           = 0.0f;
-  controller->calculatePitchTimer = 55.0f;
-
   auto zero = _mm_setzero_ps();
   controller->SetLinearVelocityImpl(zero);
-
-  controller->outVelocity.quad      = zero;
-  controller->initialVelocity.quad  = zero;
-  controller->velocityMod.quad      = zero;
-  controller->pushDelta.quad        = zero;
-  controller->fakeSupportStart.quad = zero;
-  controller->supportNorm.quad      = _mm_setr_ps(0.0f, 0.0f, 1.0f, 0.0f);
-
-  controller->flags.set(RE::CHARACTER_FLAGS::kNoGravityOnGround, RE::CHARACTER_FLAGS::kNoSim,
-                        RE::CHARACTER_FLAGS::kSupport);
-
-  controller->flags.reset(RE::CHARACTER_FLAGS::kCheckSupport,
-                          RE::CHARACTER_FLAGS::kHasPotentialSupportManifold,
-                          RE::CHARACTER_FLAGS::kStuckQuad, RE::CHARACTER_FLAGS::kOnStairs,
-                          RE::CHARACTER_FLAGS::kTryStep);
-
-  controller->context.currentState = RE::hkpCharacterStateType::kSwimming;
-
-  // DisableRigidBodyPhysics
-  controller->flags.set(RE::CHARACTER_FLAGS::kNotPushablePermanent);
-  controller->flags.reset(RE::CHARACTER_FLAGS::kPossiblePathObstacle);
-
-  controller->surfaceInfo.surfaceVelocity.quad = _mm_setzero_ps();
+  controller->outVelocity.quad     = zero;
+  controller->initialVelocity.quad = zero;
+  controller->velocityMod.quad     = zero;
+  controller->pushDelta.quad       = zero;
 
   if (auto* rigidBody = controller->GetRigidBody(); rigidBody) {
     float inertiaAndMassInv[4]{};
     _mm_storeu_ps(inertiaAndMassInv, rigidBody->motion.inertiaAndMassInv.quad);
     inertiaAndMassInv[3]                     = 0.0f;
     rigidBody->motion.inertiaAndMassInv.quad = _mm_loadu_ps(inertiaAndMassInv);
-    rigidBody->motion.gravityFactor          = 0.0f;
-    // clear linear and angular velocity
-    rigidBody->motion.linearVelocity.quad  = _mm_setzero_ps();
-    rigidBody->motion.angularVelocity.quad = _mm_setzero_ps();
+    rigidBody->motion.linearVelocity.quad    = _mm_setzero_ps();
+    rigidBody->motion.angularVelocity.quad   = _mm_setzero_ps();
   }
 
-  // Disable Foot IK
   RE::BSAnimationGraphManagerPtr graphMgr;
   if (!actor->GetAnimationGraphManager(graphMgr) || !graphMgr)
     return;
@@ -69,12 +43,9 @@ void DisableCollision(RE::Actor* actor)
 
     auto* driver = graph->characterInstance.footIkDriver.get();
     if (driver) {
-      auto driverBase             = reinterpret_cast<std::uintptr_t>(driver);
-      auto* disableFootIk         = reinterpret_cast<bool*>(driverBase + 0x4A);
-      auto* alignedGroundRotation = reinterpret_cast<RE::hkQuaternion*>(driverBase + 0x30);
-
-      *disableFootIk             = true;
-      alignedGroundRotation->vec = {0.0f, 0.0f, 0.0f, 1.0f};
+      auto driverBase     = reinterpret_cast<std::uintptr_t>(driver);
+      auto* disableFootIk = reinterpret_cast<bool*>(driverBase + 0x4A);
+      *disableFootIk      = true;
     }
   }
 }
@@ -84,7 +55,6 @@ void EnableCollision(RE::Actor* actor)
   if (!actor)
     return;
 
-  // Enable Foot IK
   RE::BSAnimationGraphManagerPtr graphMgr;
   if (!actor->GetAnimationGraphManager(graphMgr) || !graphMgr)
     return;
@@ -96,33 +66,21 @@ void EnableCollision(RE::Actor* actor)
 
     auto* driver = graph->characterInstance.footIkDriver.get();
     if (driver) {
-      auto driverBase             = reinterpret_cast<std::uintptr_t>(driver);
-      auto* disableFootIk         = reinterpret_cast<bool*>(driverBase + 0x4A);
-      auto* alignedGroundRotation = reinterpret_cast<RE::hkQuaternion*>(driverBase + 0x30);
-
-      *disableFootIk             = false;
-      alignedGroundRotation->vec = {0.0f, 0.0f, 0.0f, 1.0f};
+      auto driverBase     = reinterpret_cast<std::uintptr_t>(driver);
+      auto* disableFootIk = reinterpret_cast<bool*>(driverBase + 0x4A);
+      *disableFootIk      = false;
     }
   }
 
-  // EnableRigidBodyPhysics
   auto* controller = actor->GetCharController();
   if (!controller)
     return;
-
-  controller->flags.reset(RE::CHARACTER_FLAGS::kNoGravityOnGround, RE::CHARACTER_FLAGS::kNoSim,
-                          RE::CHARACTER_FLAGS::kNotPushablePermanent);
-
-  controller->flags.set(RE::CHARACTER_FLAGS::kSupport, RE::CHARACTER_FLAGS::kCheckSupport);
-
-  controller->context.currentState = RE::hkpCharacterStateType::kOnGround;
 
   if (auto* rigidBody = controller->GetRigidBody(); rigidBody) {
     float inertiaAndMassInv[4]{};
     _mm_storeu_ps(inertiaAndMassInv, rigidBody->motion.inertiaAndMassInv.quad);
     inertiaAndMassInv[3]                     = 1.0f;
     rigidBody->motion.inertiaAndMassInv.quad = _mm_loadu_ps(inertiaAndMassInv);
-    rigidBody->motion.gravityFactor          = 1.0f;
   }
 }
 
@@ -185,6 +143,8 @@ RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
     float distance = aggressor->GetPosition().GetDistance(victim->GetPosition());
     if (distance > 250.0f)
       continue;
+    if (aggressor->GetHeadingAngle(victim->GetPosition(), true) > 60.0f)
+      continue;
     if (distance < closestDistance) {
       closestDistance = distance;
       closestTarget   = victim;
@@ -229,31 +189,19 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
     return false;
   }
 
-  constexpr float MaxAggressorAngleDiff = 60.0f;
-
-  // 距离和角度检测
+  // 距离检测
   auto aggressorPos = aggressor->GetPosition();
   auto victimPos    = victim->GetPosition();
   auto distance     = aggressorPos.GetDistance(victimPos);
   if (distance > 250.0f)
     return false;
 
-  // GetHeadingAngle返回的是-180 ~ 180度
-  // 正负表示左右偏，绝对值表示偏转角度
-  auto aggressorHeadingToVictim = aggressor->GetHeadingAngle(victimPos, true);
+  // 正面 / 背刺判定（攻击者朝向已在 FindExecutableTarget 验证）
   auto victimHeadingToAggressor = victim->GetHeadingAngle(aggressorPos, true);
 
-  // 如果攻击者与目标的相对角度过大，则无法触发处决
-  if (aggressorHeadingToVictim > MaxAggressorAngleDiff)
-    return false;
-
-  // 正面处决条件：攻击者和目标相互面向
   bool front = victimHeadingToAggressor < 60.0f;
+  bool back  = victimHeadingToAggressor > 120.0f;
 
-  // 背刺处决条件：攻击者面向目标，且目标背对攻击者
-  bool back = victimHeadingToAggressor > 120.0f;
-
-  // 同时满足或者同时不满足正面和背刺则视为不满足处决条件
   if (front == back)
     return false;
 
@@ -297,7 +245,7 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   DisableCollision(victim);
 
   aggressor->NotifyAnimationGraph("attackStart");
-  Stagger::StaggerStart(aggressor);
+  Stagger::StaggerStart(victim);
 
   executableActors.erase(victim);
 

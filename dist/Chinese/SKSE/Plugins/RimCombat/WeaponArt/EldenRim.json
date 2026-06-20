@@ -1,4 +1,6 @@
 {
+    "$schema": "https://raw.githubusercontent.com/Acook1e/RimCombat/main/scripts/WeaponArt.schema.json",
+
     "Lion's Claw": {
         "name": "狮子斩",
         "description": "向空中跃起后向前方斩击",

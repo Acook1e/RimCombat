@@ -3,7 +3,7 @@ set_xmakever("3.0.5")
 PROJECT_NAME = "RimCombat"
 
 set_project(PROJECT_NAME)
-set_version("1.0.0")
+set_version("0.3.2")
 set_languages("cxx23")
 set_toolchains("clang-cl")
 
@@ -52,4 +52,18 @@ target(PROJECT_NAME)
     after_build(function (target)
         os.vcp(target:targetfile(), "dist/Core/SKSE/Plugins/")
         os.vcp(target:symbolfile(), "dist/Core/SKSE/Plugins/")
+
+        import("utils.archive")
+        local dist_dir = path.absolute("dist")
+        local build_dir = path.absolute("build")
+        local zip_name = target:name() .. "-" .. (target:version() or "1.0.0") .. ".7z"
+        local zip_path = path.join(build_dir, zip_name)
+
+        local old = os.cd(dist_dir)
+        local files = os.files("**")
+        os.cd(old)
+
+        os.tryrm(zip_path)
+        archive.archive(zip_path, files, { curdir = dist_dir })
+        cprint("${dim}packaged %s", zip_name)
     end)

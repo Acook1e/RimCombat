@@ -1,16 +1,16 @@
 #include "Combat/WeaponArt.h"
-#include "Core/Serialization.h"
-#include "Core/Settings.h"
-#include "Data/Weapon.h"
-#include "Utils.h"
 
 #include "Combat/Damage.h"
 #include "Combat/Poise.h"
 #include "Combat/Posture.h"
 #include "Combat/Stagger.h"
 #include "Combat/Stamina.h"
+#include "Core/Serialization.h"
+#include "Core/Settings.h"
 #include "Data/Race.h"
+#include "Data/Weapon.h"
 #include "GUI/UI.h"
+#include "Utils.h"
 
 #include "magic_enum/magic_enum_flags.hpp"
 #include "nlohmann/json.hpp"
@@ -294,6 +294,14 @@ PlayerStat::PlayerStat()
 {
   // PlayerStat在Manager之后初始化，因此可以安全地访问Manager中的数据
 
+  // 初始化的同时插入一次数据
+  // 因为新游戏不会调用Revert
+  auto arts = Manager::GetAllWeaponArts();
+  for (const auto& art : arts) {
+    if (art->OwnAtStart())
+      ownedArts.insert(art->GetID());
+  }
+
   Serialization::RegisterSaveCallback(serialType, [](SKSE::SerializationInterface* serial) {
     serial->WriteRecordData(&exp, sizeof(exp));
     serial->WriteRecordData(&level, sizeof(level));
@@ -321,13 +329,6 @@ PlayerStat::PlayerStat()
     serial->ReadRecordData(&level, sizeof(level));
     serial->ReadRecordData(&point, sizeof(point));
 
-    // 插入所有一开始就拥有的战技ID
-    auto arts = Manager::GetAllWeaponArts();
-    for (const auto& art : arts) {
-      if (art->OwnAtStart())
-        ownedArts.insert(art->GetID());
-    }
-
     std::uint32_t count = 0;
 
     // 读取已拥有的战技ID列表，并验证每个ID的有效性，确保只加载已定义的战技ID
@@ -351,12 +352,20 @@ PlayerStat::PlayerStat()
     }
   });
 
+  // 读档时重置
   Serialization::RegisterRevertCallback(serialType, [](SKSE::SerializationInterface*) {
     exp   = 0.0f;
     level = 1;
     point = 3;
     ownedArts.clear();
     unlockedArts.clear();
+
+    // 插入所有一开始就拥有的战技ID
+    auto arts = Manager::GetAllWeaponArts();
+    for (const auto& art : arts) {
+      if (art->OwnAtStart())
+        ownedArts.insert(art->GetID());
+    }
   });
 }
 

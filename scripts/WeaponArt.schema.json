@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Acook1e/RimCombat/main/scripts/WeaponArt.schema.json",
+  "title": "RimCombat Weapon Art Definition",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    }
+  },
+  "patternProperties": {
+    "^.+$": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the weapon art."
+        },
+        "description": {
+          "type": "string",
+          "default": "",
+          "description": "Flavor / effect description shown in the menu."
+        },
+        "weapons": {
+          "type": "array",
+          "default": [],
+          "description": "Specific weapon FormIDs (format: \"FormID|Plugin.esp\"). Only used when availableWeapon includes \"Unique\".",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9A-Fa-f]+\\|.+\\.esp$"
+          }
+        },
+        "availableWeapon": {
+          "type": "array",
+          "default": [],
+          "description": "Weapon categories this art is compatible with. Weight / attack / family masks are auto-completed at load time.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Light",
+              "Normal",
+              "Heavy",
+              "Slash",
+              "Thrust",
+              "Blunt",
+              "Polearm",
+              "Range",
+              "Sword",
+              "Axe",
+              "Hammer",
+              "Fist",
+              "Katana",
+              "Spear",
+              "Stick",
+              "Whip",
+              "Bow",
+              "Crossbow",
+              "Unique"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "consumePoint": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "description": "Weapon-art points required to unlock this art."
+        },
+        "unlockLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "description": "Minimum weapon-art player level required to unlock."
+        },
+        "ownAtStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the player starts with this art already owned."
+        },
+        "needPrepare": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this art requires a preparation (sheathe → draw) animation before use."
+        },
+        "stages": {
+          "type": "object",
+          "description": "Stage definitions keyed by numeric stage ID (as string).",
+          "minProperties": 1,
+          "patternProperties": {
+            "^[0-9]+$": {
+              "type": "object",
+              "properties": {
+                "manaCost": {
+                  "type": "number",
+                  "description": "Magicka cost for entering this stage."
+                },
+                "minMana": {
+                  "type": "number",
+                  "description": "Minimum magicka required to be eligible (vs subordinate)."
+                },
+                "attacks": {
+                  "type": "object",
+                  "description": "Attack definitions keyed by numeric attack ID (as string).",
+                  "minProperties": 1,
+                  "patternProperties": {
+                    "^[0-9]+$": {
+                      "type": "object",
+                      "properties": {
+                        "left": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Is a left-hand attack."
+                        },
+                        "right": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Is a right-hand attack."
+                        },
+                        "powerAttack": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Is a power attack."
+                        },
+                        "staminaMult": {
+                          "type": "number",
+                          "description": "Stamina cost multiplier (eligible)."
+                        },
+                        "damageMult": {
+                          "type": "number",
+                          "description": "Base damage multiplier (eligible)."
+                        },
+                        "poiseDamageMult": {
+                          "type": "number",
+                          "description": "Poise damage multiplier (eligible)."
+                        },
+                        "postureDamageMult": {
+                          "type": "number",
+                          "description": "Posture damage multiplier (eligible)."
+                        },
+                        "subStaminaMult": {
+                          "type": "number",
+                          "description": "Stamina cost multiplier (subordinate)."
+                        },
+                        "subDamageMult": {
+                          "type": "number",
+                          "description": "Base damage multiplier (subordinate)."
+                        },
+                        "subPoiseDamageMult": {
+                          "type": "number",
+                          "description": "Poise damage multiplier (subordinate)."
+                        },
+                        "subPostureDamageMult": {
+                          "type": "number",
+                          "description": "Posture damage multiplier (subordinate)."
+                        }
+                      },
+                      "required": [
+                        "staminaMult",
+                        "damageMult",
+                        "poiseDamageMult",
+                        "postureDamageMult",
+                        "subStaminaMult",
+                        "subDamageMult",
+                        "subPoiseDamageMult",
+                        "subPostureDamageMult"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "manaCost",
+                "minMana",
+                "attacks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "spells": {
+          "type": "object",
+          "default": {},
+          "description": "Spell definitions keyed by spell name (case-insensitive, hashed at load time).",
+          "patternProperties": {
+            "^.+$": {
+              "type": "object",
+              "properties": {
+                "mod": {
+                  "type": "string",
+                  "pattern": "^.+\\.es[plm]$",
+                  "description": "Plugin filename containing the spell form."
+                },
+                "formID": {
+                  "type": "string",
+                  "pattern": "^0x[0-9A-Fa-f]+$",
+                  "description": "Hex FormID within the plugin (e.g. \"0xBA21\")."
+                },
+                "effectiveness": {
+                  "type": "number",
+                  "default": 1.0,
+                  "description": "Effectiveness multiplier applied to the spell magnitude."
+                },
+                "stdMagnitude": {
+                  "type": "number",
+                  "default": 0.0,
+                  "description": "Standard magnitude at skill level 25."
+                },
+                "factor": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "default": 1.0,
+                  "description": "Scaling factor used in the magnitude curve calculation."
+                },
+                "skill": {
+                  "type": "string",
+                  "enum": [
+                    "None",
+                    "OneHanded",
+                    "TwoHanded",
+                    "Archery",
+                    "Block",
+                    "Smithing",
+                    "HeavyArmor",
+                    "LightArmor",
+                    "Pickpocket",
+                    "Lockpicking",
+                    "Sneak",
+                    "Alchemy",
+                    "Speech",
+                    "Alteration",
+                    "Conjuration",
+                    "Destruction",
+                    "Illusion",
+                    "Restoration",
+                    "Enchanting"
+                  ],
+                  "description": "Skill that governs this spell's effectiveness curve."
+                },
+                "selfCast": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Whether the spell is cast on self (e.g. buffs) vs the target."
+                }
+              },
+              "required": [
+                "mod",
+                "formID",
+                "skill"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "stages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

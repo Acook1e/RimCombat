@@ -93,6 +93,17 @@ void Hook_OnActorUpdate::Update_PC(RE::PlayerCharacter* player, float delta)
 {
   _Update_PC(player, delta);
   TrackActorUpdate(player);
+
+  if (Settings::bHideWeaponArtHUDOnSheathe && player && player->Is3DLoaded()) {
+    static auto lastWeaponDrawn = true;
+    if (auto drawn = player->AsActorState()->IsWeaponDrawn(); drawn == lastWeaponDrawn) {
+      lastWeaponDrawn = drawn;
+      if (drawn)
+        UI::WeaponArtHUD::Show();
+      else
+        UI::WeaponArtHUD::Hide();
+    }
+  }
 }
 
 void Hook_OnActorUpdate::TrackActorUpdate(RE::Actor* actor)

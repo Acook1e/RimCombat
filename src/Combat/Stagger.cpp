@@ -166,8 +166,10 @@ void Stagger::Update()
       auto victim = it->first;
       auto data   = it->second;
       // 特殊硬直的恢复时间有Recoverable事件来控制
-      if (data.current > Level::Largest)
+      if (data.current > Level::Largest) {
+        ++it;
         continue;
+      }
 
       if (data.recoverTime <= now) {
         victim->SetGraphVariableBool(STAGGER_RECOVERABLE, true);
@@ -229,8 +231,8 @@ Level Stagger::IsInStagger(RE::Actor* actor)
     return Level::None;
 
   std::lock_guard<std::mutex> lock(mtx_recover);
-  if (staggerRecovery.contains(actor))
-    return staggerRecovery[actor].current;
+  if (auto it = staggerRecovery.find(actor); it != staggerRecovery.end())
+    return it->second.current;
 
   return Level::None;
 }
@@ -276,6 +278,8 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
   // 处理受击者硬直
   Level currentLevel = GetStaggerLevel(victim);
 
+  logger::info("Process {} -> {}", aggressor->GetDisplayFullName(), victim->GetDisplayFullName());
+
   // 处理外源硬直
   // 不清除Map中的数据，直到EndTarget事件，以确保在攻击过程中持续生效
   Level targetLevel = Level::None;
@@ -289,8 +293,32 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
   if (targetLevel > Level::None && targetLevel < Level::Largest && targetLevel > currentLevel)
     currentLevel = targetLevel;
 
+  auto recordLevel = IsInStagger(victim);
+
+  // 常规硬直中受到一次不产生硬直或者硬直等级不大于当前的攻击时
+  if (currentLevel <= recordLevel && recordLevel != Level::None && recordLevel < Level::Largest) {
+    auto now = Utils::GetTime<std::chrono::milliseconds>();
+
+    std::scoped_lock<std::mutex> lock(mtx_recover);
+    auto& data = staggerRecovery[victim];
+
+    auto delta   = data.recoverTime - now;
+    auto newTime = delta * 0.2f;
+    if (newTime < 100 || newTime > delta)
+      newTime = 100;
+    data.recoverTime = now + newTime;
+    return;
+  }
+
+  if (currentLevel == Level::None)
+    return;
+
+  if (recordLevel > Level::Largest && currentLevel < Level::Largest) {
+    if (recordLevel != Level::PostureBreak)
+      return;
+  }
+
   SetStaggerLevel(victim, currentLevel);
-  SetStaggerMagnitude(victim, currentLevel);
   StaggerStart(victim);
 }
 
@@ -304,7 +332,6 @@ void Stagger::ProcessProjectileStagger(RE::Actor* victim, RE::FormID formID)
     if (staggerLevel == Level::None)
       return;
     SetStaggerLevel(victim, staggerLevel);
-    SetStaggerMagnitude(victim, staggerLevel);
     StaggerStart(victim);
   }
 }
@@ -326,6 +353,11 @@ void Stagger::StaggerStart(RE::Actor* victim)
   if (level < Level::GuardBreak && IsImmune(victim))
     return;
 
+  logger::info("Level {}", magic_enum::enum_name(level));
+
+  SetStaggerMagnitude(victim, level);
+  victim->SetGraphVariableBool(STAGGER_RECOVERABLE, false);
+
   std::uint64_t recoverTime = 0;
   switch (level) {
   case Level::Small:
@@ -341,39 +373,18 @@ void Stagger::StaggerStart(RE::Actor* victim)
     break;
   }
 
-  if (recoverTime > 0) {
-    auto now = Utils::GetTime<std::chrono::milliseconds>();
+  auto now = Utils::GetTime<std::chrono::milliseconds>();
+  {
     std::scoped_lock<std::mutex> lock(mtx_recover);
-    if (!staggerRecovery.contains(victim))
-      staggerRecovery[victim] = {now + recoverTime, level};
-    else {
-      auto data      = staggerRecovery[victim];
-      auto lastLevel = data.current;
-      auto lastTime  = data.recoverTime;
-
-      // 如果在大硬直期间受到小硬直，则忽略这次硬直
-      if (lastLevel > level)
-        return;
-
-      auto delta = lastTime - now;
-      // TODO：找一个比相加乘以0.2更合理的算法
-      recoverTime = (delta + recoverTime) * 0.2f;
-      if (recoverTime < 100 || recoverTime > delta)
-        recoverTime = 100;
-
-      staggerRecovery[victim] = {now + recoverTime, level};
-
-      // 受到同级别的硬直时，不再进入硬直动画
-      if (lastLevel == level)
-        return;
-    }
+    staggerRecovery[victim] = {recoverTime ? now + recoverTime : 0, level};
   }
 
   if (victim->IsStaggering())
     victim->NotifyAnimationGraph("staggerStop");
-  victim->SetGraphVariableBool(STAGGER_RECOVERABLE, false);
-  victim->NotifyAnimationGraph("staggerStart");
-  SetStaggerLevel(victim, Level::None);
+  else {
+    victim->NotifyAnimationGraph("staggerStart");
+    SetStaggerLevel(victim, Level::None);
+  }
 }
 
 void Stagger::TargetSet(RE::Actor* actor, const std::string& payload)

@@ -6,6 +6,13 @@
 class Execution
 {
 public:
+  enum class Direction : std::uint8_t
+  {
+    None  = 0,
+    Front = 1 << 0,
+    Back  = 1 << 1
+  };
+
   static Execution& GetSingleton()
   {
     static Execution singleton;
@@ -20,14 +27,13 @@ public:
   static void ExitExecutable(RE::Actor* actor);
 
   static RE::Actor* FindExecutableTarget(RE::Actor* aggressor);
-  static bool TryExecute(RE::Actor* aggressor, RE::Actor* victim);
+  static bool Execute(RE::Actor* aggressor, RE::Actor* victim);
 
   static RE::Actor* GetExecutingAggressor(RE::Actor* victim);
   static bool IsExecutingVictim(RE::Actor* victim);
   static void ExecutionEnd(RE::Actor* aggressor);
 
-  using ExecutionStartCallback =
-      std::function<void(RE::Actor* aggressor, RE::Actor* victim, bool back)>;
+  using ExecutionStartCallback = void (*)(RE::Actor* aggressor, RE::Actor* victim);
   static void AddExecutionStartListener(ExecutionStartCallback callback);
 
   static void Damage(RE::Actor* victim, const std::string& payload);
@@ -54,12 +60,12 @@ private:
 
   // 无锁，处决组合只在初始化时设置一次，且之后不再修改
   // 意味某个种族可被人类使用特定类型的武器处决
-  static inline std::unordered_map<Race::Type, std::vector<Weapon::Type>> availableExecutions;
+  static inline std::unordered_map<std::uint16_t, Direction> availableExecutions;
 
-  // 需要锁
+  // 可能高频调用，需要读写锁
   // 当前处于可被处决状态的Actor列表，值为处决状态到期时间
   // 不序列化保存状态
-  static inline std::mutex mtx_executable;
+  static inline std::shared_mutex mtx_executable;
   static inline std::unordered_set<RE::Actor*> executableActors;
 
   // 需要锁

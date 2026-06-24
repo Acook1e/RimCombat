@@ -182,7 +182,6 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
     if (parryEndTimes.contains(victim)) {
       hitData.totalDamage = 0.0f;
       Stagger::SetStaggerLevel(aggressor, Stagger::Level::GuardBreak);
-      Stagger::SetStaggerMagnitude(aggressor, Stagger::Level::GuardBreak);
       Stagger::StaggerStart(aggressor);
 
       auto type = Weapon::GetBlockType(victim);
@@ -210,10 +209,6 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
         timedBlock                 = true;
       }
       auto& data = gpData[victim];
-      // 给予攻击者硬直
-      Stagger::SetStaggerLevel(aggressor, data.level);
-      Stagger::SetStaggerMagnitude(aggressor, data.level);
-      Stagger::StaggerStart(aggressor);
       // 设置下一次攻击的段数
       if (data.nextAttack > 0) {
         if (data.isPowerAttack)

@@ -6,9 +6,9 @@ class Block
 {
 public:
   // 图事件
-  // GP|Duration|Level|AutoAttack|NextAttack
-  // 进入可精确格挡状态，在这个状态内受击会给予攻击者一个硬直，并且判断为限时格挡
-  // 硬直等级由Level决定，Duration为持续时间，AutoAttack表示成功GP后是否自动反击，NextAttack表示GP成功的下一次的攻击段数
+  // GP|Duration|AutoAttack|NextAttack
+  // 进入可精确格挡状态，在这个持续窗口内受击会被判定为限时格挡
+  // Duration为持续时间，AutoAttack表示成功GP后是否自动反击，NextAttack表示GP成功的下一次的攻击段数
   // NextAttack为N2表示自动反击使用第二段轻击，P4表示使用第四段重击，0表示不修改攻击段数
   // 若AutoAttack为true但NextAttack为0，则不进行自动反击
   // Parry|Duration 进入弹反状态，在这个状态内受击会给予攻击者一个GuardBreak级别的硬直

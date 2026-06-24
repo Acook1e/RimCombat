@@ -455,6 +455,11 @@ Manager::Manager()
       file >> j;
 
       for (const auto& [key, value] : j.items()) {
+
+        // 跳过schema
+        if (!value.is_object())
+          continue;
+
         std::int32_t id = Utils::hash(key);
         // 0为无效ID，跳过
         if (id == 0) {

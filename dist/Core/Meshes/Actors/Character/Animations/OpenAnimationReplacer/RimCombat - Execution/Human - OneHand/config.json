@@ -1,35 +1,91 @@
 {
-  "name": "Test Execution",
-  "description": "None",
-  "priority": 2064142000,
-  "ignoreDontConvertAnnotationsToTriggersFlag": true,
-  "triggersFromAnnotationsOnly": true,
+  "name": "Execution - Human - OneHand - Thrust",
+  "description": "",
+  "priority": 2064142002,
   "conditions": [
     {
-      "condition": "CompareValues",
+      "condition": "OR",
       "requiredVersion": "1.0.0.0",
-      "Value A": {
-        "graphVariable": "RimCombat_ExecutionFlag",
-        "graphVariableType": "Int"
-      },
-      "Comparison": "!=",
-      "Value B": {
-        "value": 0.0
-      }
-    }
-  ],
-  "pairedConditions": [
+      "Conditions": [
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_VictimRace",
+            "graphVariableType": "Int"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": 1
+          }
+        },
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_VictimRace",
+            "graphVariableType": "Int"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": 15
+          }
+        }
+      ]
+    },
     {
-      "condition": "CompareValues",
+      "condition": "OR",
       "requiredVersion": "1.0.0.0",
-      "Value A": {
-        "graphVariable": "RimCombat_ExecutionFlag",
-        "graphVariableType": "Int"
-      },
-      "Comparison": "!=",
-      "Value B": {
-        "value": 0.0
-      }
+      "Conditions": [
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_ExecutorWeapon",
+            "graphVariableType": "Int"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": 20
+          }
+        },
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_ExecutorWeapon",
+            "graphVariableType": "Int"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": 21
+          }
+        },
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_ExecutorWeapon",
+            "graphVariableType": "Int"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": 22
+          }
+        },
+        {
+          "condition": "CompareValues",
+          "requiredVersion": "1.0.0.0",
+          "Value A": {
+            "graphVariable": "RimCombat_ExecutorWeapon",
+            "graphVariableType": "Int"
+          },
+          "Comparison": "==",
+          "Value B": {
+            "value": 50
+          }
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,5 @@
 {
     "$schema": "https://raw.githubusercontent.com/Acook1e/RimCombat/main/scripts/WeaponArt.schema.json",
-
     "Lion's Claw": {
         "name": "狮子斩",
         "description": "向空中跃起后向前方斩击",
@@ -22,27 +21,27 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.20,
-                        "damageMult": 0.30,
+                        "staminaMult": 0.2,
+                        "damageMult": 0.3,
                         "poiseDamageMult": 0.25,
-                        "postureDamageMult": 0.30,
-                        "subStaminaMult": 0.30,
+                        "postureDamageMult": 0.3,
+                        "subStaminaMult": 0.3,
                         "subDamageMult": 0.15,
                         "subPoiseDamageMult": 0.15,
-                        "subPostureDamageMult": 0.20
+                        "subPostureDamageMult": 0.2
                     },
                     "2": {
                         "left": false,
                         "right": true,
                         "powerAttack": true,
-                        "staminaMult": 1.20,
-                        "damageMult": 2.20,
-                        "poiseDamageMult": 3.00,
-                        "postureDamageMult": 2.50,
-                        "subStaminaMult": 2.00,
-                        "subDamageMult": 1.00,
-                        "subPoiseDamageMult": 1.50,
-                        "subPostureDamageMult": 1.20
+                        "staminaMult": 1.2,
+                        "damageMult": 2.2,
+                        "poiseDamageMult": 3.0,
+                        "postureDamageMult": 2.5,
+                        "subStaminaMult": 2.0,
+                        "subDamageMult": 1.0,
+                        "subPoiseDamageMult": 1.5,
+                        "subPostureDamageMult": 1.2
                     }
                 }
             }
@@ -69,14 +68,14 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.80,
-                        "damageMult": 2.00,
-                        "poiseDamageMult": 1.50,
-                        "postureDamageMult": 2.00,
-                        "subStaminaMult": 1.20,
-                        "subDamageMult": 1.00,
-                        "subPoiseDamageMult": 0.80,
-                        "subPostureDamageMult": 1.00
+                        "staminaMult": 0.8,
+                        "damageMult": 2.0,
+                        "poiseDamageMult": 1.5,
+                        "postureDamageMult": 2.0,
+                        "subStaminaMult": 1.2,
+                        "subDamageMult": 1.0,
+                        "subPoiseDamageMult": 0.8,
+                        "subPostureDamageMult": 1.0
                     }
                 }
             },
@@ -88,14 +87,14 @@
                         "left": false,
                         "right": true,
                         "powerAttack": true,
-                        "staminaMult": 0.80,
-                        "damageMult": 1.30,
-                        "poiseDamageMult": 1.50,
-                        "postureDamageMult": 1.50,
-                        "subStaminaMult": 1.50,
-                        "subDamageMult": 0.70,
-                        "subPoiseDamageMult": 0.80,
-                        "subPostureDamageMult": 0.80
+                        "staminaMult": 0.8,
+                        "damageMult": 1.3,
+                        "poiseDamageMult": 1.5,
+                        "postureDamageMult": 1.5,
+                        "subStaminaMult": 1.5,
+                        "subDamageMult": 0.7,
+                        "subPoiseDamageMult": 0.8,
+                        "subPostureDamageMult": 0.8
                     }
                 }
             }
@@ -124,11 +123,11 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.50,
-                        "damageMult": 0.50,
-                        "poiseDamageMult": 0.40,
-                        "postureDamageMult": 0.50,
-                        "subStaminaMult": 0.80,
+                        "staminaMult": 0.5,
+                        "damageMult": 0.5,
+                        "poiseDamageMult": 0.4,
+                        "postureDamageMult": 0.5,
+                        "subStaminaMult": 0.8,
                         "subDamageMult": 0.35,
                         "subPoiseDamageMult": 0.25,
                         "subPostureDamageMult": 0.35
@@ -137,14 +136,14 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.50,
-                        "damageMult": 0.60,
+                        "staminaMult": 0.5,
+                        "damageMult": 0.6,
                         "poiseDamageMult": 0.45,
-                        "postureDamageMult": 0.60,
-                        "subStaminaMult": 0.80,
-                        "subDamageMult": 0.40,
-                        "subPoiseDamageMult": 0.30,
-                        "subPostureDamageMult": 0.40
+                        "postureDamageMult": 0.6,
+                        "subStaminaMult": 0.8,
+                        "subDamageMult": 0.4,
+                        "subPoiseDamageMult": 0.3,
+                        "subPostureDamageMult": 0.4
                     }
                 }
             },
@@ -156,11 +155,11 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.60,
-                        "damageMult": 0.70,
-                        "poiseDamageMult": 0.50,
-                        "postureDamageMult": 0.70,
-                        "subStaminaMult": 0.90,
+                        "staminaMult": 0.6,
+                        "damageMult": 0.7,
+                        "poiseDamageMult": 0.5,
+                        "postureDamageMult": 0.7,
+                        "subStaminaMult": 0.9,
                         "subDamageMult": 0.45,
                         "subPoiseDamageMult": 0.35,
                         "subPostureDamageMult": 0.45
@@ -169,24 +168,24 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.60,
-                        "damageMult": 0.80,
+                        "staminaMult": 0.6,
+                        "damageMult": 0.8,
                         "poiseDamageMult": 0.55,
-                        "postureDamageMult": 0.80,
-                        "subStaminaMult": 0.90,
-                        "subDamageMult": 0.50,
-                        "subPoiseDamageMult": 0.40,
-                        "subPostureDamageMult": 0.50
+                        "postureDamageMult": 0.8,
+                        "subStaminaMult": 0.9,
+                        "subDamageMult": 0.5,
+                        "subPoiseDamageMult": 0.4,
+                        "subPostureDamageMult": 0.5
                     },
                     "3": {
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.60,
-                        "damageMult": 0.90,
-                        "poiseDamageMult": 0.60,
-                        "postureDamageMult": 0.90,
-                        "subStaminaMult": 0.90,
+                        "staminaMult": 0.6,
+                        "damageMult": 0.9,
+                        "poiseDamageMult": 0.6,
+                        "postureDamageMult": 0.9,
+                        "subStaminaMult": 0.9,
                         "subDamageMult": 0.55,
                         "subPoiseDamageMult": 0.45,
                         "subPostureDamageMult": 0.55
@@ -201,14 +200,14 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 0.80,
-                        "damageMult": 1.50,
-                        "poiseDamageMult": 1.20,
-                        "postureDamageMult": 1.50,
-                        "subStaminaMult": 1.20,
-                        "subDamageMult": 0.80,
-                        "subPoiseDamageMult": 0.60,
-                        "subPostureDamageMult": 0.80
+                        "staminaMult": 0.8,
+                        "damageMult": 1.5,
+                        "poiseDamageMult": 1.2,
+                        "postureDamageMult": 1.5,
+                        "subStaminaMult": 1.2,
+                        "subDamageMult": 0.8,
+                        "subPoiseDamageMult": 0.6,
+                        "subPostureDamageMult": 0.8
                     }
                 }
             }
@@ -235,27 +234,27 @@
                         "left": false,
                         "right": true,
                         "powerAttack": true,
-                        "staminaMult": 0.20,
-                        "damageMult": 0.20,
-                        "poiseDamageMult": 0.20,
-                        "postureDamageMult": 0.30,
-                        "subStaminaMult": 0.20,
-                        "subDamageMult": 0.10,
-                        "subPoiseDamageMult": 0.10,
-                        "subPostureDamageMult": 0.20
+                        "staminaMult": 0.2,
+                        "damageMult": 0.2,
+                        "poiseDamageMult": 0.2,
+                        "postureDamageMult": 0.3,
+                        "subStaminaMult": 0.2,
+                        "subDamageMult": 0.1,
+                        "subPoiseDamageMult": 0.1,
+                        "subPostureDamageMult": 0.2
                     },
                     "2": {
                         "left": false,
                         "right": true,
                         "powerAttack": true,
-                        "staminaMult": 1.50,
-                        "damageMult": 2.50,
-                        "poiseDamageMult": 3.00,
-                        "postureDamageMult": 2.50,
-                        "subStaminaMult": 1.50,
-                        "subDamageMult": 1.20,
-                        "subPoiseDamageMult": 1.50,
-                        "subPostureDamageMult": 1.20
+                        "staminaMult": 1.5,
+                        "damageMult": 2.5,
+                        "poiseDamageMult": 3.0,
+                        "postureDamageMult": 2.5,
+                        "subStaminaMult": 1.5,
+                        "subDamageMult": 1.2,
+                        "subPoiseDamageMult": 1.5,
+                        "subPostureDamageMult": 1.2
                     }
                 }
             }
@@ -281,14 +280,14 @@
                         "left": false,
                         "right": true,
                         "powerAttack": true,
-                        "staminaMult": 1.00,
-                        "damageMult": 2.00,
-                        "poiseDamageMult": 2.50,
-                        "postureDamageMult": 2.50,
-                        "subStaminaMult": 2.20,
-                        "subDamageMult": 0.90,
-                        "subPoiseDamageMult": 1.20,
-                        "subPostureDamageMult": 1.00
+                        "staminaMult": 1.0,
+                        "damageMult": 2.0,
+                        "poiseDamageMult": 2.5,
+                        "postureDamageMult": 2.5,
+                        "subStaminaMult": 2.2,
+                        "subDamageMult": 0.9,
+                        "subPoiseDamageMult": 1.2,
+                        "subPostureDamageMult": 1.0
                     }
                 }
             }
@@ -316,14 +315,14 @@
                         "left": false,
                         "right": true,
                         "powerAttack": false,
-                        "staminaMult": 1.20,
-                        "damageMult": 2.00,
-                        "poiseDamageMult": 2.50,
-                        "postureDamageMult": 2.00,
-                        "subStaminaMult": 2.00,
-                        "subDamageMult": 1.00,
-                        "subPoiseDamageMult": 1.20,
-                        "subPostureDamageMult": 1.00
+                        "staminaMult": 1.2,
+                        "damageMult": 2.0,
+                        "poiseDamageMult": 2.5,
+                        "postureDamageMult": 2.0,
+                        "subStaminaMult": 2.0,
+                        "subDamageMult": 1.0,
+                        "subPoiseDamageMult": 1.2,
+                        "subPostureDamageMult": 1.0
                     }
                 }
             }

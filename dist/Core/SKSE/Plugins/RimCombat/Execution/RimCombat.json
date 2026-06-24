@@ -1,0 +1,24 @@
+{
+    "Human": {
+        "Unarm": [
+            "Front",
+            "Back"
+        ],
+        "Sword": [
+            "Front",
+            "Back"
+        ],
+        "Rapier": [
+            "Front",
+            "Back"
+        ],
+        "Katana": [
+            "Front",
+            "Back"
+        ],
+        "ShortSpear": [
+            "Front",
+            "Back"
+        ]
+    }
+}

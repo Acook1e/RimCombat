@@ -59,9 +59,8 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
   case "bfco_npcattackstart"_h:
     break;
 
-  // 攻击停止或者触发硬直重置只用于一次攻击的系统
   case "attackstop"_h:
-  case "staggerstart"_h:
+    // 攻击停止重置用于攻击的系统
     Damage::End(actor);
     Poise::End(actor);
     Poise::TargetEnd(actor);
@@ -71,20 +70,36 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     WeaponArt::Manager::Interrupt(actor);
     break;
 
+  case "staggerstart"_h:
+    actor->SetGraphVariableBool(Stagger::STAGGER_RECOVERABLE, false);
+
+    // 触发硬直重置用于攻击的系统
+    Damage::End(actor);
+    Poise::End(actor);
+    Poise::TargetEnd(actor);
+    Posture::TargetEnd(actor);
+    Stagger::TargetEnd(actor);
+    Stamina::End(actor);
+    WeaponArt::Manager::Interrupt(actor);
+    break;
+
+  case "staggerstop"_h: {
+    auto currentLevel = Stagger::GetStaggerLevel(actor);
+    if (currentLevel != Stagger::Level::None) {
+      Stagger::SetStaggerMagnitude(actor, currentLevel);
+      actor->NotifyAnimationGraph("staggerStart");
+      Stagger::SetStaggerLevel(actor, Stagger::Level::None);
+    } else
+      Stagger::Recoverable(actor);
+    break;
+  }
+
   case "killactor"_h:
     // 如果进入处决状态，忽略KillMove的处决事件
     if (Execution::IsExecutingVictim(actor))
       return true;
     break;
-  case "staggerstop"_h: {
-    auto currentLevel = Stagger::GetStaggerLevel(actor);
-    if (currentLevel != Stagger::Level::None)
-      break;
-    auto recordLevel = Stagger::IsInStagger(actor);
-    if (recordLevel != Stagger::Level::None)
-      Stagger::Recoverable(actor);
-    break;
-  }
+
   case "prehitframe"_h:
     break;
   case "tkdr_iframeend"_h:

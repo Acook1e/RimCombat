@@ -28,8 +28,9 @@ public:
 
     // 默认处决为最高优先级的硬直，会覆盖其他所有硬直等级，且无法被免疫
 
-    Execution    = 254,  // 处决，是被处决者的受击动画
-    PostureBreak = 255,  // 架势崩溃，由架势值被打破触发
+    Execution     = 253,  // 处决，是被处决者的受击动画
+    ExecutionBack = 254,  // 背部处决
+    PostureBreak  = 255,  // 架势崩溃，由架势值被打破触发
   };
 
   // Int图变量
@@ -64,6 +65,8 @@ public:
   static Level IsInStagger(RE::Actor* actor);
   static Level GetStaggerLevel(RE::Actor* actor);
   static void SetStaggerLevel(RE::Actor* actor, Level level);
+
+  static std::uint64_t GetRecoverTime(RE::Actor* actor, Level level);
 
   static bool IsImmune(RE::Actor* actor);
 

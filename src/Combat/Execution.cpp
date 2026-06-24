@@ -1,11 +1,35 @@
 #include "Combat/Execution.h"
 
 #include "Combat/Stagger.h"
+#include "Core/Settings.h"
 
 #include "magic_enum/magic_enum.hpp"
+#include "nlohmann/json.hpp"
 
 using WeaponType = Weapon::Type;
 using RaceType   = Race::Type;
+using Direction  = Execution::Direction;
+
+std::uint16_t operator|(const WeaponType weapon, const RaceType race)
+{
+  auto lhs = static_cast<Settings::WeaponEnumType>(weapon);
+  auto rhs = static_cast<Settings::RaceEnumType>(race);
+  return lhs << 8 | rhs;
+}
+
+Direction operator|(Direction lhs, Direction rhs)
+{
+  auto l = static_cast<std::uint8_t>(lhs);
+  auto r = static_cast<std::uint8_t>(rhs);
+  return static_cast<Direction>(l | r);
+}
+
+bool operator>(Direction lhs, Direction rhs)
+{
+  auto l = static_cast<std::uint8_t>(lhs);
+  auto r = static_cast<std::uint8_t>(rhs);
+  return (l & r) == r;
+}
 
 void DisableCollision(RE::Actor* actor)
 {
@@ -86,16 +110,60 @@ void EnableCollision(RE::Actor* actor)
 
 Execution::Execution()
 {
-  // 从文件加载可用的处决组合
+  const std::string execDir = Settings::SettingsDir + "Execution/";
 
-  if (!availableExecutions.contains(RaceType::Human))
-    availableExecutions[RaceType::Human] = {};
+  std::error_code ec;
+  if (!std::filesystem::exists(execDir, ec))
+    return;
 
-  for (const auto& value : magic_enum::enum_values<WeaponType>()) {
-    if (value == WeaponType::None)
+  for (const auto& entry : std::filesystem::directory_iterator(execDir, ec)) {
+    if (ec || !entry.is_regular_file() || entry.path().extension() != ".json")
       continue;
 
-    availableExecutions[RaceType::Human].push_back(value);
+    try {
+      std::ifstream file(entry.path());
+      nlohmann::json j;
+      file >> j;
+
+      for (const auto& [raceName, weapons] : j.items()) {
+        auto race = magic_enum::enum_cast<RaceType>(raceName);
+        if (!race.has_value()) {
+          logger::warn("Execution: unknown race '{}' in {}. Skipping.", raceName,
+                       entry.path().string());
+          continue;
+        }
+
+        if (!weapons.is_object())
+          continue;
+
+        for (const auto& [weaponName, directions] : weapons.items()) {
+          auto weapon = magic_enum::enum_cast<WeaponType>(weaponName);
+          if (!weapon.has_value()) {
+            logger::warn("Execution: unknown weapon '{}' for race '{}' in {}. Skipping.",
+                         weaponName, raceName, entry.path().string());
+            continue;
+          }
+
+          if (!directions.is_array())
+            continue;
+
+          Direction flag = Direction::None;
+          for (const auto& dirStr : directions) {
+            auto dir = magic_enum::enum_cast<Direction>(dirStr.get<std::string>());
+            if (dir.has_value())
+              flag = flag | *dir;
+            else
+              logger::warn("Execution: unknown direction '{}' for {}|{} in {}. Skipping.",
+                           dirStr.get<std::string>(), weaponName, raceName, entry.path().string());
+          }
+
+          if (flag != Direction::None)
+            availableExecutions[*weapon | *race] = flag;
+        }
+      }
+    } catch (const std::exception& e) {
+      logger::error("Execution: failed to parse {}: {}", entry.path().string(), e.what());
+    }
   }
 }
 
@@ -106,7 +174,7 @@ bool Execution::IsExecutable(RE::Actor* actor)
   if (!actor || !Settings::bUseExecutionSystem)
     return false;
 
-  std::lock_guard<std::mutex> lock(mtx_executable);
+  std::shared_lock lock(mtx_executable);
   return executableActors.contains(actor);
 }
 
@@ -115,7 +183,7 @@ void Execution::EnterExecutable(RE::Actor* actor)
   if (!actor || !Settings::bUseExecutionSystem)
     return;
 
-  std::lock_guard<std::mutex> lock(mtx_executable);
+  std::unique_lock lock(mtx_executable);
   executableActors.insert(actor);
 }
 
@@ -124,36 +192,11 @@ void Execution::ExitExecutable(RE::Actor* actor)
   if (!actor || !Settings::bUseExecutionSystem)
     return;
 
-  std::lock_guard<std::mutex> lock(mtx_executable);
+  std::unique_lock lock(mtx_executable);
   executableActors.erase(actor);
 }
 
 RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
-{
-  if (!aggressor || !Settings::bUseExecutionSystem)
-    return nullptr;
-
-  std::lock_guard<std::mutex> lock(mtx_executable);
-  if (executableActors.empty())
-    return nullptr;
-
-  RE::Actor* closestTarget = nullptr;
-  float closestDistance    = (std::numeric_limits<float>::max)();
-  for (auto* victim : executableActors) {
-    float distance = aggressor->GetPosition().GetDistance(victim->GetPosition());
-    if (distance > 250.0f)
-      continue;
-    if (aggressor->GetHeadingAngle(victim->GetPosition(), true) > 60.0f)
-      continue;
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closestTarget   = victim;
-    }
-  }
-  return closestTarget;
-}
-
-bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
 {
   // 处决触发条件：
   // 1. 处决系统开启
@@ -162,32 +205,73 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   // 4. 距离足够近（250单位）
   // 5. 角度满足要求（面对面或背刺）
 
+  if (!aggressor || !Settings::bUseExecutionSystem)
+    return nullptr;
+
+  if (Race::GetRace(aggressor) != RaceType::Human)
+    return nullptr;
+
+  static const float MinDistance   = 250.0f;
+  static const float MaxHeightDiff = 50.0f;
+
+  std::map<float, RE::Actor*> targets;
+
+  {
+    std::shared_lock lock(mtx_executable);
+    if (executableActors.empty())
+      return nullptr;
+    for (auto* victim : executableActors) {
+      if (victim == aggressor)
+        continue;
+
+      float distance = aggressor->GetPosition().GetDistance(victim->GetPosition());
+      if (distance > 250.0f)
+        continue;
+      if (aggressor->GetHeadingAngle(victim->GetPosition(), true) > 60.0f)
+        continue;
+
+      targets.emplace(distance, victim);
+    }
+  }
+
+  if (targets.empty())
+    return nullptr;
+
+  {
+    std::unique_lock lock(mtx_executable);
+    for (const auto& [distance, victim] : targets) {
+      auto it = executableActors.find(victim);
+      if (it == executableActors.end())
+        continue;
+
+      auto weapon = Weapon::GetActorEquipmentType(aggressor);
+      auto race   = Race::GetRace(victim);
+
+      if (!availableExecutions.contains(weapon | race))
+        continue;
+
+      logger::info("Weapon {} Race {}", magic_enum::enum_name(weapon), magic_enum::enum_name(race));
+
+      executableActors.erase(it);
+      return victim;
+    }
+  }
+
+  return nullptr;
+}
+
+bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim)
+{
   if (!Settings::bUseExecutionSystem)
     return false;
 
   if (!aggressor || !victim || aggressor->IsDead() || victim->IsDead())
     return false;
 
-  // 约定只有人类能作为处决者
-  if (Race::GetRace(aggressor) != RaceType::Human)
-    return false;
-
   auto weaponType = Weapon::GetActorEquipmentType(aggressor);
   auto race       = Race::GetRace(victim);
 
-  std::lock_guard<std::mutex> lock(mtx_executable);
-  if (!availableExecutions.contains(race)) {
-    logger::info("Execution::TryExecute: No available Idle for using Weapon {} to execute Race {}",
-                 magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
-    return false;
-  }
-  auto& availableWeapons = availableExecutions[race];
-  if (std::find(availableWeapons.begin(), availableWeapons.end(), weaponType) ==
-      availableWeapons.end()) {
-    logger::info("Execution::TryExecute: Weapon {} cannot be used to execute Race {}",
-                 magic_enum::enum_name(weaponType), magic_enum::enum_name(race));
-    return false;
-  }
+  auto direction = availableExecutions[weaponType | race];
 
   // 距离检测
   auto aggressorPos = aggressor->GetPosition();
@@ -205,6 +289,10 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   if (front == back)
     return false;
 
+  auto needed = back ? Direction::Back : Direction::Front;
+  if (!(direction > needed))
+    return false;
+
   // 使用Idle无法做到发送killMove
   // 因此这里手动同步位置和角度
   // 并直接发送动画事件来触发动画
@@ -217,7 +305,6 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   victim->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
   victim->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
   Stagger::SetStaggerLevel(victim, Stagger::Level::Execution);
-  Stagger::SetStaggerMagnitude(victim, Stagger::Level::Execution);
 
   // 放置到同一高度
   float maxZ     = (std::max)(aggressorPos.z, victimPos.z);
@@ -241,16 +328,21 @@ bool Execution::TryExecute(RE::Actor* aggressor, RE::Actor* victim)
   }
 
   // TODO: 位移，旋转锁定
-  DisableCollision(aggressor);
-  DisableCollision(victim);
+  // DisableCollision(aggressor);
+  // DisableCollision(victim);
 
   aggressor->NotifyAnimationGraph("attackStart");
   Stagger::StaggerStart(victim);
 
-  executableActors.erase(victim);
+  aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
+  aggressor->SetGraphVariableInt(VICTIM_RACE, 0);
+  victim->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
+  victim->SetGraphVariableInt(VICTIM_RACE, 0);
 
-  std::lock_guard<std::mutex> lock_executing(mtx_executing);
-  executingActors[victim] = aggressor;
+  {
+    std::scoped_lock lock(mtx_executing);
+    executingActors[victim] = aggressor;
+  }
   return true;
 }
 

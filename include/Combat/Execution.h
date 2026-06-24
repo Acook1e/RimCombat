@@ -31,7 +31,7 @@ public:
 
   static RE::Actor* GetExecutingAggressor(RE::Actor* victim);
   static bool IsExecutingVictim(RE::Actor* victim);
-  static void ExecutionEnd(RE::Actor* aggressor);
+  static void ExecutionEnd(RE::Actor* victim);
 
   using ExecutionStartCallback = void (*)(RE::Actor* aggressor, RE::Actor* victim);
   static void AddExecutionStartListener(ExecutionStartCallback callback);

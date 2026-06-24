@@ -162,7 +162,7 @@ void Block::EndBlock(RE::Actor* actor)
     blockStartTimes.erase(actor);
   }
   {
-    std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
+    std::unique_lock lock(mtx_timedBlockDuration);
     timedBlockEndTimes.erase(actor);
   }
 }
@@ -228,37 +228,40 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
     }
   }
 
+  // 普通格挡和限时格挡必须在格挡中
   if (!blocked)
     return;
 
-  // 普通格挡和限时格挡必须在格挡中
+  // 首次限时格挡检测
   std::uint64_t startTime = 0;
-  if (blocked) {
+  {
     std::scoped_lock lock(mtx_blockStart);
-    // 如果没有格挡记录，说明不是限时格挡
-    if (!blockStartTimes.contains(victim))
-      return;
 
-    // 每次格挡只能触发一次限时格挡，所以这里直接删除记录
-    startTime = blockStartTimes[victim];
-    blockStartTimes.erase(victim);
+    // 必须存在格挡开始的记录
+    if (blockStartTimes.contains(victim)) {
+      startTime = blockStartTimes[victim];
+      if (Settings::bTimedBlockEnabled && now - startTime < Settings::uTimedBlockLimit) {
+        std::unique_lock lock(mtx_timedBlockDuration);
+        timedBlockEndTimes[victim] = now + Settings::uTimedBlockDuration;
+        timedBlock                 = true;
+      }
+
+      // 每次格挡只能触发一次限时格挡，所以这里直接删除记录
+      blockStartTimes.erase(victim);
+    }
   }
-  if (blocked && Settings::bTimedBlockEnabled && now - startTime < Settings::uTimedBlockLimit) {
-    {
-      // 直接覆写或插入限时格挡计时记录，无需检查是否存在
-      // ProcessBlock每次被调用都视为一次新的限时格挡触发，因此直接重置计时
-      std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
+  // 非首次限时格挡时受击
+  {
+    std::unique_lock lock(mtx_timedBlockDuration);
+    if (!startTime && timedBlockEndTimes.contains(victim)) {
       timedBlockEndTimes[victim] = now + Settings::uTimedBlockDuration;
       timedBlock                 = true;
     }
-    std::vector<std::function<void(RE::Actor*)>> callbacks;
-    {
-      std::lock_guard<std::mutex> lock(mtx_timedBlockCallback);
-      callbacks = timedBlockCallbacks;
-    }
-    for (auto& callback : callbacks)
-      callback(victim);
   }
+  // 限时格挡事件分发
+
+  auto message = std::format("{} 限时格挡", victim->GetDisplayFullName());
+  RE::SendHUDMessage::ShowHUDMessage(message.data());
 
   float stamina      = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina);
   float maxStamina   = Utils::GetCurrentMaxActorValue(victim, RE::ActorValue::kStamina);
@@ -287,15 +290,12 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
   if (staminaConsume > maxStamina * Settings::fBlockMaxStaminaConsumePercent)
     staminaConsume = maxStamina * Settings::fBlockMaxStaminaConsumePercent;
 
-  // 如果耐力不足以完全格挡伤害，则至少消耗一定的耐力
-  if (staminaConsume > stamina + Settings::fBlockMinStaminaConsume)
-    staminaConsume = stamina + Settings::fBlockMinStaminaConsume;
-
   // 如果耐力消耗超过当前耐力，则触发格挡破防
   if (staminaConsume > stamina)
     Stagger::SetStaggerLevel(victim, Stagger::Level::GuardBreak);
 
-  damage -= staminaConsume / staminaPerDamage;
+  // 应用格挡耐力增益
+  damage -= (staminaConsume + Settings::fBlockStaminaBonus) / staminaPerDamage;
   if (damage < 0)
     damage = 0;
 

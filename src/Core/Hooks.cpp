@@ -96,7 +96,7 @@ void Hook_OnActorUpdate::Update_PC(RE::PlayerCharacter* player, float delta)
 
   if (Settings::bHideWeaponArtHUDOnSheathe && player && player->Is3DLoaded()) {
     static auto lastWeaponDrawn = true;
-    if (auto drawn = player->AsActorState()->IsWeaponDrawn(); drawn == lastWeaponDrawn) {
+    if (auto drawn = player->AsActorState()->IsWeaponDrawn(); drawn != lastWeaponDrawn) {
       lastWeaponDrawn = drawn;
       if (drawn)
         UI::WeaponArtHUD::Show();
@@ -312,7 +312,7 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
       // 如果找到了可处决的目标，则强制进入处决处决判断
       // 如果判断成功取消攻击进入处决动作
       // 否则正常执行攻击动作
-      if (Execution::TryExecute(sourceActor, victim))
+      if (Execution::Execute(sourceActor, victim))
         return false;
     }
 

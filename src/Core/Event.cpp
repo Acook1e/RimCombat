@@ -89,8 +89,15 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
       Stagger::SetStaggerMagnitude(actor, currentLevel);
       actor->NotifyAnimationGraph("staggerStart");
       Stagger::SetStaggerLevel(actor, Stagger::Level::None);
-    } else
+    } else {
+      auto recordLevel = Stagger::IsInStagger(actor);
+      // 处决动画的结束
+      if (recordLevel == Stagger::Level::Execution)
+        Execution::ExecutionEnd(actor);
+      else if (recordLevel == Stagger::Level::PostureBreak)
+        Execution::ExitExecutable(actor);
       Stagger::Recoverable(actor);
+    }
     break;
   }
 
@@ -183,23 +190,25 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
       UI::WeaponArtMenu::SetInventoryMenuOpen(false);
   }
 
-  bool showHUD = false;
+  bool canShowHUD = false;
 
   // 跟随HUD菜单的开关来显示/隐藏战技HUD
   if (ui->IsMenuOpen(RE::HUDMenu::MENU_NAME) || ui->IsMenuOpen("TrueHUD"))
-    showHUD = true;
+    canShowHUD = true;
 
   if (ui->IsMenuOpen(RE::MainMenu::MENU_NAME) || ui->IsMenuOpen(RE::LoadingMenu::MENU_NAME) ||
       ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME) || ui->IsMenuOpen(RE::MagicMenu::MENU_NAME) ||
       ui->IsMenuOpen(RE::BarterMenu::MENU_NAME) || ui->IsMenuOpen(RE::CraftingMenu::MENU_NAME) ||
       ui->IsMenuOpen(RE::Console::MENU_NAME) || ui->IsMenuOpen(RE::JournalMenu::MENU_NAME))
-    showHUD = false;
+    canShowHUD = false;
 
   auto player = RE::PlayerCharacter::GetSingleton();
   if (Settings::bHideWeaponArtHUDOnSheathe && !player->AsActorState()->IsWeaponDrawn())
-    showHUD = false;
+    canShowHUD = false;
 
-  if (showHUD)
+  UI::WeaponArtHUD::SetCanShow(canShowHUD);
+
+  if (canShowHUD)
     UI::WeaponArtHUD::Show();
   else
     UI::WeaponArtHUD::Hide();

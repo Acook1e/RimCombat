@@ -281,7 +281,7 @@ namespace
                   {"TimedBlockLimit", uTimedBlockLimit},
                   {"TimedBlockDuration", uTimedBlockDuration},
                   {"BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent},
-                  {"BlockMinStaminaConsume", fBlockMinStaminaConsume},
+                  {"BlockStaminaBonus", fBlockStaminaBonus},
                   {"TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult}};
     SaveWeaponFloatMap(block, "BlockStrength", blockStrengthMap);
     root["Block"] = std::move(block);
@@ -498,7 +498,7 @@ void LoadSettings()
     LoadSetting(block, "Block", "TimedBlockLimit", uTimedBlockLimit);
     LoadSetting(block, "Block", "TimedBlockDuration", uTimedBlockDuration);
     LoadSetting(block, "Block", "BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent);
-    LoadSetting(block, "Block", "BlockMinStaminaConsume", fBlockMinStaminaConsume);
+    LoadSetting(block, "Block", "BlockStaminaBonus", fBlockStaminaBonus);
     LoadSetting(block, "Block", "TimedBlockBlockStrengthMult", fTimedBlockBlockStrengthMult);
     LoadWeaponFloatMap(block, "Block", "BlockStrength", blockStrengthMap);
   }

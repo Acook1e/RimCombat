@@ -193,11 +193,11 @@ inline bool bTimedBlockNeverPostureBreak = true;
 inline std::uint64_t uTimedBlockLimit = 150;
 // 限时格挡触发持续一段时间的效果，单位为毫秒
 // 在这段时间内，触发者免疫后座力/硬直，并且被认为是限时格挡
-inline std::uint64_t uTimedBlockDuration = 500;
+inline std::uint64_t uTimedBlockDuration = 100;
 // 一次格挡时最多消耗的耐力百分比
 inline float fBlockMaxStaminaConsumePercent = 0.5f;
-// 耐力不足消耗的时候，附带的额外耐力数值
-inline float fBlockMinStaminaConsume = 10.0f;
+// 格挡时的耐力增益，保证耐力消耗不变的前提下，格挡效果增加
+inline float fBlockStaminaBonus = 10.0f;
 
 // 每种武器类型的格挡强度，影响格挡时的伤害减免和架势伤害倍率
 inline std::unordered_map<WeaponEnumType, float> blockStrengthMap{};

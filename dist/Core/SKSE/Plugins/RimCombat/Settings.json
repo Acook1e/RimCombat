@@ -4,9 +4,9 @@
         "TimedBlockEnabled": true,
         "TimedBlockNeverPostureBreak": true,
         "TimedBlockLimit": 150,
-        "TimedBlockDuration": 500,
+        "TimedBlockDuration": 100,
         "BlockMaxStaminaConsumePercent": 0.5,
-        "BlockMinStaminaConsume": 10.0,
+        "BlockStaminaBonus": 10.0,
         "TimedBlockBlockStrengthMult": 4.0,
         "BlockStrength": {
             "Unarm": 8.0,

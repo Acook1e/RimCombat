@@ -77,6 +77,8 @@ public:
     return singleton;
   }
 
+  static void SetCanShow(bool show) { canShow = show; }
+
   static bool IsShow() { return isShow; }
   static void Show();
   static void Hide();
@@ -91,8 +93,9 @@ private:
   static void OnViewReady(PrismaView readyView);
   static void SyncViewConfig();
 
-  static inline PrismaView view{0};
-  static inline bool isShow{false};
-  static inline bool domReady{false};
+  static inline PrismaView view = 0;
+  static inline bool isShow     = false;
+  static inline bool canShow    = false;
+  static inline bool domReady   = false;
 };
 }  // namespace UI

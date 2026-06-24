@@ -28,11 +28,24 @@ public:
 
     // 默认处决为最高优先级的硬直，会覆盖其他所有硬直等级，且无法被免疫
 
-    Execution     = 253,  // 处决，是被处决者的受击动画
-    ExecutionBack = 254,  // 背部处决
-    PostureBreak  = 255,  // 架势崩溃，由架势值被打破触发
+    Execution    = 254,  // 处决，是被处决者的受击动画
+    PostureBreak = 255,  // 架势崩溃，由架势值被打破触发
   };
 
+  enum class Direction : std::uint8_t
+  {
+    // 受击的方向
+    // 用来决定硬直方向
+
+    None,
+    Front,
+    Back,
+
+    // MSL没有实现左右的区别
+    // TODO：重构MSL实现4向硬直
+    Left,
+    Right
+  };
   // Int图变量
   // 在硬直位于Largest，根据这个判断是否处于RimCombat的额外硬直等级中
   constexpr static std::string_view STAGGER_LEVEL = "RimCombat_StaggerLevel";
@@ -61,6 +74,9 @@ public:
 
   static float GetStaggerMagnitude(RE::Actor* actor);
   static void SetStaggerMagnitude(RE::Actor* actor, Level level);
+
+  static Direction GetStaggerDirection(RE::Actor* actor);
+  static void SetStaggerDirection(RE::Actor* actor, Direction direction);
 
   static Level IsInStagger(RE::Actor* actor);
   static Level GetStaggerLevel(RE::Actor* actor);

@@ -12,7 +12,8 @@
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
 
-using Level = Stagger::Level;
+using Level     = Stagger::Level;
+using Direction = Stagger::Direction;
 
 Stagger::Stagger()
 {
@@ -223,6 +224,38 @@ void Stagger::SetStaggerMagnitude(RE::Actor* actor, Level level)
 
   float magnitude = LevelToMagnitude(level);
   actor->SetGraphVariableFloat("staggerMagnitude", magnitude);
+}
+
+Direction Stagger::GetStaggerDirection(RE::Actor* actor)
+{
+  if (!actor)
+    return Direction::None;
+
+  float direction = 0.0f;
+  if (!actor->GetGraphVariableFloat("staggerDirection", direction))
+    return Direction::None;
+
+  if (direction < 0.25f || direction > 0.75f)
+    return Direction::Front;
+  else
+    return Direction::Back;
+}
+
+void Stagger::SetStaggerDirection(RE::Actor* actor, Direction direction)
+{
+  if (!actor)
+    return;
+
+  switch (direction) {
+  case Direction::Front:
+    actor->SetGraphVariableFloat("staggerDirection", 0.5f);
+    break;
+  case Direction::Back:
+    actor->SetGraphVariableFloat("staggerDirection", 0.0f);
+    break;
+  default:
+    break;
+  }
 }
 
 Level Stagger::IsInStagger(RE::Actor* actor)

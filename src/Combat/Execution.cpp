@@ -286,8 +286,11 @@ bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim)
   bool front = victimHeadingToAggressor < 60.0f;
   bool back  = victimHeadingToAggressor > 120.0f;
 
-  if (front == back)
+  if (!front && !back)
     return false;
+
+  if (front == back)
+    back = false;
 
   auto needed = back ? Direction::Back : Direction::Front;
   if (!(direction > needed))
@@ -300,6 +303,9 @@ bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim)
   // 可能存在先后不一致和位移没有锁定的bug
 
   // 先设置Flag，给OAR缓冲时间来切换动画
+  aggressor->SetGraphVariableInt("MCO_nextattack", back ? 2 : 1);
+  Stagger::SetStaggerDirection(victim, back ? Stagger::Direction::Back : Stagger::Direction::Front);
+
   aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
   aggressor->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
   victim->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
@@ -333,11 +339,6 @@ bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim)
 
   aggressor->NotifyAnimationGraph("attackStart");
   Stagger::StaggerStart(victim);
-
-  aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
-  aggressor->SetGraphVariableInt(VICTIM_RACE, 0);
-  victim->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
-  victim->SetGraphVariableInt(VICTIM_RACE, 0);
 
   {
     std::scoped_lock lock(mtx_executing);

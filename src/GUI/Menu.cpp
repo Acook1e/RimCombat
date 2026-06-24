@@ -287,7 +287,7 @@ void Block()
   ImGui::DragUInt64("TimedBlockDuration"_h, &Settings::uTimedBlockDuration, 5.0f, 0, 10000);
   ImGui::DragFloat("BlockMaxStaminaConsumePercent"_h, &Settings::fBlockMaxStaminaConsumePercent,
                    0.01f, 0.0f, 1.0f, "%.2f");
-  ImGui::DragFloat("BlockMinStaminaConsume"_h, &Settings::fBlockMinStaminaConsume, 0.1f, 0.0f,
+  ImGui::DragFloat("BlockStaminaBonus"_h, &Settings::fBlockStaminaBonus, 0.1f, 0.0f,
                    1000.0f, "%.1f");
   ImGui::DragFloat("TimedBlockBlockStrengthMult"_h, &Settings::fTimedBlockBlockStrengthMult, 0.05f,
                    0.0f, 20.0f, "%.2f");

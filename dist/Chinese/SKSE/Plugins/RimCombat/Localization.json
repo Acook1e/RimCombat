@@ -387,9 +387,9 @@
         "label": "单次格挡最大耗耐百分比",
         "desc": "一次格挡最多可消耗最大耐力的百分比。"
     },
-    "BlockMinStaminaConsume": {
-        "label": "格挡最小附加耗耐",
-        "desc": "耐力不足完全格挡时，额外保底消耗的耐力值。"
+    "BlockStaminaBonus": {
+        "label": "格挡保底免伤值",
+        "desc": "不增加耐力消耗，仅用于计算格挡伤害减免下限。值越大，空耐格挡时也能挡更多伤害。"
     },
     "TimedBlockBlockStrengthMult": {
         "label": "限时格挡强度倍率",

@@ -87,6 +87,20 @@ void PlaySFX(RE::Actor* actor, RE::BGSSoundDescriptorForm* descriptor, RE::NiPoi
   handle.SetObjectToFollow(actor->Get3D());
   handle.Play();
 }
+void PerformAction(RE::Actor* actor, RE::BGSAction* action)
+{
+  using func_t = bool (*)(RE::TESActionData*);
+  static REL::Relocation<func_t> func{REL::VariantID(40551, 41557, 0x0)};
+
+  if (!actor || !action)
+    return;
+
+  std::unique_ptr<RE::TESActionData> data(RE::TESActionData::Create());
+  data->source = RE::NiPointer<RE::TESObjectREFR>(actor);
+  data->action = action;
+
+  func(data.get());
+}
 
 // 主线程相关
 std::mutex taskMutex;

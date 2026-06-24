@@ -387,9 +387,9 @@
         "label": "Max Block Stamina Drain Percent",
         "desc": "Maximum percent of max stamina a single block can consume."
     },
-    "BlockMinStaminaConsume": {
-        "label": "Block Minimum Stamina Drain",
-        "desc": "Base stamina drain applied when stamina is insufficient for a full block."
+    "BlockStaminaBonus": {
+        "label": "Block Minimum Damage Reduction",
+        "desc": "Does not increase stamina cost. Used only to calculate minimum block damage reduction. Higher values reduce more damage even with zero stamina."
     },
     "TimedBlockBlockStrengthMult": {
         "label": "Timed Block Strength Multiplier",

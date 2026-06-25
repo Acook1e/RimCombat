@@ -87,19 +87,16 @@ void PlaySFX(RE::Actor* actor, RE::BGSSoundDescriptorForm* descriptor, RE::NiPoi
   handle.SetObjectToFollow(actor->Get3D());
   handle.Play();
 }
-void PerformAction(RE::Actor* actor, RE::BGSAction* action)
+void KnockExplosion(RE::AIProcess* process, RE::Actor* actor, const RE::NiPoint3& location,
+                    float magnitude)
 {
-  using func_t = bool (*)(RE::TESActionData*);
-  static REL::Relocation<func_t> func{REL::VariantID(40551, 41557, 0x0)};
+  using func_t = decltype(&KnockExplosion);
+  static REL::Relocation<func_t> func{RELOCATION_ID(38858, 39895)};
 
-  if (!actor || !action)
+  if (!process || !actor)
     return;
 
-  std::unique_ptr<RE::TESActionData> data(RE::TESActionData::Create());
-  data->source = RE::NiPointer<RE::TESObjectREFR>(actor);
-  data->action = action;
-
-  func(data.get());
+  return func(process, actor, location, magnitude);
 }
 
 // 主线程相关

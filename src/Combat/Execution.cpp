@@ -2,6 +2,9 @@
 
 #include "Combat/Stagger.h"
 #include "Core/Settings.h"
+#include "Data/Race.h"
+#include "Data/Weapon.h"
+#include "Utils.h"
 
 #include "magic_enum/magic_enum.hpp"
 #include "nlohmann/json.hpp"
@@ -196,7 +199,7 @@ void Execution::ExitExecutable(RE::Actor* actor)
   executableActors.erase(actor);
 }
 
-RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
+std::tuple<RE::Actor*, Direction> Execution::FindExecutableTarget(RE::Actor* aggressor)
 {
   // 处决触发条件：
   // 1. 处决系统开启
@@ -206,10 +209,13 @@ RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
   // 5. 角度满足要求（面对面或背刺）
 
   if (!aggressor || !Settings::bUseExecutionSystem)
-    return nullptr;
+    return {nullptr, Direction::None};
 
   if (Race::GetRace(aggressor) != RaceType::Human)
-    return nullptr;
+    return {nullptr, Direction::None};
+
+  if (IsExecuting(aggressor))
+    return {nullptr, Direction::None};
 
   static const float MinDistance   = 250.0f;
   static const float MaxHeightDiff = 50.0f;
@@ -219,13 +225,18 @@ RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
   {
     std::shared_lock lock(mtx_executable);
     if (executableActors.empty())
-      return nullptr;
+      return {nullptr, Direction::None};
     for (auto* victim : executableActors) {
+      if (!victim || victim->IsDead() || victim->AsActorState()->IsBleedingOut())
+        continue;
       if (victim == aggressor)
+        continue;
+      float heightDiff = std::abs(aggressor->GetPosition().z - victim->GetPosition().z);
+      if (heightDiff > MaxHeightDiff)
         continue;
 
       float distance = aggressor->GetPosition().GetDistance(victim->GetPosition());
-      if (distance > 250.0f)
+      if (distance > MinDistance)
         continue;
       if (aggressor->GetHeadingAngle(victim->GetPosition(), true) > 60.0f)
         continue;
@@ -235,7 +246,7 @@ RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
   }
 
   if (targets.empty())
-    return nullptr;
+    return {nullptr, Direction::None};
 
   {
     std::unique_lock lock(mtx_executable);
@@ -247,20 +258,34 @@ RE::Actor* Execution::FindExecutableTarget(RE::Actor* aggressor)
       auto weapon = Weapon::GetActorEquipmentType(aggressor);
       auto race   = Race::GetRace(victim);
 
-      if (!availableExecutions.contains(weapon | race))
+      auto key = weapon | race;
+      if (!availableExecutions.contains(key))
         continue;
 
-      logger::info("Weapon {} Race {}", magic_enum::enum_name(weapon), magic_enum::enum_name(race));
+      auto dir = availableExecutions[key];
+
+      auto victimHeadingToAggressor = victim->GetHeadingAngle(aggressor->GetPosition(), true);
+      bool front                    = victimHeadingToAggressor < 60.0f;
+      bool back                     = victimHeadingToAggressor > 120.0f;
+
+      if (!front && !back)
+        continue;
+      if (front == back)
+        back = false;
+
+      auto needed = back ? Direction::Back : Direction::Front;
+      if (!(dir > needed))
+        continue;
 
       executableActors.erase(it);
-      return victim;
+      return {victim, needed};
     }
   }
 
-  return nullptr;
+  return {nullptr, Direction::None};
 }
 
-bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim)
+bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim, Direction direction)
 {
   if (!Settings::bUseExecutionSystem)
     return false;
@@ -268,120 +293,93 @@ bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim)
   if (!aggressor || !victim || aggressor->IsDead() || victim->IsDead())
     return false;
 
-  auto weaponType = Weapon::GetActorEquipmentType(aggressor);
-  auto race       = Race::GetRace(victim);
+  auto weapon = Weapon::GetActorEquipmentType(aggressor);
+  auto race   = Race::GetRace(victim);
 
-  auto direction = availableExecutions[weaponType | race];
-
-  // 距离检测
-  auto aggressorPos = aggressor->GetPosition();
-  auto victimPos    = victim->GetPosition();
-  auto distance     = aggressorPos.GetDistance(victimPos);
-  if (distance > 250.0f)
-    return false;
-
-  // 正面 / 背刺判定（攻击者朝向已在 FindExecutableTarget 验证）
-  auto victimHeadingToAggressor = victim->GetHeadingAngle(aggressorPos, true);
-
-  bool front = victimHeadingToAggressor < 60.0f;
-  bool back  = victimHeadingToAggressor > 120.0f;
-
-  if (!front && !back)
-    return false;
-
-  if (front == back)
-    back = false;
-
-  auto needed = back ? Direction::Back : Direction::Front;
-  if (!(direction > needed))
-    return false;
-
-  // 使用Idle无法做到发送killMove
-  // 因此这里手动同步位置和角度
-  // 并直接发送动画事件来触发动画
-  // 因为不使用havok同步
-  // 可能存在先后不一致和位移没有锁定的bug
+  auto back = (direction == Direction::Back);
+  auto dir  = back ? Stagger::Direction::Back : Stagger::Direction::Front;
 
   // 先设置Flag，给OAR缓冲时间来切换动画
-  aggressor->SetGraphVariableInt("MCO_nextattack", back ? 2 : 1);
-  Stagger::SetStaggerDirection(victim, back ? Stagger::Direction::Back : Stagger::Direction::Front);
-
-  aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
+  Stagger::SetStaggerDirection(aggressor, dir);
+  Stagger::SetStaggerLevel(aggressor, Stagger::Level::Executor);
+  aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weapon));
   aggressor->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
-  victim->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weaponType));
-  victim->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
+
+  Stagger::SetStaggerDirection(victim, dir);
   Stagger::SetStaggerLevel(victim, Stagger::Level::Execution);
+  victim->SetGraphVariableInt(EXECUTOR_WEAPON, static_cast<std::int32_t>(weapon));
+  victim->SetGraphVariableInt(VICTIM_RACE, static_cast<std::int32_t>(race));
 
-  // 放置到同一高度
-  float maxZ     = (std::max)(aggressorPos.z, victimPos.z);
-  aggressorPos.z = maxZ;
-  victimPos.z    = maxZ;
+  // 从处决者指向受害者
+  auto aggressorPos = aggressor->GetPosition();
+  auto victimPos    = victim->GetPosition();
+  auto vector       = victimPos - aggressorPos;
+  vector /= vector.Length();
 
-  // 根据条件设置角度
-  auto heading = aggressor->GetAimHeading();
-  heading += aggressor->GetHeadingAngle(victimPos, false);
+  // 受害者处于硬直中不可位移；仅移动处决者到受害者到固定距离
+  aggressorPos = victimPos - vector * 50.0f;
+
+  // 统一高度
+  auto newZ      = (std::max)(aggressorPos.z, victimPos.z);
+  aggressorPos.z = newZ;
+  victimPos.z    = newZ;
+  aggressor->SetPosition(aggressorPos, true);
+  victim->SetPosition(victimPos, true);
+
+  // 定位约定：
+  //   FaceToFace — 处决者面对受害者，受害者面对处决者（180°对视）
+  //   Backstab   — 处决者面对受害者背部，二者朝向相同
+  float heading = std::atan2(vector.x, vector.y);
   aggressor->SetHeading(heading);
 
-  if (back) {
-    victim->SetHeading(heading);
-  } else {
-    float newHeading = 0.0f;
-    if (heading >= 0)
-      newHeading = heading - 180.0f;
-    else
-      newHeading = heading + 180.0f;
-    victim->SetHeading(newHeading);
+  if (!back) {
+    constexpr auto PI = std::numbers::pi_v<float>;
+    heading += PI;
+    if (heading > PI)
+      heading -= 2.0f * PI;
   }
+  victim->SetHeading(heading);
 
-  // TODO: 位移，旋转锁定
-  // DisableCollision(aggressor);
-  // DisableCollision(victim);
-
-  aggressor->NotifyAnimationGraph("attackStart");
+  Stagger::StaggerStart(aggressor);
   Stagger::StaggerStart(victim);
 
   {
-    std::scoped_lock lock(mtx_executing);
-    executingActors[victim] = aggressor;
+    std::unique_lock lock(mtx_executing);
+    executingActors[aggressor] = victim;
   }
   return true;
 }
 
-RE::Actor* Execution::GetExecutingAggressor(RE::Actor* victim)
+bool Execution::IsExecuting(RE::Actor* actor)
 {
-  std::lock_guard<std::mutex> lock(mtx_executing);
-  if (executingActors.contains(victim))
-    return executingActors[victim];
+  std::shared_lock lock(mtx_executing);
+  if (executingActors.empty())
+    return false;
+
+  for (const auto [aggressor, victim] : executingActors) {
+    if (actor == aggressor || actor == victim)
+      return true;
+  }
+
+  return false;
+}
+
+RE::Actor* Execution::GetExecutingVictim(RE::Actor* aggressor)
+{
+  std::shared_lock lock(mtx_executing);
+  if (executingActors.contains(aggressor))
+    return executingActors[aggressor];
   return nullptr;
 }
 
-bool Execution::IsExecutingVictim(RE::Actor* victim)
+void Execution::ExecutionEnd(RE::Actor* actor)
 {
-  std::lock_guard<std::mutex> lock(mtx_executing);
-  return executingActors.contains(victim);
-}
-
-void Execution::ExecutionEnd(RE::Actor* victim)
-{
-  if (!victim || !Settings::bUseExecutionSystem)
+  if (!actor || !Settings::bUseExecutionSystem)
     return;
 
-  // 处决结束，重置状态
-  auto aggressor = GetExecutingAggressor(victim);
-  if (aggressor) {
-    aggressor->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
-    aggressor->SetGraphVariableInt(VICTIM_RACE, 0);
-  }
-
-  victim->SetGraphVariableInt(EXECUTOR_WEAPON, 0);
-  victim->SetGraphVariableInt(VICTIM_RACE, 0);
-
-  EnableCollision(aggressor);
-  EnableCollision(victim);
-
-  std::lock_guard<std::mutex> lock(mtx_executing);
-  if (executingActors.contains(victim))
-    executingActors.erase(victim);
+  std::unique_lock lock(mtx_executing);
+  if (executingActors.contains(actor))
+    executingActors.erase(actor);
 }
 
 void Execution::AddExecutionStartListener(ExecutionStartCallback callback)
@@ -390,69 +388,43 @@ void Execution::AddExecutionStartListener(ExecutionStartCallback callback)
   executionStartListeners.push_back(callback);
 }
 
-void Execution::Damage(RE::Actor* victim, const std::string& payload)
+void Execution::Damage(RE::Actor* actor, const std::string& payload)
 {
-  if (!victim || !Settings::bUseExecutionSystem)
+  if (!actor || !Settings::bUseExecutionSystem)
     return;
 
-  auto aggressor = GetExecutingAggressor(victim);
-  if (!aggressor)
+  auto victim = GetExecutingVictim(actor);
+  if (!victim)
     return;
 
-  float damageMult = 1.0f;
-  try {
-    damageMult = std::stof(payload);
-  } catch (const std::exception& e) {
-    logger::error("Execution::ApplyExecutionDamage: Invalid damage multiplier in payload: {}",
-                  payload);
+  auto damageMult = Utils::toFloat(payload);
+  if (!damageMult)
     return;
-  }
 
   if (damageMult <= 0.0f)
     return;
 
-  float baseDamage = aggressor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kUnarmedDamage);
-  if (auto right = aggressor->GetEquippedObject(false); right && right->IsWeapon()) {
+  auto type        = Weapon::GetActorEquipmentType(actor);
+  float baseDamage = 0.0f;
+
+  if (type == Weapon::Type::Unarm || type == Weapon::Type::Spell)
+    baseDamage = actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kUnarmedDamage);
+  else if (auto right = actor->GetEquippedObject(false); right && right->IsWeapon()) {
     baseDamage = right->As<RE::TESObjectWEAP>()->GetAttackDamage();
-    baseDamage += aggressor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMeleeDamage);
+    baseDamage += actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMeleeDamage);
   }
 
-  float baseDamageMult = Weapon::GetBaseExecutionMultiplier(aggressor);
-  float totalDamage    = baseDamage * baseDamageMult * damageMult;
+  if (baseDamage == 0.0f)
+    return;
+
+  float baseDamageMult = Weapon::GetBaseExecutionMultiplier(actor);
+  float totalDamage    = baseDamage * baseDamageMult * damageMult.value();
   logger::info("Execution::ApplyExecutionDamage: Base damage: {} Base multiplier: {} Damage "
                "multiplier: {} Total damage: {}",
-               baseDamage, baseDamageMult, damageMult, totalDamage);
+               baseDamage, baseDamageMult, damageMult.value(), totalDamage);
 
   // 处决伤害结算，直接对目标造成真实伤害
   victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);
-}
-
-void Execution::SetDistance(RE::Actor* victim, const std::string& payload)
-{
-  if (!victim || !Settings::bUseExecutionSystem)
-    return;
-
-  auto aggressor = GetExecutingAggressor(victim);
-  if (!aggressor)
-    return;
-
-  float distance = 0.0f;
-  try {
-    distance = std::stof(payload);
-  } catch (const std::exception& e) {
-    logger::error("Execution::SetDistance: Invalid distance value in payload: {}", payload);
-    return;
-  }
-
-  if (distance <= 0.0f)
-    return;
-
-  auto aggressorPos = aggressor->GetPosition();
-  auto victimPos    = victim->GetPosition();
-  auto direction    = (victimPos - aggressorPos);
-  direction /= direction.Length();
-  victimPos = aggressorPos + direction * distance;
-  victim->SetPosition(victimPos, false);
 }
 
 void Execution::PayloadParse(RE::Actor* actor, const std::string& payload)
@@ -461,7 +433,5 @@ void Execution::PayloadParse(RE::Actor* actor, const std::string& payload)
     Execution::ExecutionEnd(actor);
   else if (payload.starts_with("damage|"))
     Execution::Damage(actor, payload.substr(7));
-  else if (payload.starts_with("setdistance|"))
-    Execution::SetDistance(actor, payload.substr(12));
   // 等待拓展
 }

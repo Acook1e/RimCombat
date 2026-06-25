@@ -1,12 +1,9 @@
 #include "Data/Weapon.h"
 
-
 #include "magic_enum/magic_enum.hpp"
 
 namespace Weapon
 {
-
-
 
 inline Type DebugInfo(RE::TESObjectWEAP* weapon, Type type)
 {

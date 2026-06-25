@@ -1,7 +1,7 @@
 {
-    "name": "Execution - Human - OneHand - Thrust",
+    "name": "Execution - Human - OneHand - Knock",
     "description": "None",
-    "priority": 2064143302,
+    "priority": 2064143301,
     "conditions": [
         {
             "condition": "CompareValues",
@@ -58,7 +58,7 @@
                     },
                     "Comparison": "==",
                     "Value B": {
-                        "value": 10
+                        "value": 30
                     }
                 },
                 {
@@ -70,43 +70,7 @@
                     },
                     "Comparison": "==",
                     "Value B": {
-                        "value": 20
-                    }
-                },
-                {
-                    "condition": "CompareValues",
-                    "requiredVersion": "1.0.0.0",
-                    "Value A": {
-                        "graphVariable": "RimCombat_ExecutorWeapon",
-                        "graphVariableType": "Int"
-                    },
-                    "Comparison": "==",
-                    "Value B": {
-                        "value": 21
-                    }
-                },
-                {
-                    "condition": "CompareValues",
-                    "requiredVersion": "1.0.0.0",
-                    "Value A": {
-                        "graphVariable": "RimCombat_ExecutorWeapon",
-                        "graphVariableType": "Int"
-                    },
-                    "Comparison": "==",
-                    "Value B": {
-                        "value": 22
-                    }
-                },
-                {
-                    "condition": "CompareValues",
-                    "requiredVersion": "1.0.0.0",
-                    "Value A": {
-                        "graphVariable": "RimCombat_ExecutorWeapon",
-                        "graphVariableType": "Int"
-                    },
-                    "Comparison": "==",
-                    "Value B": {
-                        "value": 50
+                        "value": 40
                     }
                 }
             ]

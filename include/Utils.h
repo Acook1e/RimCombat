@@ -78,7 +78,8 @@ void SetGameSettings(const char* setting, T value)
 }
 void PlaySFX(RE::Actor* actor, RE::BGSSoundDescriptorForm* descriptor, RE::NiPoint3 position,
              float volume = 1.0f);
-void PerformAction(RE::Actor* actor, RE::BGSAction* action);
+void KnockExplosion(RE::AIProcess* process, RE::Actor* actor, const RE::NiPoint3& location,
+                    float magnitude);
 
 // 主线程相关
 // 比SKSE的TaskInterface更简单更快

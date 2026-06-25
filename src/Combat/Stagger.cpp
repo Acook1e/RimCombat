@@ -311,8 +311,6 @@ void Stagger::ProcessWeaponStagger(RE::Actor* aggressor, RE::Actor* victim)
   // 处理受击者硬直
   Level currentLevel = GetStaggerLevel(victim);
 
-  logger::info("Process {} -> {}", aggressor->GetDisplayFullName(), victim->GetDisplayFullName());
-
   // 处理外源硬直
   // 不清除Map中的数据，直到EndTarget事件，以确保在攻击过程中持续生效
   Level targetLevel = Level::None;
@@ -385,8 +383,6 @@ void Stagger::StaggerStart(RE::Actor* victim)
   // 免疫GuardBreak以下的硬直等级
   if (level < Level::GuardBreak && IsImmune(victim))
     return;
-
-  logger::info("Level {}", magic_enum::enum_name(level));
 
   SetStaggerMagnitude(victim, level);
   victim->SetGraphVariableBool(STAGGER_RECOVERABLE, false);

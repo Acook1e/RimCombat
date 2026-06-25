@@ -98,6 +98,8 @@ void Hook_OnActorUpdate::Update_PC(RE::PlayerCharacter* player, float delta)
     static auto lastWeaponDrawn = true;
     if (auto drawn = player->AsActorState()->IsWeaponDrawn(); drawn != lastWeaponDrawn) {
       lastWeaponDrawn = drawn;
+
+      UI::WeaponArtHUD::SetCanShow(drawn);
       if (drawn)
         UI::WeaponArtHUD::Show();
       else
@@ -240,7 +242,7 @@ void Hook_OnPlayIdle::Install()
   DetourUpdateThread(GetCurrentThread());
   DetourAttach(reinterpret_cast<PVOID*>(&_PlayIdle), PlayIdle);
   if (DetourTransactionCommit() != NO_ERROR) {
-    logger::error("Failed to install Hook_OnPlayIdle.");
+    logger::error("Failed to install OnPlayIdle.");
     return;
   }
   logger::info("Hook: OnPlayIdle installed.");
@@ -278,7 +280,7 @@ void Hook_OnPerformAction::Install()
   DetourUpdateThread(GetCurrentThread());
   DetourAttach(reinterpret_cast<PVOID*>(&_PerformAction), PerformAction);
   if (DetourTransactionCommit() != NO_ERROR) {
-    logger::error("Failed to install Hook_OnPerformAction.");
+    logger::error("Failed to install OnPerformAction.");
     return;
   }
   logger::info("Hook: OnPerformAction installed.");
@@ -307,22 +309,26 @@ bool Hook_OnPerformAction::PerformAction(RE::TESActionData* actionData)
   // 对于Left，一般都是防御动作
   // 对于Dual，是BFCO的特殊攻击
   case 0x13005:  // ActionRightAttack
+    if (NeedDisableAttack(sourceActor))
+      return false;
 
-    if (auto victim = Execution::FindExecutableTarget(sourceActor); victim) {
-      // 如果找到了可处决的目标，则强制进入处决处决判断
-      // 如果判断成功取消攻击进入处决动作
-      // 否则正常执行攻击动作
-      if (Execution::Execute(sourceActor, victim))
+    // 每次右手攻击都尝试寻找处决目标
+    if (const auto [victim, direction] = Execution::FindExecutableTarget(sourceActor);
+        victim && direction != Execution::Direction::None) {
+      // 如果判断成功执行处决动作
+      if (Execution::Execute(sourceActor, victim, direction))
         return false;
     }
 
+    break;
+
+  case 0x13383:  // ActionRightPowerAttack
+  case 0x50C96:  // ActionDualAttack
+  case 0x2E2F7:  // ActionDualPowerAttack
     if (NeedDisableAttack(sourceActor))
       return false;
     break;
 
-    // case 0x13383:  // ActionRightPowerAttack
-    // case 0x50C96:  // ActionDualAttack
-    // case 0x2E2F7:  // ActionDualPowerAttack
     // case 0x13004:  // ActionLeftAttack
     // case 0x2E2F6:  // ActionLeftPowerAttack
 
@@ -469,6 +475,29 @@ void Hook_OnUnequipObject::OnUnequipObject(RE::ActorEquipManager* manager, RE::A
   WeaponArt::Manager::UpdateWeaponArt(actor);
 }
 
+// 提供处决无敌
+void Hook_IsGhost::Install()
+{
+  std::uintptr_t addr = REL::VariantID(36286, 37275, 0).address();
+  _IsGhost            = reinterpret_cast<decltype(_IsGhost)>(addr);
+
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(reinterpret_cast<PVOID*>(&_IsGhost), IsGhost);
+  if (DetourTransactionCommit() != NO_ERROR) {
+    logger::error("Failed to install Actor::IsGhost.");
+    return;
+  }
+  logger::info("Hook: Actor::IsGhost installed.");
+}
+bool Hook_IsGhost::IsGhost(RE::Actor* actor)
+{
+  if (Execution::IsExecuting(actor))
+    return true;
+
+  return _IsGhost(actor);
+}
+
 void Install()
 {
   Hook_OnMainUpdate::Install();
@@ -481,5 +510,6 @@ void Install()
   Hook_OnModActorValue::Install();
   Hook_OnEquipObject::Install();
   Hook_OnUnequipObject::Install();
+  Hook_IsGhost::Install();
 }
 }  // namespace Hooks

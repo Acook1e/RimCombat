@@ -70,7 +70,7 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     WeaponArt::Manager::Interrupt(actor);
     break;
 
-  case "staggerstart"_h:
+  case "staggerstart"_h: {
     actor->SetGraphVariableBool(Stagger::STAGGER_RECOVERABLE, false);
 
     // 触发硬直重置用于攻击的系统
@@ -82,7 +82,7 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     Stamina::End(actor);
     WeaponArt::Manager::Interrupt(actor);
     break;
-
+  }
   case "staggerstop"_h: {
     auto currentLevel = Stagger::GetStaggerLevel(actor);
     if (currentLevel != Stagger::Level::None) {
@@ -92,20 +92,22 @@ bool AnimEvent::ProcessEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* sink,
     } else {
       auto recordLevel = Stagger::IsInStagger(actor);
       // 处决动画的结束
-      if (recordLevel == Stagger::Level::Execution)
+      if (recordLevel == Stagger::Level::Executor) {
+        actor->SetGraphVariableInt(Execution::EXECUTOR_WEAPON, 0);
+        actor->SetGraphVariableInt(Execution::VICTIM_RACE, 0);
         Execution::ExecutionEnd(actor);
-      else if (recordLevel == Stagger::Level::PostureBreak)
+      } else if (recordLevel == Stagger::Level::Execution) {
+        actor->SetGraphVariableInt(Execution::EXECUTOR_WEAPON, 0);
+        actor->SetGraphVariableInt(Execution::VICTIM_RACE, 0);
+        auto* process = actor->GetActorRuntimeData().currentProcess;
+        if (process)
+          Utils::KnockExplosion(process, actor, {}, 0.0f);
+      } else if (recordLevel == Stagger::Level::PostureBreak)
         Execution::ExitExecutable(actor);
       Stagger::Recoverable(actor);
     }
     break;
   }
-
-  case "killactor"_h:
-    // 如果进入处决状态，忽略KillMove的处决事件
-    if (Execution::IsExecutingVictim(actor))
-      return true;
-    break;
 
   case "prehitframe"_h:
     break;

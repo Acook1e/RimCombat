@@ -1,8 +1,17 @@
 {
     "Human": {
         "Unarm": [
+            "Front"
+        ],
+        "Spell": [
+            "Front"
+        ],
+        "Dagger": [
             "Front",
             "Back"
+        ],
+        "Claw": [
+            "Front"
         ],
         "Sword": [
             "Front",
@@ -16,9 +25,42 @@
             "Front",
             "Back"
         ],
+        "WarAxe": [
+            "Front"
+        ],
+        "Mace": [
+            "Front"
+        ],
+        "Cestus": [
+            "Front"
+        ],
         "ShortSpear": [
             "Front",
             "Back"
+        ],
+        "GreatSword": [
+            "Front"
+        ],
+        "GreatKatana": [
+            "Front"
+        ],
+        "BattleAxe": [
+            "Front"
+        ],
+        "WarHammer": [
+            "Front"
+        ],
+        "Quarterstaff": [
+            "Front"
+        ],
+        "Glaive": [
+            "Front"
+        ],
+        "Pike": [
+            "Front"
+        ],
+        "Halberd": [
+            "Front"
         ]
     }
 }

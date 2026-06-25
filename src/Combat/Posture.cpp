@@ -305,10 +305,12 @@ void Posture::DamagePostureHealth(RE::Actor* actor, float value, bool ignoreBrea
 
   // 破防处理
   if (postureData.current <= 0.0f) {
-    Stagger::SetStaggerLevel(actor, Stagger::Level::PostureBreak);
-    Execution::EnterExecutable(actor);
     postureData.current = 0.8f * postureData.max;  // 进入处决状态后默认恢复到最大值的80%
-    Utils::PlaySFX(actor, postureBreakSFX, actor->GetPosition());
+    if (!actor->AsActorState()->IsBleedingOut()) {
+      Stagger::SetStaggerLevel(actor, Stagger::Level::PostureBreak);
+      Execution::EnterExecutable(actor);
+      Utils::PlaySFX(actor, postureBreakSFX, actor->GetPosition());
+    }
   }
 }
 

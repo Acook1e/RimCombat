@@ -1,8 +1,20 @@
 {
-  "name": "Execution - Human - OneHand - Thrust",
+  "name": "Executor - Human - Fist",
   "description": "",
-  "priority": 2064142002,
+  "priority": 2064142000,
   "conditions": [
+    {
+      "condition": "CompareValues",
+      "requiredVersion": "1.0.0.0",
+      "Value A": {
+        "graphVariable": "RimCombat_StaggerLevel",
+        "graphVariableType": "Int"
+      },
+      "Comparison": "==",
+      "Value B": {
+        "value": 253
+      }
+    },
     {
       "condition": "OR",
       "requiredVersion": "1.0.0.0",
@@ -46,7 +58,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 20
+            "value": 1
           }
         },
         {
@@ -58,7 +70,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 21
+            "value": 2
           }
         },
         {
@@ -70,7 +82,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 22
+            "value": 11
           }
         },
         {
@@ -82,7 +94,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 50
+            "value": 41
           }
         }
       ]

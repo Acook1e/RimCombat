@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace Hooks
 {
 class Hook_OnMainUpdate
@@ -214,6 +213,16 @@ private:
                               RE::TESBoundObject* object, std::uint64_t unk);
 
   static inline REL::Relocation<decltype(OnUnequipObject)> _OnUnequipObject;
+};
+
+class Hook_IsGhost
+{
+public:
+  static void Install();
+
+private:
+  static bool IsGhost(RE::Actor* actor);
+  static inline bool (*_IsGhost)(RE::Actor* actor) = nullptr;
 };
 
 void Install();

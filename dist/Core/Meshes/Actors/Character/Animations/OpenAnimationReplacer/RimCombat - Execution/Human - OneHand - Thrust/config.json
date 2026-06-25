@@ -1,7 +1,7 @@
 {
-  "name": "Executor - Human - TwoHand",
+  "name": "Executor - Human - OneHand - Thrust",
   "description": "",
-  "priority": 2064142003,
+  "priority": 2064142002,
   "conditions": [
     {
       "condition": "CompareValues",
@@ -58,7 +58,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 60
+            "value": 10
           }
         },
         {
@@ -70,7 +70,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 61
+            "value": 20
           }
         },
         {
@@ -82,7 +82,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 70
+            "value": 21
           }
         },
         {
@@ -94,7 +94,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 80
+            "value": 22
           }
         },
         {
@@ -106,43 +106,7 @@
           },
           "Comparison": "==",
           "Value B": {
-            "value": 81
-          }
-        },
-        {
-          "condition": "CompareValues",
-          "requiredVersion": "1.0.0.0",
-          "Value A": {
-            "graphVariable": "RimCombat_ExecutorWeapon",
-            "graphVariableType": "Int"
-          },
-          "Comparison": "==",
-          "Value B": {
-            "value": 90
-          }
-        },
-        {
-          "condition": "CompareValues",
-          "requiredVersion": "1.0.0.0",
-          "Value A": {
-            "graphVariable": "RimCombat_ExecutorWeapon",
-            "graphVariableType": "Int"
-          },
-          "Comparison": "==",
-          "Value B": {
-            "value": 91
-          }
-        },
-        {
-          "condition": "CompareValues",
-          "requiredVersion": "1.0.0.0",
-          "Value A": {
-            "graphVariable": "RimCombat_ExecutorWeapon",
-            "graphVariableType": "Int"
-          },
-          "Comparison": "==",
-          "Value B": {
-            "value": 92
+            "value": 50
           }
         }
       ]

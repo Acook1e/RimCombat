@@ -1,6 +1,7 @@
 #include "GUI/Menu.h"
 
 #include "GUI/Localization.h"
+#include "GUI/UI.h"
 #include "Utils.h"
 
 #include "API/SKSEMenuFramework.h"
@@ -117,6 +118,9 @@ void Combo(std::uint32_t hash, std::vector<std::reference_wrapper<Localization::
   }
 }
 }  // namespace ImGui
+
+namespace MenuImpl
+{
 
 void General()
 {
@@ -287,17 +291,27 @@ void Block()
   ImGui::DragUInt64("TimedBlockDuration"_h, &Settings::uTimedBlockDuration, 5.0f, 0, 10000);
   ImGui::DragFloat("BlockMaxStaminaConsumePercent"_h, &Settings::fBlockMaxStaminaConsumePercent,
                    0.01f, 0.0f, 1.0f, "%.2f");
-  ImGui::DragFloat("BlockStaminaBonus"_h, &Settings::fBlockStaminaBonus, 0.1f, 0.0f,
-                   1000.0f, "%.1f");
+  ImGui::DragFloat("BlockStaminaBonus"_h, &Settings::fBlockStaminaBonus, 0.1f, 0.0f, 1000.0f,
+                   "%.1f");
   ImGui::DragFloat("TimedBlockBlockStrengthMult"_h, &Settings::fTimedBlockBlockStrengthMult, 0.05f,
                    0.0f, 20.0f, "%.2f");
 }
 
 void WeaponArt()
 {
-  ImGui::Checkbox("UseWeaponArtSystem"_h, &Settings::bUseWeaponArtSystem);
+  ImGui::Checkbox("UseWeaponArtSystem"_h, &Settings::bUseWeaponArtSystem, []() {
+    if (!Settings::bUseWeaponArtSystem) {
+      Settings::bUseWeaponArtHUD = false;
+      UI::WeaponArtHUD::Hide();
+    }
+  });
   ImGui::Checkbox("HideWeaponArtHUDOnSheathe"_h, &Settings::bHideWeaponArtHUDOnSheathe);
-  ImGui::Checkbox("UseWeaponArtHUD"_h, &Settings::bUseWeaponArtHUD);
+  ImGui::Checkbox("UseWeaponArtHUD"_h, &Settings::bUseWeaponArtHUD, []() {
+    if (!Settings::bUseWeaponArtSystem)
+      Settings::bUseWeaponArtHUD = false;
+    if (!Settings::bUseWeaponArtHUD)
+      UI::WeaponArtHUD::Hide();
+  });
   ImGui::DragFloat("WeaponArtHUDPosX"_h, &Settings::fWeaponArtHUDPosX, 0.1f, 0.0f, 100.0f, "%.1f");
   ImGui::DragFloat("WeaponArtHUDPosY"_h, &Settings::fWeaponArtHUDPosY, 0.1f, 0.0f, 100.0f, "%.1f");
   ImGui::DragFloat("WeaponArtHUDScale"_h, &Settings::fWeaponArtHUDScale, 0.01f, 0.1f, 10.0f,
@@ -332,6 +346,7 @@ void Debug()
 }
 
 SKSEMenuFramework::Model::Event* event = nullptr;
+}  // namespace MenuImpl
 
 Menu::Menu()
 {
@@ -340,17 +355,17 @@ Menu::Menu()
 
   ImGui::SetSection("RimCombat"_h);
 
-  ImGui::AddSectionItem("General"_h, General);
-  ImGui::AddSectionItem("Stamina"_h, Stamina);
-  ImGui::AddSectionItem("Damage"_h, Damage);
-  ImGui::AddSectionItem("Posture"_h, Posture);
-  ImGui::AddSectionItem("Poise"_h, Poise);
-  ImGui::AddSectionItem("Stagger"_h, Stagger);
-  ImGui::AddSectionItem("Exhausted"_h, Exhausted);
-  ImGui::AddSectionItem("Block"_h, Block);
-  ImGui::AddSectionItem("WeaponArt"_h, WeaponArt);
-  ImGui::AddSectionItem("Execution"_h, Execution);
-  ImGui::AddSectionItem("Debug"_h, Debug);
+  ImGui::AddSectionItem("General"_h, MenuImpl::General);
+  ImGui::AddSectionItem("Stamina"_h, MenuImpl::Stamina);
+  ImGui::AddSectionItem("Damage"_h, MenuImpl::Damage);
+  ImGui::AddSectionItem("Posture"_h, MenuImpl::Posture);
+  ImGui::AddSectionItem("Poise"_h, MenuImpl::Poise);
+  ImGui::AddSectionItem("Stagger"_h, MenuImpl::Stagger);
+  ImGui::AddSectionItem("Exhausted"_h, MenuImpl::Exhausted);
+  ImGui::AddSectionItem("Block"_h, MenuImpl::Block);
+  ImGui::AddSectionItem("WeaponArt"_h, MenuImpl::WeaponArt);
+  ImGui::AddSectionItem("Execution"_h, MenuImpl::Execution);
+  ImGui::AddSectionItem("Debug"_h, MenuImpl::Debug);
 
   auto callback = [](SKSEMenuFramework::Model::EventType eventType) {
     switch (eventType) {
@@ -362,14 +377,14 @@ Menu::Menu()
       break;
     }
   };
-  event = new SKSEMenuFramework::Model::Event(callback, static_cast<float>(MOD));
+  MenuImpl::event = new SKSEMenuFramework::Model::Event(callback, static_cast<float>(MOD));
 
   logger::info("Menu: SKSEMenuFramework v{} loaded.", SKSEMenuFramework::GetMenuFrameworkVersion());
 }
 
 Menu::~Menu()
 {
-  if (event)
-    delete event;
-  event = nullptr;
+  if (MenuImpl::event)
+    delete MenuImpl::event;
+  MenuImpl::event = nullptr;
 }

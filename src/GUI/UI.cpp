@@ -497,7 +497,10 @@ void WeaponArtHUD::OnViewReady(PrismaView readyView)
 
 void WeaponArtHUD::Show()
 {
-  if (!prisma || !prisma->IsValid(view) || !Settings::bUseWeaponArtHUD || !canShow)
+  if (!prisma || !prisma->IsValid(view) || !Settings::bUseWeaponArtHUD)
+    return;
+
+  if (isShow)
     return;
 
   isShow = true;
@@ -512,6 +515,9 @@ void WeaponArtHUD::Show()
 void WeaponArtHUD::Hide()
 {
   if (!prisma || !prisma->IsValid(view))
+    return;
+
+  if (!isShow)
     return;
 
   isShow = false;

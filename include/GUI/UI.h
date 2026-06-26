@@ -77,11 +77,13 @@ public:
     return singleton;
   }
 
-  static void SetCanShow(bool show) { canShow = show; }
-
+  static bool CanShow() { return drawn && !menuConflict; }
   static bool IsShow() { return isShow; }
   static void Show();
   static void Hide();
+
+  static void SetDrawn(bool value) { drawn = value; }
+  static void SetMenuConfilct(bool value) { menuConflict = value; }
 
   static void UpdateState(WeaponArt::Manager::State state);
   static void UpdateName(std::int32_t artID);
@@ -93,9 +95,10 @@ private:
   static void OnViewReady(PrismaView readyView);
   static void SyncViewConfig();
 
-  static inline PrismaView view = 0;
-  static inline bool isShow     = false;
-  static inline bool canShow    = false;
-  static inline bool domReady   = false;
+  static inline PrismaView view   = 0;
+  static inline bool isShow       = false;
+  static inline bool domReady     = false;
+  static inline bool drawn        = true;
+  static inline bool menuConflict = false;
 };
 }  // namespace UI

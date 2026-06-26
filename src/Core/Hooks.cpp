@@ -98,14 +98,14 @@ void Hook_OnActorUpdate::Update_PC(RE::PlayerCharacter* player, float delta)
     static auto lastWeaponDrawn = true;
     if (auto drawn = player->AsActorState()->IsWeaponDrawn(); drawn != lastWeaponDrawn) {
       lastWeaponDrawn = drawn;
-
-      UI::WeaponArtHUD::SetCanShow(drawn);
-      if (drawn)
-        UI::WeaponArtHUD::Show();
-      else
-        UI::WeaponArtHUD::Hide();
+      UI::WeaponArtHUD::SetDrawn(drawn);
     }
   }
+
+  if (UI::WeaponArtHUD::CanShow())
+    UI::WeaponArtHUD::Show();
+  else
+    UI::WeaponArtHUD::Hide();
 }
 
 void Hook_OnActorUpdate::TrackActorUpdate(RE::Actor* actor)

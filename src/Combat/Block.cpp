@@ -260,8 +260,8 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
   }
   // 限时格挡事件分发
 
-  auto message = std::format("{} 限时格挡", victim->GetDisplayFullName());
-  RE::SendHUDMessage::ShowHUDMessage(message.data());
+  // auto message = std::format("{} 限时格挡", victim->GetDisplayFullName());
+  // RE::SendHUDMessage::ShowHUDMessage(message.data());
 
   float stamina      = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina);
   float maxStamina   = Utils::GetCurrentMaxActorValue(victim, RE::ActorValue::kStamina);

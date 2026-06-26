@@ -192,28 +192,25 @@ MenuEvent::ProcessEvent(const RE::MenuOpenCloseEvent* event,
       UI::WeaponArtMenu::SetInventoryMenuOpen(false);
   }
 
-  bool canShowHUD = false;
+  bool confilct = false;
 
-  // 跟随HUD菜单的开关来显示/隐藏战技HUD
-  if (ui->IsMenuOpen(RE::HUDMenu::MENU_NAME) || ui->IsMenuOpen("TrueHUD"))
-    canShowHUD = true;
+  if (const auto controlMap = RE::ControlMap::GetSingleton(); controlMap) {
+    using ContextID           = RE::UserEvents::INPUT_CONTEXT_ID;
+    const auto& priorityStack = controlMap->GetRuntimeData().contextPriorityStack;
+    if (priorityStack.empty())
+      confilct = true;
+    else if (priorityStack.back() == ContextID::kGameplay) {
+      for (const auto context : priorityStack) {
+        if (context == ContextID::kMap) {
+          confilct = true;
+          break;
+        }
+      }
+    } else
+      confilct = true;
+  }
 
-  if (ui->IsMenuOpen(RE::MainMenu::MENU_NAME) || ui->IsMenuOpen(RE::LoadingMenu::MENU_NAME) ||
-      ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME) || ui->IsMenuOpen(RE::MagicMenu::MENU_NAME) ||
-      ui->IsMenuOpen(RE::BarterMenu::MENU_NAME) || ui->IsMenuOpen(RE::CraftingMenu::MENU_NAME) ||
-      ui->IsMenuOpen(RE::Console::MENU_NAME) || ui->IsMenuOpen(RE::JournalMenu::MENU_NAME))
-    canShowHUD = false;
-
-  auto player = RE::PlayerCharacter::GetSingleton();
-  if (Settings::bHideWeaponArtHUDOnSheathe && !player->AsActorState()->IsWeaponDrawn())
-    canShowHUD = false;
-
-  UI::WeaponArtHUD::SetCanShow(canShowHUD);
-
-  if (canShowHUD)
-    UI::WeaponArtHUD::Show();
-  else
-    UI::WeaponArtHUD::Hide();
+  UI::WeaponArtHUD::SetMenuConfilct(confilct);
 
   return RE::BSEventNotifyControl::kContinue;
 }

@@ -211,11 +211,20 @@ std::tuple<RE::Actor*, Direction> Execution::FindExecutableTarget(RE::Actor* agg
   if (!aggressor || !Settings::bUseExecutionSystem)
     return {nullptr, Direction::None};
 
+  if (aggressor->IsDead() || !aggressor->Is3DLoaded() || aggressor->IsOnMount())
+    return {nullptr, Direction::None};
+
   if (Race::GetRace(aggressor) != RaceType::Human)
     return {nullptr, Direction::None};
 
   if (IsExecuting(aggressor))
     return {nullptr, Direction::None};
+
+  if (aggressor->IsPlayerRef()) {
+    auto camera = RE::PlayerCamera::GetSingleton();
+    if (camera && camera->currentState && camera->currentState->id == RE::CameraState::kFirstPerson)
+      return {nullptr, Direction::None};
+  }
 
   static const float MinDistance   = 250.0f;
   static const float MaxHeightDiff = 50.0f;
@@ -227,10 +236,15 @@ std::tuple<RE::Actor*, Direction> Execution::FindExecutableTarget(RE::Actor* agg
     if (executableActors.empty())
       return {nullptr, Direction::None};
     for (auto* victim : executableActors) {
-      if (!victim || victim->IsDead() || victim->AsActorState()->IsBleedingOut())
+      if (!victim || victim->IsDead() || !victim->Is3DLoaded() || victim->IsOnMount())
+        continue;
+      if (auto state = victim->AsActorState(); !state || state->IsBleedingOut())
         continue;
       if (victim == aggressor)
         continue;
+      if (!aggressor->CheckValidTarget(*victim))
+        continue;
+
       float heightDiff = std::abs(aggressor->GetPosition().z - victim->GetPosition().z);
       if (heightDiff > MaxHeightDiff)
         continue;
@@ -378,8 +392,13 @@ void Execution::ExecutionEnd(RE::Actor* actor)
     return;
 
   std::unique_lock lock(mtx_executing);
-  if (executingActors.contains(actor))
+  if (executingActors.contains(actor)) {
+    auto victim  = executingActors[actor];
+    auto current = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
+    if (current < 1.0f)
+      victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, 1.0f);
     executingActors.erase(actor);
+  }
 }
 
 void Execution::AddExecutionStartListener(ExecutionStartCallback callback)
@@ -404,6 +423,22 @@ void Execution::Damage(RE::Actor* actor, const std::string& payload)
   if (damageMult <= 0.0f)
     return;
 
+  static RE::BGSSoundDescriptorForm* lightSFX = nullptr;
+  static RE::BGSSoundDescriptorForm* heavySFX = nullptr;
+
+  if (!lightSFX || !heavySFX) {
+    auto data = RE::TESDataHandler::GetSingleton();
+    if (data) {
+      lightSFX = data->LookupForm<RE::BGSSoundDescriptorForm>(0x809, "RimCombat.esp");
+      heavySFX = data->LookupForm<RE::BGSSoundDescriptorForm>(0x80A, "RimCombat.esp");
+    }
+  }
+
+  if (damageMult < 1.0f)
+    Utils::PlaySFX(actor, lightSFX, actor->GetPosition());
+  else
+    Utils::PlaySFX(actor, heavySFX, actor->GetPosition());
+
   auto type        = Weapon::GetActorEquipmentType(actor);
   float baseDamage = 0.0f;
 
@@ -419,9 +454,16 @@ void Execution::Damage(RE::Actor* actor, const std::string& payload)
 
   float baseDamageMult = Weapon::GetBaseExecutionMultiplier(actor);
   float totalDamage    = baseDamage * baseDamageMult * damageMult.value();
-  logger::info("Execution::ApplyExecutionDamage: Base damage: {} Base multiplier: {} Damage "
-               "multiplier: {} Total damage: {}",
-               baseDamage, baseDamageMult, damageMult.value(), totalDamage);
+  // logger::info("Execution::ApplyExecutionDamage: Base damage: {} Base multiplier: {} Damage "
+  //              "multiplier: {} Total damage: {}",
+  //              baseDamage, baseDamageMult, damageMult.value(), totalDamage);
+
+  // 处决过程免死
+  auto current = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
+  if (current < totalDamage)
+    totalDamage = current - 0.5;
+  else if (current < 1.0f)
+    totalDamage = 0;
 
   // 处决伤害结算，直接对目标造成真实伤害
   victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);

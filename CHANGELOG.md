@@ -2,38 +2,18 @@
 
 > 基于 git 提交历史 (2025-12-21 ~ 2026-06-26)，7 个版本。
 
----
-
-## 0.4.0 — 处决系统完整实现 (2026-06-26)
+## 0.4.1 — 处决稳定性 + 限时格挡反伤 + 菜单重构 (2026-06-26)
 
 ### 处决系统
 
-- **Find → Execute 管道**：`FindExecutableTarget` 在锁内完成全部验证（距离 250、高度差 50、前方 60° 锥、武器|种族组合存在、方向可用、原子 erase），返回 `(victim, direction)` 元组。`Execute` 无条件保证成功，含 `attackStart` 失败重试。
-- **四种处决动画类别**：Thrust（匕首/剑/细剑/武士刀/枪）、Knock（单手斧/锤/战斧/战锤）、TwoHand（大剑/大太刀/长柄刀/长枪/斧枪）、Fist（空手/法术/爪/拳套）。正向/背刺由 `Execution.json` + OAR 动画方向区分。
-- **OAR 受害者端配置**：四个 `config.json`（`RimCombat - Stagger/Execution - Human - *`），通过 `RimCombat_StaggerLevel == 254` + `ExecutorWeapon` + `VictimRace` 条件匹配。MSL 动画 Forward/Backward 变体自动选择。
-- **处决伤害管线**：`baseDamage × ExecutionDamageMult × payload`。23 种武器类型独立倍率（Settings.json → `ExecutionDamageMult`）。动画 payload（`RimExecution → damage|Mult`）控制每段分配。
-- **延迟杀死机制**：每次攻击 payload 锁定受害者血量 ≥ 0.5HP。`ExecutionEnd` 检测血量 < 1HP 执行最终杀死。
-- **处决无敌**：IsGhost detour 覆盖受害者侧（外部弹射物/近战命中穿透）。处决者侧走 GodMode 或伤害 hook 过滤。
-- **AI 锁**：处决者 `boolBits.set(true, kParalyzed)`（保留行为图处理，仅锁移动/输入）。
-- **新硬直等级**：`Executor = 253`（处决者动画）、`Execution = 254`（受害者动画），与 `PostureBreak = 255` 组成处决三级链路。
-- **处决 JSON 注册表**：`Execution/RimCombat.json`。Race-first 结构（`"Human": {"Sword": ["Front","Back"], ...}`）。19 种武器覆盖。
-- **攻击输入钩子**：`ActionRightAttack` 中 `FindExecutableTarget → Execute`，返回 false 拦截原攻击动作，直接进入处决。
-- **处决音效**：轻击/重击独立 WAV（`RimCombat.esp` FormID 0x809/0x80A）。
+- **免死重构**：`ModActorValue` hook 拦截 Health 伤害。处决受害者血量即将归零时，value 钳制为 `0.5 - current`，保留最后一丝 HP。设置 `kill` 标志，由 `ExecutionEnd` 执行最终杀死。
+- **VictimData 结构**：`executingActors` 从 `map<actor*, actor*>` 升级为 `map<aggressor*, VictimData{victim, kill}>`。`SetExecutingVictimKill(actor, bool)` 按受害者查值设置 kill 标志。
+- **处决延迟杀死行为重构**：杀死标志从 damage payload 移到 `ExecutionEnd`，结合 `ModActorValue` 免死逻辑，确保只有当动画真正结束时才执行杀死。
 
-### 战技
+### 格挡系统
 
-- **JSON Schema**：`scripts/WeaponArt.schema.json` + VS Code 本地映射（`.vscode/settings.json`）。编辑器内自动校验 + 补全。
-- **WeaponArtHUD**：重构 `canShow` 为 `drawn & !menuConflict` 三态分离。`ControlMap::contextPriorityStack` 替 14 次 `IsMenuOpen` 轮询。`kMap` 上下文特殊检测。
-
-### 修复
-
-- **硬直无限循环**：`Stagger::Update` 中 `continue` 未推进迭代器，PostureBreak 专用等级触发死循环。
-- **硬直升级重入**：`staggerStop → staggerStart` 同步重入导致卡死，改为 `SetLevel(None)` 先于事件发送。
-- **HUD 闪烁**：`CanShow()` 内 `!isShow` 导致逐帧 Show/Hide 交替。
-- **MenuEvent 条件反向**：阻塞菜单判定布尔值反转，HUD 在背包界面显示。
-- **`string_view` 悬垂**：`menuOpen` 从 `string_view` 改为 `uint32_t hash`。
-
----
+- **限时格挡架势反伤**：定时格挡成功时，按 `fTimedBlockPostureDamageReflectMult` 比例将架势伤害返还攻击者。`bTimedBlockReflectPostureBreak` 控制是否可导致攻击者破防。
+- **MCM 菜单**：新增 DragFloat + Checkbox，双语 Localization。
 
 ## 0.3.0 — 数据驱动战技架构 (2026-06-17)
 

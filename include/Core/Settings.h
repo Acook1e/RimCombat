@@ -189,6 +189,10 @@ inline bool bUseBlockSystem = true;
 inline bool bTimedBlockEnabled = true;
 // 是否允许限时格挡完全免疫破防
 inline bool bTimedBlockNeverPostureBreak = true;
+// 限时格挡失衡反馈倍率
+inline float fTimedBlockPostureDamageReflectMult = 0.15f;
+// 限时格挡反馈是否能造成失衡硬直
+inline bool bTimedBlockReflectPostureBreak = false;
 // 限时格挡的时间窗口，单位为毫秒
 inline std::uint64_t uTimedBlockLimit = 150;
 // 限时格挡触发持续一段时间的效果，单位为毫秒

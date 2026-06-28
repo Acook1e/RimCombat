@@ -410,11 +410,23 @@ float Hook_OnModActorValue::ModCurrentActorValue(RE::Actor* actor, RE::ActorValu
 {
   // Process ActorValue Decrease
   if (value < 0) {
-    // Process Exhausted State Entry
-    if (akValue == RE::ActorValue::kStamina) {
+    switch (akValue) {
+    case RE::ActorValue::kHealth:
+      // 处决过程中免死
+      if (auto current = actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
+          current + value <= 0 && Execution::IsExecutingVictim(actor)) {
+        value = 0.5f - current;
+        Execution::SetExecutingVictimKill(actor, true);
+      }
+
+      break;
+    case RE::ActorValue::kStamina:
       // 判断当前Actor的耐力如果即将降到0或以下，则进入疲惫状态
       if (actor->AsActorValueOwner()->GetActorValue(RE::ActorValue::kStamina) + value <= 0)
         Exhausted::EnterExhausted(actor);
+      break;
+    default:
+      break;
     }
     // Process player god mode
     if (actor->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode()) {

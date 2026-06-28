@@ -3,7 +3,7 @@ set_xmakever("3.0.5")
 PROJECT_NAME = "RimCombat"
 
 set_project(PROJECT_NAME)
-set_version("0.4.0")
+set_version("0.4.1")
 set_languages("cxx23")
 set_toolchains("clang-cl")
 

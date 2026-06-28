@@ -287,6 +287,10 @@ void Block()
   ImGui::Checkbox("UseBlockSystem"_h, &Settings::bUseBlockSystem);
   ImGui::Checkbox("TimedBlockEnabled"_h, &Settings::bTimedBlockEnabled);
   ImGui::Checkbox("TimedBlockNeverPostureBreak"_h, &Settings::bTimedBlockNeverPostureBreak);
+  ImGui::DragFloat("TimedBlockPostureDamageReflectMult"_h,
+                   &Settings::fTimedBlockPostureDamageReflectMult, 0.01f, 0.0f, 2.0f, "%.2f");
+  ImGui::Checkbox("TimedBlockReflectPostureBreak"_h,
+                  &Settings::bTimedBlockReflectPostureBreak);
   ImGui::DragUInt64("TimedBlockLimit"_h, &Settings::uTimedBlockLimit, 5.0f, 0, 5000);
   ImGui::DragUInt64("TimedBlockDuration"_h, &Settings::uTimedBlockDuration, 5.0f, 0, 10000);
   ImGui::DragFloat("BlockMaxStaminaConsumePercent"_h, &Settings::fBlockMaxStaminaConsumePercent,

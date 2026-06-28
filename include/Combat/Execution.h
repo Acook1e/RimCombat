@@ -24,6 +24,12 @@ public:
     Back  = 1 << 1
   };
 
+  struct VictimData
+  {
+    RE::Actor* victim;
+    bool kill = false;
+  };
+
   static Execution& GetSingleton()
   {
     static Execution singleton;
@@ -41,7 +47,9 @@ public:
   static bool Execute(RE::Actor* aggressor, RE::Actor* victim, Direction direction);
 
   static bool IsExecuting(RE::Actor* actor);
+  static bool IsExecutingVictim(RE::Actor* actor);
   static RE::Actor* GetExecutingVictim(RE::Actor* aggressor);
+  static void SetExecutingVictimKill(RE::Actor* victim, bool kill);
   static void ExecutionEnd(RE::Actor* actor);
 
   using ExecutionStartCallback = void (*)(RE::Actor* aggressor, RE::Actor* victim);
@@ -67,7 +75,7 @@ private:
   // 保存 [处决者, 受害者]，用于在处决过程中持续处理伤害等逻辑
   // 不序列化保存状态
   static inline std::shared_mutex mtx_executing;
-  static inline std::unordered_map<RE::Actor*, RE::Actor*> executingActors;
+  static inline std::unordered_map<RE::Actor*, VictimData> executingActors;
 
   // 需要锁
   // 订阅处决事件开始时的callback

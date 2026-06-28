@@ -3,6 +3,8 @@
         "UseBlockSystem": true,
         "TimedBlockEnabled": true,
         "TimedBlockNeverPostureBreak": true,
+        "TimedBlockPostureDamageReflectMult": 0.15,
+        "TimedBlockReflectPostureBreak": false,
         "TimedBlockLimit": 150,
         "TimedBlockDuration": 100,
         "BlockMaxStaminaConsumePercent": 0.5,

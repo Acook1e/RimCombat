@@ -278,6 +278,8 @@ namespace
     json block = {{"UseBlockSystem", bUseBlockSystem},
                   {"TimedBlockEnabled", bTimedBlockEnabled},
                   {"TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak},
+                  {"TimedBlockPostureDamageReflectMult", fTimedBlockPostureDamageReflectMult},
+                  {"TimedBlockReflectPostureBreak", bTimedBlockReflectPostureBreak},
                   {"TimedBlockLimit", uTimedBlockLimit},
                   {"TimedBlockDuration", uTimedBlockDuration},
                   {"BlockMaxStaminaConsumePercent", fBlockMaxStaminaConsumePercent},
@@ -494,6 +496,9 @@ void LoadSettings()
     const auto& block = *it;
     LoadSetting(block, "Block", "UseBlockSystem", bUseBlockSystem);
     LoadSetting(block, "Block", "TimedBlockEnabled", bTimedBlockEnabled);
+    LoadSetting(block, "Block", "TimedBlockPostureDamageReflectMult",
+                fTimedBlockPostureDamageReflectMult);
+    LoadSetting(block, "Block", "TimedBlockReflectPostureBreak", bTimedBlockReflectPostureBreak);
     LoadSetting(block, "Block", "TimedBlockNeverPostureBreak", bTimedBlockNeverPostureBreak);
     LoadSetting(block, "Block", "TimedBlockLimit", uTimedBlockLimit);
     LoadSetting(block, "Block", "TimedBlockDuration", uTimedBlockDuration);

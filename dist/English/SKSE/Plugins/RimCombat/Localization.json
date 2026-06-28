@@ -375,6 +375,14 @@
         "label": "Timed Block Posture Break Immunity",
         "desc": "When a timed block is triggered successfully, this hit cannot cause a posture break."
     },
+    "TimedBlockPostureDamageReflectMult": {
+        "label": "Timed Block Posture Reflect Multiplier",
+        "desc": "When a timed block succeeds, reflects a portion of the incoming posture damage back to the attacker. Set to 0 to disable."
+    },
+    "TimedBlockReflectPostureBreak": {
+        "label": "Reflected Damage Can Posture Break",
+        "desc": "When enabled, posture damage reflected by a timed block can trigger the attacker's posture break."
+    },
     "TimedBlockLimit": {
         "label": "Timed Block Window",
         "desc": "Time from the start of a block during which it still counts as a timed block, in milliseconds."

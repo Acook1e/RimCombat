@@ -375,6 +375,14 @@
         "label": "限时格挡免疫破防",
         "desc": "成功触发限时格挡时，不会被这一击直接破防。"
     },
+    "TimedBlockPostureDamageReflectMult": {
+        "label": "限时格挡架势反伤倍率",
+        "desc": "限时格挡成功时，将受到的架势伤害按比例返还给攻击者。0 为不返还。"
+    },
+    "TimedBlockReflectPostureBreak": {
+        "label": "限时格挡反伤可破防",
+        "desc": "开启后，限时格挡反弹的架势伤害可以触发攻击者的姿势崩坏。"
+    },
     "TimedBlockLimit": {
         "label": "限时格挡判定窗口",
         "desc": "从开始格挡到仍算限时格挡的时间，单位毫秒。"

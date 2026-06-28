@@ -204,8 +204,8 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
       hitData.flags.set(true, RE::HitData::Flag::kBlocked);
       {
         // 给予极短的限时格挡，触发后续的格挡强化和反击效果
-        std::unique_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-        timedBlockEndTimes[victim] = now + 10;
+        std::unique_lock lock(mtx_timedBlockDuration);
+        timedBlockEndTimes[victim] = now + Settings::uTimedBlockDuration;
         timedBlock                 = true;
       }
       auto& data = gpData[victim];
@@ -296,8 +296,8 @@ void Block::ProcessBlock(RE::Actor* aggressor, RE::Actor* victim, RE::HitData& h
 
   // 应用格挡耐力增益
   damage -= (staminaConsume + Settings::fBlockStaminaBonus) / staminaPerDamage;
-  if (damage < 0)
-    damage = 0;
+  if (damage < 0.1f)
+    damage = 0.1f;
 
   // 写回修改伤害数据
   hitData.totalDamage = damage;
@@ -323,12 +323,13 @@ void Block::ProcessPostureDamage(RE::Actor* aggressor, RE::Actor* victim, float 
 
   // 格挡时受击者的架势伤害乘数，乘以基础架势伤害
   float postureDamageMult = 25.0 / (blockStrength + 25.0f);
-  // 格挡时返回给攻击者的架势伤害乘数
-  float postureDamageReflectMult = blockStrength * 0.002f;
-
-  Posture::DamagePostureHealth(aggressor, postureDamage * postureDamageReflectMult, true);
   Posture::DamagePostureHealth(victim, postureDamage * postureDamageMult,
                                timedBlock && Settings::bTimedBlockNeverPostureBreak);
+  // 限时格挡时返回给攻击者的架势伤害乘数
+  if (timedBlock && Settings::fTimedBlockPostureDamageReflectMult > 0.0f) {
+    auto damage = postureDamage * Settings::fTimedBlockPostureDamageReflectMult;
+    Posture::DamagePostureHealth(aggressor, damage, Settings::bTimedBlockReflectPostureBreak);
+  }
 }
 
 bool Block::IsBlocking(RE::Actor* actor)
@@ -338,13 +339,13 @@ bool Block::IsBlocking(RE::Actor* actor)
 
   auto block = false;
   {
-    std::lock_guard lock(mtx_blockStart);
+    std::scoped_lock lock(mtx_blockStart);
     block = blockStartTimes.contains(actor);
   }
 
   auto timedBlock = false;
   {
-    std::shared_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
+    std::shared_lock lock(mtx_timedBlockDuration);
     timedBlock = timedBlockEndTimes.contains(actor);
   }
   return block || timedBlock || actor->IsBlocking();
@@ -355,12 +356,8 @@ bool Block::IsTimedBlocking(RE::Actor* actor)
   if (!actor || !Settings::bUseBlockSystem || !Settings::bTimedBlockEnabled)
     return false;
 
-  std::shared_lock<std::shared_mutex> lock(mtx_timedBlockDuration);
-  auto it = timedBlockEndTimes.find(actor);
-  if (it == timedBlockEndTimes.end())
-    return false;
-  auto now = Utils::GetTime<std::chrono::milliseconds>();
-  return now < it->second;
+  std::shared_lock lock(mtx_timedBlockDuration);
+  return timedBlockEndTimes.contains(actor);
 }
 
 void Block::AddTimedBlockListener(std::function<void(RE::Actor*)> callback)

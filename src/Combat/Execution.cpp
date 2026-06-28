@@ -236,7 +236,9 @@ std::tuple<RE::Actor*, Direction> Execution::FindExecutableTarget(RE::Actor* agg
     if (executableActors.empty())
       return {nullptr, Direction::None};
     for (auto* victim : executableActors) {
-      if (!victim || victim->IsDead() || !victim->Is3DLoaded() || victim->IsOnMount())
+      if (!victim)
+        continue;
+      if (victim->IsDead() || !victim->Is3DLoaded() || victim->IsOnMount())
         continue;
       if (auto state = victim->AsActorState(); !state || state->IsBleedingOut())
         continue;
@@ -359,7 +361,7 @@ bool Execution::Execute(RE::Actor* aggressor, RE::Actor* victim, Direction direc
 
   {
     std::unique_lock lock(mtx_executing);
-    executingActors[aggressor] = victim;
+    executingActors[aggressor] = {victim, false};
   }
   return true;
 }
@@ -370,8 +372,22 @@ bool Execution::IsExecuting(RE::Actor* actor)
   if (executingActors.empty())
     return false;
 
-  for (const auto [aggressor, victim] : executingActors) {
-    if (actor == aggressor || actor == victim)
+  for (const auto [aggressor, victimData] : executingActors) {
+    if (actor == aggressor || actor == victimData.victim)
+      return true;
+  }
+
+  return false;
+}
+
+bool Execution::IsExecutingVictim(RE::Actor* actor)
+{
+  std::shared_lock lock(mtx_executing);
+  if (executingActors.empty())
+    return false;
+
+  for (const auto [_, victimData] : executingActors) {
+    if (actor == victimData.victim)
       return true;
   }
 
@@ -382,8 +398,22 @@ RE::Actor* Execution::GetExecutingVictim(RE::Actor* aggressor)
 {
   std::shared_lock lock(mtx_executing);
   if (executingActors.contains(aggressor))
-    return executingActors[aggressor];
+    return executingActors[aggressor].victim;
   return nullptr;
+}
+
+void Execution::SetExecutingVictimKill(RE::Actor* victim, bool kill)
+{
+  std::unique_lock lock(mtx_executing);
+  if (executingActors.empty())
+    return;
+
+  for (auto& [_, victimData] : executingActors) {
+    if (victim == victimData.victim) {
+      victimData.kill = kill;
+      return;
+    }
+  }
 }
 
 void Execution::ExecutionEnd(RE::Actor* actor)
@@ -393,10 +423,9 @@ void Execution::ExecutionEnd(RE::Actor* actor)
 
   std::unique_lock lock(mtx_executing);
   if (executingActors.contains(actor)) {
-    auto victim  = executingActors[actor];
-    auto current = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
-    if (current < 1.0f)
-      victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, 1.0f);
+    auto data = executingActors[actor];
+    if (data.kill)
+      data.victim->NotifyAnimationGraph("KillActor");
     executingActors.erase(actor);
   }
 }
@@ -457,13 +486,6 @@ void Execution::Damage(RE::Actor* actor, const std::string& payload)
   // logger::info("Execution::ApplyExecutionDamage: Base damage: {} Base multiplier: {} Damage "
   //              "multiplier: {} Total damage: {}",
   //              baseDamage, baseDamageMult, damageMult.value(), totalDamage);
-
-  // 处决过程免死
-  auto current = victim->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);
-  if (current < totalDamage)
-    totalDamage = current - 0.5;
-  else if (current < 1.0f)
-    totalDamage = 0;
 
   // 处决伤害结算，直接对目标造成真实伤害
   victim->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, totalDamage);
